@@ -1,0 +1,80 @@
+# --- OS ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Secrets / local env ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+pip-wheel-metadata/
+
+# --- Virtual environments ---
+.venv/
+venv/
+ENV/
+env/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Node / frontend ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# --- Bundler outputs ---
+*.map
+.parcel-cache/
+.next/
+out/
+.nuxt/
+.svelte-kit/
+storybook-static/
+vite.config.*.timestamp-*
+
+# --- Common build outputs ---
+*.tsbuildinfo
+*.min.js
+*.min.css
+
+# --- IDEs / editors ---
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# --- Local tooling ---
+.DS_Store
+.cache/
+tmp/
+temp/
+
