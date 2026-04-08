@@ -8,8 +8,8 @@ interface FormWrapperProps {
 
 export function FormWrapper({ children, description, title }: FormWrapperProps) {
   return (
-    <div className="space-y-5">
-      <div className="space-y-1">
+    <div className="space-y-6">
+      <div className="space-y-2">
         <h3 className="text-xl font-semibold text-slate-950 dark:text-slate-100">
           {title}
         </h3>

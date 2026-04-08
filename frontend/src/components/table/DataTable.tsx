@@ -90,7 +90,7 @@ export function DataTable<T>({
   const totalPages = Math.max(1, Math.ceil(effectiveCount / pageSize));
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white/90 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
       <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
         <div>
           {title ? (
@@ -206,11 +206,11 @@ export function DataTable<T>({
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-slate-200 px-5 py-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+      <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
         <span>
           Page {page} of {totalPages}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <Button
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}

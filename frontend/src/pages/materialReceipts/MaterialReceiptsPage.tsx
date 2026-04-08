@@ -8,10 +8,13 @@ import type { Receipt, ReceiptFormValues } from "../../types/erp.types";
 const receiptSchema = z.object({
   cost_per_unit: z.number().min(0, "Cost per unit must be zero or more."),
   material: z.number().min(1, "Material is required."),
-  quantity_received: z.number().min(0, "Received quantity must be zero or more."),
+  quantity_received: z.number().gt(0, "Received quantity must be greater than zero."),
   quantity_used: z.number().min(0, "Used quantity must be zero or more."),
   site: z.number().min(1, "Site is required."),
   transport_cost: z.number().min(0, "Transport cost must be zero or more."),
+}).refine((value) => value.quantity_used <= value.quantity_received, {
+  message: "Used quantity cannot exceed received quantity.",
+  path: ["quantity_used"],
 });
 
 export function MaterialReceiptsPage() {
@@ -46,6 +49,7 @@ export function MaterialReceiptsPage() {
           label: "Site",
           name: "site",
           options: references.sites.map((site) => ({ label: site.name, value: site.id })),
+          required: true,
           valueType: "number",
         },
         {
@@ -53,12 +57,41 @@ export function MaterialReceiptsPage() {
           label: "Material",
           name: "material",
           options: references.materials.map((material) => ({ label: material.name, value: material.id })),
+          required: true,
           valueType: "number",
         },
-        { kind: "number", label: "Quantity Received", min: 0, name: "quantity_received", valueType: "number" },
-        { kind: "number", label: "Quantity Used", min: 0, name: "quantity_used", valueType: "number" },
-        { kind: "number", label: "Cost Per Unit", min: 0, name: "cost_per_unit", valueType: "number" },
-        { kind: "number", label: "Transport Cost", min: 0, name: "transport_cost", valueType: "number" },
+        {
+          kind: "number",
+          label: "Quantity Received",
+          min: 0,
+          name: "quantity_received",
+          required: true,
+          valueType: "number",
+        },
+        {
+          kind: "number",
+          label: "Quantity Used",
+          min: 0,
+          name: "quantity_used",
+          required: true,
+          valueType: "number",
+        },
+        {
+          kind: "number",
+          label: "Cost Per Unit",
+          min: 0,
+          name: "cost_per_unit",
+          required: true,
+          valueType: "number",
+        },
+        {
+          kind: "number",
+          label: "Transport Cost",
+          min: 0,
+          name: "transport_cost",
+          required: true,
+          valueType: "number",
+        },
       ]}
       getEditValues={(entity) => ({
         cost_per_unit: entity.cost_per_unit,

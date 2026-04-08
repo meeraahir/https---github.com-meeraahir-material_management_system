@@ -35,11 +35,17 @@ interface BaseFieldConfig<TFormValues> {
   label: string;
   name: keyof TFormValues & string;
   placeholder?: string;
+  required?: boolean;
+  wrapperClassName?: string;
 }
 
 export interface TextFieldConfig<TFormValues> extends BaseFieldConfig<TFormValues> {
   kind: "text" | "email" | "number" | "date";
+  max?: number;
+  maxLength?: number;
   min?: number;
+  minLength?: number;
+  pattern?: string;
   step?: number;
   valueType?: "number" | "string";
 }

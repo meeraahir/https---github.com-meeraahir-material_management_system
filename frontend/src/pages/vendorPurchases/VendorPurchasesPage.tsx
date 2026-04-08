@@ -8,12 +8,16 @@ import type { Purchase, PurchaseFormValues } from "../../types/erp.types";
 const purchaseSchema = z
   .object({
     date: z.string().min(1, "Date is required."),
-    description: z.string(),
-    invoice_number: z.string(),
+    description: z
+      .string()
+      .max(300, "Description must be 300 characters or fewer."),
+    invoice_number: z
+      .string()
+      .max(60, "Invoice number must be 60 characters or fewer."),
     material: z.number().min(0, "Material is invalid."),
     paid_amount: z.number().min(0, "Paid amount must be zero or more."),
     site: z.number().min(1, "Site is required."),
-    total_amount: z.number().min(0, "Total amount must be zero or more."),
+    total_amount: z.number().gt(0, "Total amount must be greater than zero."),
     vendor: z.number().min(1, "Vendor is required."),
   })
   .refine((value) => value.paid_amount <= value.total_amount, {
@@ -55,6 +59,7 @@ export function VendorPurchasesPage() {
           label: "Vendor",
           name: "vendor",
           options: references.vendors.map((vendor) => ({ label: vendor.name, value: vendor.id })),
+          required: true,
           valueType: "number",
         },
         {
@@ -62,6 +67,7 @@ export function VendorPurchasesPage() {
           label: "Site",
           name: "site",
           options: references.sites.map((site) => ({ label: site.name, value: site.id })),
+          required: true,
           valueType: "number",
         },
         {
@@ -71,11 +77,37 @@ export function VendorPurchasesPage() {
           options: references.materials.map((material) => ({ label: material.name, value: material.id })),
           valueType: "number",
         },
-        { kind: "date", label: "Date", name: "date" },
-        { kind: "text", label: "Invoice Number", name: "invoice_number", placeholder: "Invoice reference" },
-        { kind: "textarea", label: "Description", name: "description", placeholder: "Purchase notes" },
-        { kind: "number", label: "Total Amount", min: 0, name: "total_amount", valueType: "number" },
-        { kind: "number", label: "Paid Amount", min: 0, name: "paid_amount", valueType: "number" },
+        { kind: "date", label: "Date", name: "date", required: true },
+        {
+          kind: "text",
+          label: "Invoice Number",
+          maxLength: 60,
+          name: "invoice_number",
+          placeholder: "Invoice reference",
+        },
+        {
+          kind: "textarea",
+          label: "Description",
+          name: "description",
+          placeholder: "Purchase notes",
+          rows: 5,
+        },
+        {
+          kind: "number",
+          label: "Total Amount",
+          min: 0,
+          name: "total_amount",
+          required: true,
+          valueType: "number",
+        },
+        {
+          kind: "number",
+          label: "Paid Amount",
+          min: 0,
+          name: "paid_amount",
+          required: true,
+          valueType: "number",
+        },
       ]}
       getEditValues={(entity) => ({
         date: entity.date,

@@ -6,7 +6,7 @@ import { receivablesService } from "../../services/receivablesService";
 import type { Receivable, ReceivableFormValues } from "../../types/erp.types";
 
 const receivableSchema = z.object({
-  amount: z.number().min(0, "Amount must be zero or more."),
+  amount: z.number().gt(0, "Amount must be greater than zero."),
   party: z.number().min(1, "Party is required."),
   received: z.boolean(),
   site: z.number().min(1, "Site is required."),
@@ -50,6 +50,7 @@ export function ReceivablesPage() {
           label: "Party",
           name: "party",
           options: references.parties.map((party) => ({ label: party.name, value: party.id })),
+          required: true,
           valueType: "number",
         },
         {
@@ -57,9 +58,17 @@ export function ReceivablesPage() {
           label: "Site",
           name: "site",
           options: references.sites.map((site) => ({ label: site.name, value: site.id })),
+          required: true,
           valueType: "number",
         },
-        { kind: "number", label: "Amount", min: 0, name: "amount", valueType: "number" },
+        {
+          kind: "number",
+          label: "Amount",
+          min: 0,
+          name: "amount",
+          required: true,
+          valueType: "number",
+        },
         { kind: "checkbox", label: "Received", name: "received" },
       ]}
       getEditValues={(entity) => ({

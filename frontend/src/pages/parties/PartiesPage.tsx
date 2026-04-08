@@ -5,8 +5,16 @@ import { partiesService } from "../../services/partiesService";
 import type { Party, PartyFormValues } from "../../types/erp.types";
 
 const partySchema = z.object({
-  contact: z.string().trim().min(1, "Contact is required."),
-  name: z.string().trim().min(1, "Party name is required."),
+  contact: z
+    .string()
+    .trim()
+    .min(3, "Contact must be at least 3 characters.")
+    .max(80, "Contact must be 80 characters or fewer."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Party name must be at least 2 characters.")
+    .max(100, "Party name must be 100 characters or fewer."),
 });
 
 export function PartiesPage() {
@@ -23,8 +31,24 @@ export function PartiesPage() {
       emptyDescription="No finance parties are available."
       emptyTitle="No parties found"
       fields={[
-        { kind: "text", label: "Party Name", name: "name", placeholder: "Client or party name" },
-        { kind: "text", label: "Contact", name: "contact", placeholder: "Phone or contact info" },
+        {
+          kind: "text",
+          label: "Party Name",
+          maxLength: 100,
+          minLength: 2,
+          name: "name",
+          placeholder: "Client or party name",
+          required: true,
+        },
+        {
+          kind: "text",
+          label: "Contact",
+          maxLength: 80,
+          minLength: 3,
+          name: "contact",
+          placeholder: "Phone or contact info",
+          required: true,
+        },
       ]}
       getEditValues={(entity) => ({ contact: entity.contact, name: entity.name })}
       getId={(entity) => entity.id}

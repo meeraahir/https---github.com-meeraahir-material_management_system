@@ -42,12 +42,13 @@ export function EntityFormModal<TFormValues extends FieldValues>({
     onClose();
   };
   const {
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
     handleSubmit,
     register,
     reset,
   } = useForm<TFormValues>({
     defaultValues: defaultValues as DefaultValues<TFormValues>,
+    mode: "onChange",
     resolver: createZodResolver(schema),
   });
 
@@ -64,7 +65,7 @@ export function EntityFormModal<TFormValues extends FieldValues>({
           <Button onClick={handleClose} type="button" variant="secondary">
             Cancel
           </Button>
-          <Button isLoading={isSubmitting} type="submit" form={formId}>
+          <Button disabled={!isValid} isLoading={isSubmitting} type="submit" form={formId}>
             Save
           </Button>
         </div>
@@ -93,11 +94,13 @@ export function EntityFormModal<TFormValues extends FieldValues>({
 
             if (field.kind === "textarea") {
               return (
-                <div className="md:col-span-2" key={sharedKey}>
+                <div className={field.wrapperClassName ?? "md:col-span-2"} key={sharedKey}>
                   <Textarea
+                    description={field.description}
                     error={typeof errorMessage === "string" ? errorMessage : undefined}
                     label={field.label}
                     placeholder={field.placeholder}
+                    requiredIndicator={field.required}
                     rows={field.rows ?? 4}
                     {...register(field.name as Path<TFormValues>)}
                   />
@@ -107,18 +110,21 @@ export function EntityFormModal<TFormValues extends FieldValues>({
 
             if (field.kind === "select") {
               return (
-                <Select
-                  error={typeof errorMessage === "string" ? errorMessage : undefined}
-                  key={sharedKey}
-                  label={field.label}
-                  options={field.options}
-                  {...register(field.name as Path<TFormValues>, {
-                    setValueAs:
-                      field.valueType === "number"
-                        ? (value) => (value === "" ? 0 : Number(value))
-                        : undefined,
-                  })}
-                />
+                <div className={field.wrapperClassName} key={sharedKey}>
+                  <Select
+                    description={field.description}
+                    error={typeof errorMessage === "string" ? errorMessage : undefined}
+                    label={field.label}
+                    options={field.options}
+                    requiredIndicator={field.required}
+                    {...register(field.name as Path<TFormValues>, {
+                      setValueAs:
+                        field.valueType === "number"
+                          ? (value) => (value === "" ? 0 : Number(value))
+                          : undefined,
+                    })}
+                  />
+                </div>
               );
             }
 
@@ -139,21 +145,28 @@ export function EntityFormModal<TFormValues extends FieldValues>({
             }
 
             return (
-              <Input
-                error={typeof errorMessage === "string" ? errorMessage : undefined}
-                key={sharedKey}
-                label={field.label}
-                min={field.kind === "number" ? field.min : undefined}
-                placeholder={field.placeholder}
-                step={field.kind === "number" ? field.step : undefined}
-                type={field.kind}
-                {...register(field.name as Path<TFormValues>, {
-                  setValueAs:
-                    field.kind === "number" || field.valueType === "number"
-                      ? (value) => (value === "" ? 0 : Number(value))
-                      : undefined,
-                })}
-              />
+              <div className={field.wrapperClassName} key={sharedKey}>
+                <Input
+                  description={field.description}
+                  error={typeof errorMessage === "string" ? errorMessage : undefined}
+                  label={field.label}
+                  max={field.kind === "number" ? field.max : undefined}
+                  maxLength={field.kind !== "number" ? field.maxLength : undefined}
+                  min={field.kind === "number" ? field.min : undefined}
+                  minLength={field.kind !== "number" ? field.minLength : undefined}
+                  pattern={field.kind !== "date" ? field.pattern : undefined}
+                  placeholder={field.placeholder}
+                  requiredIndicator={field.required}
+                  step={field.kind === "number" ? field.step : undefined}
+                  type={field.kind}
+                  {...register(field.name as Path<TFormValues>, {
+                    setValueAs:
+                      field.kind === "number" || field.valueType === "number"
+                        ? (value) => (value === "" ? 0 : Number(value))
+                        : undefined,
+                  })}
+                />
+              </div>
             );
           })}
           <div className="md:col-span-2">

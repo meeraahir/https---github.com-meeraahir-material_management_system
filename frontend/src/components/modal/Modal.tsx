@@ -47,31 +47,39 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 p-3 backdrop-blur-sm sm:p-4">
       <div
         className={clsx(
-          "w-full rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950",
-          sizeClasses[size],
+          "mx-auto flex min-h-[calc(100vh-1.5rem)] w-full items-center justify-center sm:min-h-[calc(100vh-2rem)]",
         )}
       >
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-800">
-          <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-50">
-            {title}
-          </h2>
-          <button
-            className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-100"
-            onClick={onClose}
-            type="button"
-          >
-            x
-          </button>
-        </div>
-        <div className="py-5">{children}</div>
-        {footer ? (
-          <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
-            {footer}
+        <div
+          className={clsx(
+            "my-auto flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950",
+            sizeClasses[size],
+          )}
+        >
+          <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6 dark:border-slate-800">
+            <h2 className="text-lg font-semibold text-slate-950 sm:text-xl dark:text-slate-50">
+              {title}
+            </h2>
+            <button
+              className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+              onClick={onClose}
+              type="button"
+            >
+              x
+            </button>
           </div>
-        ) : null}
+          <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            {children}
+          </div>
+          {footer ? (
+            <div className="border-t border-slate-200 px-5 py-4 sm:px-6 dark:border-slate-800">
+              {footer}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

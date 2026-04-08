@@ -47,10 +47,25 @@ export function PaymentsPage() {
           label: "Labour",
           name: "labour",
           options: references.labour.map((labour) => ({ label: labour.name, value: labour.id })),
+          required: true,
           valueType: "number",
         },
-        { kind: "number", label: "Total Amount", min: 0, name: "total_amount", valueType: "number" },
-        { kind: "number", label: "Paid Amount", min: 0, name: "paid_amount", valueType: "number" },
+        {
+          kind: "number",
+          label: "Total Amount",
+          min: 0,
+          name: "total_amount",
+          required: true,
+          valueType: "number",
+        },
+        {
+          kind: "number",
+          label: "Paid Amount",
+          min: 0,
+          name: "paid_amount",
+          required: true,
+          valueType: "number",
+        },
       ]}
       getEditValues={(entity) => ({
         labour: entity.labour,

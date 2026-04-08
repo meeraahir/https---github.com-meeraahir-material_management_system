@@ -54,6 +54,7 @@ export function AttendancePage() {
           label: "Labour",
           name: "labour",
           options: references.labour.map((labour) => ({ label: labour.name, value: labour.id })),
+          required: true,
           valueType: "number",
         },
         {
@@ -61,9 +62,10 @@ export function AttendancePage() {
           label: "Site",
           name: "site",
           options: references.sites.map((site) => ({ label: site.name, value: site.id })),
+          required: true,
           valueType: "number",
         },
-        { kind: "date", label: "Date", name: "date" },
+        { kind: "date", label: "Date", name: "date", required: true },
         { kind: "checkbox", label: "Present", name: "present" },
       ]}
       getEditValues={(entity) => ({

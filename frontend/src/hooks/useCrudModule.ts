@@ -1,5 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
 
+import { useToast } from "../components/feedback/useToast";
 import type { CrudService } from "../services/crudService";
 import { getErrorMessage } from "../utils/apiError";
 
@@ -12,6 +13,7 @@ export function useCrudModule<TEntity, TFormValues>({
   getId,
   service,
 }: CrudModuleOptions<TEntity, TFormValues>) {
+  const { showError, showSuccess } = useToast();
   const [items, setItems] = useState<TEntity[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [searchValue, setSearchValue] = useState("");
@@ -36,10 +38,11 @@ export function useCrudModule<TEntity, TFormValues>({
       setTotalCount(response.count);
     } catch (loadError) {
       setError(getErrorMessage(loadError));
+      showError("Unable to load records", getErrorMessage(loadError));
     } finally {
       setIsLoading(false);
     }
-  }, [deferredSearchValue, page, service]);
+  }, [deferredSearchValue, page, service, showError]);
 
   useEffect(() => {
     void loadList();
@@ -58,22 +61,32 @@ export function useCrudModule<TEntity, TFormValues>({
       setIsDeleteLoading(true);
       await service.remove(getId(deleteTarget));
       setDeleteTarget(null);
+      showSuccess("Record deleted", "The record has been removed successfully.");
       await loadList();
+    } catch (deleteError) {
+      showError("Delete failed", getErrorMessage(deleteError));
     } finally {
       setIsDeleteLoading(false);
     }
   }
 
   async function handleSubmit(values: TFormValues) {
-    if (editingItem) {
-      await service.update(getId(editingItem), values);
-    } else {
-      await service.create(values);
-    }
+    try {
+      if (editingItem) {
+        await service.update(getId(editingItem), values);
+        showSuccess("Record updated", "Changes have been saved successfully.");
+      } else {
+        await service.create(values);
+        showSuccess("Record created", "New details have been added successfully.");
+      }
 
-    setIsFormOpen(false);
-    setEditingItem(null);
-    await loadList();
+      setIsFormOpen(false);
+      setEditingItem(null);
+      await loadList();
+    } catch (submitError) {
+      showError("Save failed", getErrorMessage(submitError));
+      throw submitError;
+    }
   }
 
   function openCreate() {

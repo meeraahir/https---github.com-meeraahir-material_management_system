@@ -5,7 +5,11 @@ import { materialsService } from "../../services/materialsService";
 import type { Material, MaterialFormValues } from "../../types/erp.types";
 
 const materialSchema = z.object({
-  name: z.string().trim().min(1, "Material name is required."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Material name must be at least 2 characters.")
+    .max(60, "Material name must be 60 characters or fewer."),
   unit: z.enum(["bag", "kg", "ton", "meter", "litre", "piece"]),
 });
 
@@ -23,7 +27,15 @@ export function MaterialsPage() {
       emptyDescription="Create the first material to start stock tracking."
       emptyTitle="No materials found"
       fields={[
-        { kind: "text", label: "Material Name", name: "name", placeholder: "Cement, Steel, Sand..." },
+        {
+          kind: "text",
+          label: "Material Name",
+          maxLength: 60,
+          minLength: 2,
+          name: "name",
+          placeholder: "Cement, Steel, Sand...",
+          required: true,
+        },
         {
           kind: "select",
           label: "Unit",
@@ -36,6 +48,7 @@ export function MaterialsPage() {
             { label: "Litre", value: "litre" },
             { label: "Piece", value: "piece" },
           ],
+          required: true,
         },
       ]}
       getEditValues={(entity) => ({ name: entity.name, unit: entity.unit })}
