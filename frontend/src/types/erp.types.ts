@@ -10,6 +10,11 @@ export interface ListParams {
   search?: string;
 }
 
+export interface DateRangeFilters {
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 export interface Site {
   id: number;
   name: string;
@@ -161,15 +166,27 @@ export interface AttendanceFormValues {
 export interface Payment {
   id: number;
   labour: number;
+  site?: number;
   total_amount: number;
   paid_amount: number;
   pending_amount: number;
+  calculated_total_amount?: number;
+  attendance_days?: number;
+  date?: string;
+  period_start?: string;
+  period_end?: string;
+  notes?: string | null;
 }
 
 export interface PaymentFormValues {
   labour: number;
   total_amount: number;
   paid_amount: number;
+  site?: number;
+  date?: string;
+  period_start?: string;
+  period_end?: string;
+  notes?: string | null;
 }
 
 export interface Receivable {
@@ -179,6 +196,8 @@ export interface Receivable {
   amount: number;
   received: boolean;
   date: string;
+  current_received_amount?: number;
+  pending_amount?: number;
 }
 
 export interface ReceivableFormValues {
@@ -192,6 +211,7 @@ export interface DashboardStats {
   total_sites: number;
   total_materials: number;
   total_vendors: number;
+  total_expenses?: number;
   total_material_cost: number;
   total_vendor_cost: number;
   total_labour_cost: number;
@@ -223,9 +243,66 @@ export interface ReportFilters {
   module: ReportModuleKey;
   dateFrom: string;
   dateTo: string;
+  labourId?: number;
+  labourQuery?: string;
 }
 
 export interface SelectOption {
   label: string;
   value: number | string;
+}
+
+export interface MaterialWiseReportRow {
+  material_id: number;
+  material_name: string;
+  total_quantity_received: number;
+  total_quantity_used: number;
+  remaining_stock: number;
+  total_cost: number;
+}
+
+export interface SiteWiseMaterialReportRow {
+  site_id?: number;
+  site_name?: string;
+  name?: string;
+  total_quantity_received?: number;
+  total_quantity_used?: number;
+  remaining_stock?: number;
+  total_cost?: number;
+  total_amount?: number;
+}
+
+export interface LabourPaymentLedgerEntry {
+  id: number | string;
+  entry_type: string;
+  site: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  date: string;
+}
+
+export interface LabourPaymentLedgerTotals {
+  total_amount: number;
+  paid_amount: number;
+  pending_amount: number;
+}
+
+export interface LabourPaymentLedger {
+  labour: string;
+  payments: LabourPaymentLedgerEntry[];
+  totals: LabourPaymentLedgerTotals;
+}
+
+export interface LabourReportSummary {
+  labourId: number;
+  labourName: string;
+  totalAmount: number;
+  paidAmount: number;
+  pendingAmount: number;
+}
+
+export interface LabourReportData {
+  ledger: LabourPaymentLedger;
+  summary: LabourReportSummary;
 }

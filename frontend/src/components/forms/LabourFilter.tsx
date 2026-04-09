@@ -1,0 +1,97 @@
+import { useMemo } from "react";
+
+import type { Labour } from "../../types/erp.types";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Select } from "../ui/Select";
+
+interface LabourFilterProps {
+  dateFrom: string;
+  dateTo: string;
+  isLoading?: boolean;
+  labourId?: number;
+  labourQuery: string;
+  labourRecords: Labour[];
+  onDateFromChange: (value: string) => void;
+  onDateToChange: (value: string) => void;
+  onLabourIdChange: (value?: number) => void;
+  onLabourQueryChange: (value: string) => void;
+  onSubmit: () => void;
+}
+
+export function LabourFilter({
+  dateFrom,
+  dateTo,
+  isLoading = false,
+  labourId,
+  labourQuery,
+  labourRecords,
+  onDateFromChange,
+  onDateToChange,
+  onLabourIdChange,
+  onLabourQueryChange,
+  onSubmit,
+}: LabourFilterProps) {
+  const filteredOptions = useMemo(
+    () =>
+      labourRecords
+        .filter((labour) => {
+          const query = labourQuery.trim().toLowerCase();
+
+          if (!query) {
+            return true;
+          }
+
+          return (
+            labour.name.toLowerCase().includes(query) ||
+            String(labour.id).includes(query)
+          );
+        })
+        .map((labour) => ({
+          label: `${labour.name} (#${labour.id})`,
+          value: labour.id,
+        })),
+    [labourQuery, labourRecords],
+  );
+
+  return (
+    <section className="grid gap-4 rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75 lg:grid-cols-5">
+      <Input
+        description="Filter labour options by name or employee ID."
+        label="Search Labour"
+        placeholder="Type labour name or ID"
+        value={labourQuery}
+        onChange={(event) => onLabourQueryChange(event.target.value)}
+      />
+      <Select
+        description="Select a labour record to fetch the payment ledger report."
+        label="Labour"
+        options={filteredOptions}
+        requiredIndicator
+        value={labourId ?? ""}
+        onChange={(event) =>
+          onLabourIdChange(
+            event.target.value ? Number(event.target.value) : undefined,
+          )
+        }
+      />
+      <Input
+        label="Date From"
+        type="date"
+        value={dateFrom}
+        onChange={(event) => onDateFromChange(event.target.value)}
+      />
+      <Input
+        label="Date To"
+        type="date"
+        value={dateTo}
+        onChange={(event) => onDateToChange(event.target.value)}
+      />
+      <div className="flex items-end">
+        <Button className="w-full" isLoading={isLoading} onClick={onSubmit} type="button">
+          Fetch Labour Report
+        </Button>
+      </div>
+    </section>
+  );
+}
