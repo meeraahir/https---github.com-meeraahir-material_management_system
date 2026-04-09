@@ -25,7 +25,10 @@ SECRET_KEY = 'django-insecure-hxbxn8#yutar+#f=g(b=d5gbhi6-2z56r3)^$ll9*pgf$0!)d-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+]
 
 
 # Application definition
@@ -46,11 +49,13 @@ INSTALLED_APPS = [
     'vendors',
     'labour',
     'finance',
+    'corsheaders',
     'core',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -77,6 +82,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'construction_erp.wsgi.application'
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -105,7 +120,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'construction_db',
         'USER': 'postgres',
-        'PASSWORD': 'meera',
+        'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': '5432',
     }
