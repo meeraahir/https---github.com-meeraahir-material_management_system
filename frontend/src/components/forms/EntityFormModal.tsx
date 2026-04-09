@@ -151,9 +151,9 @@ export function EntityFormModal<TFormValues extends FieldValues>({
                   error={typeof errorMessage === "string" ? errorMessage : undefined}
                   inputMode={field.kind !== "number" ? field.inputMode : undefined}
                   label={field.label}
-                  max={field.kind === "number" ? field.max : undefined}
+                  max={field.kind === "number" || field.kind === "date" ? field.max : undefined}
                   maxLength={field.kind !== "number" ? field.maxLength : undefined}
-                  min={field.kind === "number" ? field.min : undefined}
+                  min={field.kind === "number" || field.kind === "date" ? field.min : undefined}
                   minLength={field.kind !== "number" ? field.minLength : undefined}
                   pattern={field.kind !== "date" ? field.pattern : undefined}
                   placeholder={field.placeholder}

@@ -43,9 +43,9 @@ export interface TextFieldConfig<TFormValues> extends BaseFieldConfig<TFormValue
   kind: "text" | "email" | "number" | "date";
   digitsOnly?: boolean;
   inputMode?: "decimal" | "email" | "none" | "numeric" | "search" | "tel" | "text" | "url";
-  max?: number;
+  max?: number | string;
   maxLength?: number;
-  min?: number;
+  min?: number | string;
   minLength?: number;
   pattern?: string;
   step?: number;

@@ -5,12 +5,18 @@ import { useReferenceData } from "../../hooks/useReferenceData";
 import { attendanceService } from "../../services/attendanceService";
 import type { Attendance, AttendanceFormValues } from "../../types/erp.types";
 
-const attendanceSchema = z.object({
-  date: z.string().min(1, "Date is required."),
-  labour: z.number().min(1, "Labour is required."),
-  present: z.boolean(),
-  site: z.number().min(1, "Site is required."),
-});
+const today = new Date().toISOString().slice(0, 10);
+
+const attendanceSchema = z
+  .object({
+    date: z
+      .string()
+      .min(1, "Date is required.")
+      .refine((value) => value <= today, "Future dates are not allowed."),
+    labour: z.number().min(1, "Labour is required."),
+    present: z.boolean(),
+    site: z.number().min(1, "Site is required."),
+  });
 
 export function AttendancePage() {
   const references = useReferenceData();
@@ -65,7 +71,7 @@ export function AttendancePage() {
           required: true,
           valueType: "number",
         },
-        { kind: "date", label: "Date", name: "date", required: true },
+        { kind: "date", label: "Date", max: today, name: "date", required: true },
         { kind: "checkbox", label: "Present", name: "present" },
       ]}
       getEditValues={(entity) => ({

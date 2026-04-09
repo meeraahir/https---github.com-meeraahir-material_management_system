@@ -12,11 +12,13 @@ import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { useLabourReport } from "../../hooks/useLabourReport";
 import { useReferenceData } from "../../hooks/useReferenceData";
+import { attendanceReportsService } from "../../services/attendanceService";
 import { labourReportsService } from "../../services/labourService";
 import { reportsService } from "../../services/reportsService";
 import type { ReportFilters, ReportModuleKey } from "../../types/erp.types";
 import type { TableColumn } from "../../types/ui.types";
 import { getErrorMessage } from "../../utils/apiError";
+import { downloadCsv } from "../../utils/download";
 import { formatCurrency, formatDate } from "../../utils/format";
 
 const reportModuleOptions: Array<{ label: string; value: ReportModuleKey }> = [
@@ -50,7 +52,7 @@ function buildColumns(
 }
 
 export function ReportsPage() {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const references = useReferenceData();
   const labourReportState = useLabourReport();
   const [filters, setFilters] = useState<ReportFilters>({
@@ -63,8 +65,85 @@ export function ReportsPage() {
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [tablePage, setTablePage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExportingLabour, setIsExportingLabour] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [error, setError] = useState("");
+
+  async function handleLabourCsvExport() {
+    if (!filters.labourId || !labourReportState.report) {
+      showError("No labour selected", "Choose a labour record before exporting.");
+      return;
+    }
+
+    const selectedLabour = references.labour.find((labour) => labour.id === filters.labourId);
+
+    if (!selectedLabour) {
+      showError("Export failed", "The selected labour details could not be found.");
+      return;
+    }
+
+    try {
+      setIsExportingLabour(true);
+
+      const attendanceRows = await attendanceReportsService.getLabourAttendance(
+        filters.labourId,
+        {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        },
+      );
+
+      const siteNameMap = new Map(references.sites.map((site) => [site.id, site.name]));
+      const lines = [
+        ["Labour Details"],
+        ["Labour ID", String(selectedLabour.id)],
+        ["Labour Name", selectedLabour.name],
+        ["Phone", selectedLabour.phone],
+        ["Per Day Wage", String(selectedLabour.per_day_wage)],
+        ["Date From", filters.dateFrom || "-"],
+        ["Date To", filters.dateTo || "-"],
+        [],
+        ["Summary"],
+        ["Total Wage", String(labourReportState.report.summary.totalAmount)],
+        ["Paid Amount", String(labourReportState.report.summary.paidAmount)],
+        ["Pending Amount", String(labourReportState.report.summary.pendingAmount)],
+        [],
+        ["Attendance"],
+        ["Date", "Site", "Present"],
+        ...attendanceRows.map((row) => [
+          row.date,
+          siteNameMap.get(row.site) || String(row.site),
+          row.present ? "Yes" : "No",
+        ]),
+        [],
+        ["Work Data"],
+        ["Date", "Type", "Site", "Debit", "Credit", "Balance"],
+        ...labourReportState.report.ledger.payments.map((entry) => [
+          entry.date,
+          entry.entry_type,
+          entry.site,
+          String(entry.debit),
+          String(entry.credit),
+          String(entry.balance),
+        ]),
+      ];
+
+      const csvContent = lines
+        .map((line) =>
+          line
+            .map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`)
+            .join(","),
+        )
+        .join("\n");
+
+      downloadCsv(csvContent, `labour-${filters.labourId}-report.csv`);
+      showSuccess("Export complete", "The selected labour report was exported as CSV.");
+    } catch (exportError) {
+      showError("Unable to export labour report", getErrorMessage(exportError));
+    } finally {
+      setIsExportingLabour(false);
+    }
+  }
 
   async function handlePreview() {
     if (filters.module === "labour" && filters.labourId) {
@@ -266,6 +345,17 @@ export function ReportsPage() {
                   </p>
                 </article>
               </section>
+
+              <div className="flex justify-end">
+                <Button
+                  isLoading={isExportingLabour}
+                  onClick={() => void handleLabourCsvExport()}
+                  type="button"
+                  variant="secondary"
+                >
+                  Export Selected Labour CSV
+                </Button>
+              </div>
 
               <ChartCard
                 description="Wage debit and payment credit movement for the selected labour record."

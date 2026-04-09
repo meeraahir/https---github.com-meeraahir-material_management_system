@@ -11,8 +11,8 @@ export function DashboardLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-900 dark:text-slate-100">
-      <div className="flex min-h-screen">
+    <div className="h-screen overflow-hidden bg-transparent text-slate-900 dark:text-slate-100">
+      <div className="flex h-screen">
         <Sidebar
           collapsed={sidebarCollapsed}
           onClose={() => setSidebarOpen(false)}
@@ -21,13 +21,14 @@ export function DashboardLayout() {
           }
           open={sidebarOpen}
         />
-        <div className="flex flex-1 flex-col">
+        <div className={sidebarCollapsed ? "hidden lg:block lg:w-24" : "hidden lg:block lg:w-72"} />
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <Navbar
             onLogout={logout}
             onMenuClick={() => setSidebarOpen(true)}
             user={user}
           />
-          <main className="flex-1 px-5 py-6 sm:px-6 lg:px-8">
+          <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-6 lg:px-8">
             <Outlet />
           </main>
         </div>

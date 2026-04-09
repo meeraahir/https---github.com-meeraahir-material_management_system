@@ -28,7 +28,7 @@ export function Sidebar({
       />
       <aside
         className={clsx(
-          "fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white/95 px-4 py-5 shadow-2xl shadow-slate-900/10 backdrop-blur transition dark:border-slate-800 dark:bg-slate-950/95 lg:static lg:translate-x-0 lg:shadow-none",
+          "fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col overflow-hidden border-r border-slate-200 bg-white/95 px-4 py-5 shadow-2xl shadow-slate-900/10 backdrop-blur transition dark:border-slate-800 dark:bg-slate-950/95 lg:translate-x-0 lg:shadow-none",
           collapsed ? "lg:w-24" : "lg:w-72",
           open ? "translate-x-0" : "-translate-x-full",
         )}
@@ -53,28 +53,30 @@ export function Sidebar({
           </button>
         </div>
 
-        <nav className="mt-8 grid gap-2">
-          {navigationItems.map((item) => (
-            <NavLink
-              key={item.to}
-              className={({ isActive }) =>
-                clsx(
-                  "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition",
-                  isActive
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
-                  collapsed && "justify-center lg:px-0",
-                )
-              }
-              end={item.to === "/dashboard"}
-              onClick={onClose}
-              to={item.to}
-            >
-              <span className="shrink-0">{item.icon}</span>
-              <span className={clsx(collapsed && "lg:hidden")}>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+        <div className="mt-8 flex-1 overflow-y-auto pr-1">
+          <nav className="grid gap-2 pb-4">
+            {navigationItems.map((item) => (
+              <NavLink
+                key={item.to}
+                className={({ isActive }) =>
+                  clsx(
+                    "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition",
+                    isActive
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+                    collapsed && "justify-center lg:px-0",
+                  )
+                }
+                end={item.to === "/dashboard"}
+                onClick={onClose}
+                to={item.to}
+              >
+                <span className="shrink-0">{item.icon}</span>
+                <span className={clsx(collapsed && "lg:hidden")}>{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+        </div>
       </aside>
     </>
   );
