@@ -1,9 +1,11 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { paymentsService } from "../../services/paymentsService";
 import type { Payment, PaymentFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const paymentSchema = z
   .object({
@@ -17,14 +19,18 @@ const paymentSchema = z
   });
 
 export function PaymentsPage() {
+  const { user } = useAuth();
   const references = useReferenceData();
+  const permissions = getCrudPermissions(user);
   const labourNameMap = new Map(
     references.labour.map((labour) => [labour.id, labour.name]),
   );
 
   return (
     <CrudModulePage<Payment, PaymentFormValues>
-      canManage
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         {
           key: "labour",
@@ -41,6 +47,7 @@ export function PaymentsPage() {
       description="Track labour payment entries and pending balances."
       emptyDescription="No labour payments are available."
       emptyTitle="No payments found"
+      externalError={references.error}
       fields={[
         {
           kind: "select",

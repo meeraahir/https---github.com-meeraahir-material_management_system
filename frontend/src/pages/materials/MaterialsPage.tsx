@@ -1,8 +1,10 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { useAuth } from "../../hooks/useAuth";
 import { materialsService } from "../../services/materialsService";
 import type { Material, MaterialFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const materialSchema = z.object({
   name: z
@@ -14,9 +16,14 @@ const materialSchema = z.object({
 });
 
 export function MaterialsPage() {
+  const { user } = useAuth();
+  const permissions = getCrudPermissions(user);
+
   return (
     <CrudModulePage<Material, MaterialFormValues>
-      canManage
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         { key: "name", header: "Material", accessor: (row) => row.name, sortValue: (row) => row.name },
         { key: "unit", header: "Unit", accessor: (row) => row.unit, sortValue: (row) => row.unit },

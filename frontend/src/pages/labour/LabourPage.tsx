@@ -1,8 +1,10 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { useAuth } from "../../hooks/useAuth";
 import { labourService } from "../../services/labourService";
 import type { Labour, LabourFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const labourSchema = z.object({
   name: z
@@ -18,9 +20,14 @@ const labourSchema = z.object({
 });
 
 export function LabourPage() {
+  const { user } = useAuth();
+  const permissions = getCrudPermissions(user);
+
   return (
     <CrudModulePage<Labour, LabourFormValues>
-      canManage
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         { key: "name", header: "Labour", accessor: (row) => row.name, sortValue: (row) => row.name },
         { key: "phone", header: "Phone", accessor: (row) => row.phone, sortValue: (row) => row.phone },

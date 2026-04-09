@@ -11,6 +11,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
   label: string;
   options: Array<{ label: string; value: number | string }>;
+  placeholder?: string;
   requiredIndicator?: boolean;
 }
 

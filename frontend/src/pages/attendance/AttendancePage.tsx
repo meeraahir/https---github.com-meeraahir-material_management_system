@@ -1,9 +1,11 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { attendanceService } from "../../services/attendanceService";
 import type { Attendance, AttendanceFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -19,7 +21,9 @@ const attendanceSchema = z
   });
 
 export function AttendancePage() {
+  const { user } = useAuth();
   const references = useReferenceData();
+  const permissions = getCrudPermissions(user);
   const labourNameMap = new Map(
     references.labour.map((labour) => [labour.id, labour.name]),
   );
@@ -27,7 +31,9 @@ export function AttendancePage() {
 
   return (
     <CrudModulePage<Attendance, AttendanceFormValues>
-      canManage
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         {
           key: "labour",
@@ -54,6 +60,7 @@ export function AttendancePage() {
       description="Maintain daily labour attendance across active sites."
       emptyDescription="No attendance records are available."
       emptyTitle="No attendance found"
+      externalError={references.error}
       fields={[
         {
           kind: "select",

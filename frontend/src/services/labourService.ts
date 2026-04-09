@@ -45,12 +45,20 @@ export const labourReportsService = {
     } satisfies LabourReportData;
   },
 
-  async exportLedger(labourId: number, format: "excel" | "pdf") {
+  async exportLedger(
+    labourId: number,
+    format: "excel" | "pdf",
+    filters?: DateRangeFilters,
+  ) {
     const endpoint =
       format === "excel"
         ? `/labour/${labourId}/payment-ledger/export/`
         : `/labour/${labourId}/payment-ledger/pdf/`;
     const response = await apiClient.get(endpoint, {
+      params: {
+        date_from: filters?.dateFrom || undefined,
+        date_to: filters?.dateTo || undefined,
+      },
       responseType: "blob",
     });
 

@@ -189,16 +189,25 @@ export function ReportsPage() {
   async function handleExport(format: "excel" | "pdf") {
     try {
       if (filters.module === "labour" && filters.labourId) {
-        await labourReportsService.exportLedger(filters.labourId, format);
+        await labourReportsService.exportLedger(filters.labourId, format, {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        });
         return;
       }
 
       if (format === "excel") {
-        await reportsService.exportExcel(filters.module);
+        await reportsService.exportExcel(filters.module, {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        });
         return;
       }
 
-      await reportsService.exportPdf(filters.module);
+      await reportsService.exportPdf(filters.module, {
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+      });
     } catch (exportError) {
       showError("Unable to export report", getErrorMessage(exportError));
     }
@@ -248,7 +257,7 @@ export function ReportsPage() {
         title="Reports"
       />
 
-      <ErrorMessage message={error || labourReportState.error} />
+      <ErrorMessage message={error || labourReportState.error || references.error} />
 
       <section className="grid gap-4 rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75 lg:grid-cols-4">
         <Select

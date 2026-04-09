@@ -4,6 +4,7 @@ import { CrudModulePage } from "../../components/forms/CrudModulePage";
 import { useAuth } from "../../hooks/useAuth";
 import { sitesService } from "../../services/sitesService";
 import type { Site, SiteFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const siteSchema = z.object({
   description: z.string().max(300, "Description must be 300 characters or fewer."),
@@ -21,10 +22,13 @@ const siteSchema = z.object({
 
 export function SitesPage() {
   const { user } = useAuth();
+  const permissions = getCrudPermissions(user);
 
   return (
     <CrudModulePage<Site, SiteFormValues>
-      canManage={Boolean(user)}
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         { key: "name", header: "Name", accessor: (row) => row.name, sortValue: (row) => row.name },
         { key: "location", header: "Location", accessor: (row) => row.location, sortValue: (row) => row.location },

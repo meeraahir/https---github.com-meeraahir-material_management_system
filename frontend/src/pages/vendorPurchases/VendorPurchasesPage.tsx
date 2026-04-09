@@ -1,9 +1,11 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { vendorPurchasesService } from "../../services/vendorPurchasesService";
 import type { Purchase, PurchaseFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const purchaseSchema = z
   .object({
@@ -26,11 +28,15 @@ const purchaseSchema = z
   });
 
 export function VendorPurchasesPage() {
+  const { user } = useAuth();
   const references = useReferenceData();
+  const permissions = getCrudPermissions(user);
 
   return (
     <CrudModulePage<Purchase, PurchaseFormValues>
-      canManage
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         { key: "vendor", header: "Vendor", accessor: (row) => row.vendor_name, sortValue: (row) => row.vendor_name },
         { key: "site", header: "Site", accessor: (row) => row.site_name, sortValue: (row) => row.site_name },
@@ -53,6 +59,7 @@ export function VendorPurchasesPage() {
       description="Capture vendor purchase entries, invoices, and pending payment values."
       emptyDescription="No vendor purchases are available."
       emptyTitle="No purchases found"
+      externalError={references.error}
       fields={[
         {
           kind: "select",

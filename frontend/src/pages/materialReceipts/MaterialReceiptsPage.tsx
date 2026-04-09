@@ -1,9 +1,11 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { materialReceiptsService } from "../../services/materialReceiptsService";
 import type { Receipt, ReceiptFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const receiptSchema = z.object({
   cost_per_unit: z.number().min(0, "Cost per unit must be zero or more."),
@@ -18,11 +20,15 @@ const receiptSchema = z.object({
 });
 
 export function MaterialReceiptsPage() {
+  const { user } = useAuth();
   const references = useReferenceData();
+  const permissions = getCrudPermissions(user);
 
   return (
     <CrudModulePage<Receipt, ReceiptFormValues>
-      canManage
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         { key: "site", header: "Site", accessor: (row) => row.site_name, sortValue: (row) => row.site_name },
         { key: "material", header: "Material", accessor: (row) => row.material_name, sortValue: (row) => row.material_name },
@@ -43,6 +49,7 @@ export function MaterialReceiptsPage() {
       description="Record material inflow, usage, and stock costs across sites."
       emptyDescription="No material receipts have been recorded."
       emptyTitle="No receipts found"
+      externalError={references.error}
       fields={[
         {
           kind: "select",

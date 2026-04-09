@@ -1,8 +1,10 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { useAuth } from "../../hooks/useAuth";
 import { partiesService } from "../../services/partiesService";
 import type { Party, PartyFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const partySchema = z.object({
   contact: z
@@ -18,9 +20,14 @@ const partySchema = z.object({
 });
 
 export function PartiesPage() {
+  const { user } = useAuth();
+  const permissions = getCrudPermissions(user);
+
   return (
     <CrudModulePage<Party, PartyFormValues>
-      canManage
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         { key: "name", header: "Party", accessor: (row) => row.name, sortValue: (row) => row.name },
         { key: "contact", header: "Contact", accessor: (row) => row.contact, sortValue: (row) => row.contact },

@@ -1,8 +1,10 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { useAuth } from "../../hooks/useAuth";
 import { vendorsService } from "../../services/vendorsService";
 import type { Vendor, VendorFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const phoneRegex = /^[0-9]{10}$/;
 const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
@@ -64,9 +66,14 @@ const vendorSchema = z.object({
 });
 
 export function VendorsPage() {
+  const { user } = useAuth();
+  const permissions = getCrudPermissions(user);
+
   return (
     <CrudModulePage<Vendor, VendorFormValues>
-      canManage
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         { key: "name", header: "Vendor", accessor: (row) => row.name, sortValue: (row) => row.name },
         { key: "phone", header: "Phone", accessor: (row) => row.phone, sortValue: (row) => row.phone },

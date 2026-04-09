@@ -73,16 +73,24 @@ function filterByDateRange<T>(rows: T[], filters: ReportFilters): T[] {
 }
 
 export const reportsService = {
-  async exportExcel(module: ReportModuleKey) {
+  async exportExcel(module: ReportModuleKey, filters?: Pick<ReportFilters, "dateFrom" | "dateTo">) {
     const response = await apiClient.get(exportEndpointMap[module].excel, {
+      params: {
+        date_from: filters?.dateFrom || undefined,
+        date_to: filters?.dateTo || undefined,
+      },
       responseType: "blob",
     });
 
     downloadBlob(response.data, `${module}-report.xlsx`);
   },
 
-  async exportPdf(module: ReportModuleKey) {
+  async exportPdf(module: ReportModuleKey, filters?: Pick<ReportFilters, "dateFrom" | "dateTo">) {
     const response = await apiClient.get(exportEndpointMap[module].pdf, {
+      params: {
+        date_from: filters?.dateFrom || undefined,
+        date_to: filters?.dateTo || undefined,
+      },
       responseType: "blob",
     });
 

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 
+import { useToast } from "../components/feedback/useToast";
 import { labourService } from "../services/labourService";
 import { materialsService } from "../services/materialsService";
 import { partiesService } from "../services/partiesService";
 import { sitesService } from "../services/sitesService";
 import { vendorsService } from "../services/vendorsService";
 import type { Labour, Material, Party, Site, Vendor } from "../types/erp.types";
+import { getErrorMessage } from "../utils/apiError";
 
 interface ReferenceState {
   labour: Labour[];
@@ -16,6 +18,7 @@ interface ReferenceState {
 }
 
 export function useReferenceData() {
+  const { showError } = useToast();
   const [data, setData] = useState<ReferenceState>({
     labour: [],
     materials: [],
@@ -23,12 +26,14 @@ export function useReferenceData() {
     sites: [],
     vendors: [],
   });
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadReferences() {
       try {
         setIsLoading(true);
+        setError("");
         const [sites, materials, vendors, labour, parties] = await Promise.all([
           sitesService.getOptions(),
           materialsService.getOptions(),
@@ -44,16 +49,21 @@ export function useReferenceData() {
           sites,
           vendors,
         });
+      } catch (loadError) {
+        const message = getErrorMessage(loadError);
+        setError(message);
+        showError("Unable to load reference data", message);
       } finally {
         setIsLoading(false);
       }
     }
 
     void loadReferences();
-  }, []);
+  }, [showError]);
 
   return {
     ...data,
+    error,
     isLoading,
   };
 }

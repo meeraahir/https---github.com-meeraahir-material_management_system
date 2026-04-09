@@ -1,9 +1,11 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { receivablesService } from "../../services/receivablesService";
 import type { Receivable, ReceivableFormValues } from "../../types/erp.types";
+import { getCrudPermissions } from "../../utils/permissions";
 
 const receivableSchema = z.object({
   amount: z.number().gt(0, "Amount must be greater than zero."),
@@ -13,7 +15,9 @@ const receivableSchema = z.object({
 });
 
 export function ReceivablesPage() {
+  const { user } = useAuth();
   const references = useReferenceData();
+  const permissions = getCrudPermissions(user);
   const partyNameMap = new Map(
     references.parties.map((party) => [party.id, party.name]),
   );
@@ -21,7 +25,9 @@ export function ReceivablesPage() {
 
   return (
     <CrudModulePage<Receivable, ReceivableFormValues>
-      canManage
+      canCreate={permissions.canCreate}
+      canDelete={permissions.canDelete}
+      canEdit={permissions.canEdit}
       columns={[
         {
           key: "party",
@@ -44,6 +50,7 @@ export function ReceivablesPage() {
       description="Record receivables and mark whether client payments have been received."
       emptyDescription="No receivables have been recorded."
       emptyTitle="No receivables found"
+      externalError={references.error}
       fields={[
         {
           kind: "select",

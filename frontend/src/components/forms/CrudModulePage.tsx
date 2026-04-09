@@ -13,13 +13,16 @@ import { FormError } from "../ui/FormError";
 import { EntityFormModal } from "./EntityFormModal";
 
 interface CrudModulePageProps<TEntity, TFormValues extends FieldValues> {
-  canManage: boolean;
+  canCreate: boolean;
+  canDelete?: boolean;
+  canEdit?: boolean;
   columns: TableColumn<TEntity>[];
   createLabel: string;
   defaultValues: TFormValues;
   description: string;
   emptyDescription: string;
   emptyTitle: string;
+  externalError?: string;
   fields: FormFieldConfig<TFormValues>[];
   getEditValues: (entity: TEntity) => TFormValues;
   getId: (entity: TEntity) => number;
@@ -30,13 +33,16 @@ interface CrudModulePageProps<TEntity, TFormValues extends FieldValues> {
 }
 
 export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
-  canManage,
+  canCreate,
+  canDelete = false,
+  canEdit = false,
   columns,
   createLabel,
   defaultValues,
   description,
   emptyDescription,
   emptyTitle,
+  externalError,
   fields,
   getEditValues,
   getId,
@@ -73,7 +79,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
     <div className="space-y-6">
       <PageHeader
         actions={
-          canManage ? (
+          canCreate ? (
             <Button onClick={openCreate} type="button">
               {createLabel}
             </Button>
@@ -83,18 +89,25 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
         title={title}
       />
 
+      <FormError message={externalError} />
       <FormError message={error} />
 
       <DataTable
         actions={
-          canManage
+          canEdit || canDelete
             ? [
-                { label: "Edit", onClick: openEdit, variant: "secondary" },
-                {
-                  label: "Delete",
-                  onClick: setDeleteTarget,
-                  variant: "ghost",
-                },
+                ...(canEdit
+                  ? [{ label: "Edit", onClick: openEdit, variant: "secondary" as const }]
+                  : []),
+                ...(canDelete
+                  ? [
+                      {
+                        label: "Delete",
+                        onClick: setDeleteTarget,
+                        variant: "ghost" as const,
+                      },
+                    ]
+                  : []),
               ]
             : undefined
         }
@@ -121,7 +134,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
           setIsFormOpen(false);
         }}
         onSubmit={handleSubmit}
-        open={isFormOpen}
+        open={isFormOpen && (canCreate || canEdit)}
         schema={schema}
         title={editingItem ? `Edit ${title}` : `Create ${title}`}
       />
@@ -134,7 +147,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
         onConfirm={() => {
           void handleDelete();
         }}
-        open={Boolean(deleteTarget)}
+        open={canDelete && Boolean(deleteTarget)}
         title={`Delete ${title}`}
       />
     </div>
