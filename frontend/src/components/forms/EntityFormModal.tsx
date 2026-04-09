@@ -149,6 +149,7 @@ export function EntityFormModal<TFormValues extends FieldValues>({
                 <Input
                   description={field.description}
                   error={typeof errorMessage === "string" ? errorMessage : undefined}
+                  inputMode={field.kind !== "number" ? field.inputMode : undefined}
                   label={field.label}
                   max={field.kind === "number" ? field.max : undefined}
                   maxLength={field.kind !== "number" ? field.maxLength : undefined}
@@ -160,6 +161,14 @@ export function EntityFormModal<TFormValues extends FieldValues>({
                   step={field.kind === "number" ? field.step : undefined}
                   type={field.kind}
                   {...register(field.name as Path<TFormValues>, {
+                    onChange: field.digitsOnly
+                      ? (event) => {
+                          const sanitizedValue = String(event.target.value ?? "")
+                            .replaceAll(/\D/g, "")
+                            .slice(0, field.maxLength ?? Number.MAX_SAFE_INTEGER);
+                          event.target.value = sanitizedValue;
+                        }
+                      : undefined,
                     setValueAs:
                       field.kind === "number" || field.valueType === "number"
                         ? (value) => (value === "" ? 0 : Number(value))

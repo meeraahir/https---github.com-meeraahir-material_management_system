@@ -1,11 +1,9 @@
 from io import BytesIO
 
-from django.db.models import Sum, F, FloatField, Count, Q
+from django.db.models import Sum, F, FloatField, Count, Q, Case, When, Value
 from django.db.models.functions import TruncWeek, TruncMonth
 from django.http import HttpResponse
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.pdfgen.canvas import Canvas
+from core.pdf_utils import build_pdf_response
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -14,17 +12,38 @@ from django_filters.rest_framework import DjangoFilterBackend
 from openpyxl import Workbook
 
 from sites.permissions import IsAdminOrReadOnly
-from .models import Labour, LabourAttendance, LabourPayment
+from .models import Labour, LabourAttendance, LabourPayment, LabourPaymentEntry
 from .serializers import LabourSerializer, LabourAttendanceSerializer, LabourPaymentSerializer
 
 
 class LabourViewSet(viewsets.ModelViewSet):
     queryset = Labour.objects.all().order_by('id')
     serializer_class = LabourSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['name']
     search_fields = ['name', 'phone']
+
+    def _date_range(self):
+        return self.request.query_params.get('date_from'), self.request.query_params.get('date_to')
+
+    def _filtered_attendance(self):
+        attendance = LabourAttendance.objects.all()
+        date_from, date_to = self._date_range()
+        if date_from:
+            attendance = attendance.filter(date__gte=date_from)
+        if date_to:
+            attendance = attendance.filter(date__lte=date_to)
+        return attendance
+
+    def _filtered_payments(self):
+        payments = LabourPayment.objects.all()
+        date_from, date_to = self._date_range()
+        if date_from:
+            payments = payments.filter(date__gte=date_from)
+        if date_to:
+            payments = payments.filter(date__lte=date_to)
+        return payments
 
     @action(detail=True, methods=['get'], url_path='attendance-report')
     def attendance_report(self, request, pk=None):
@@ -46,20 +65,58 @@ class LabourViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='payment-ledger')
     def payment_ledger(self, request, pk=None):
         labour = self.get_object()
-        payments = LabourPayment.objects.filter(labour=labour)
-        data = [
-            {
-                'id': payment.id,
-                'total_amount': payment.total_amount,
-                'paid_amount': payment.paid_amount,
-                'pending_amount': payment.pending_amount(),
-            }
-            for payment in payments
-        ]
+        wage_entries = LabourPayment.objects.filter(labour=labour).select_related('site')
+        payment_entries = LabourPaymentEntry.objects.filter(labour=labour).select_related('site', 'payment')
+        date_from, date_to = self._date_range()
+
+        if date_from:
+            wage_entries = wage_entries.filter(date__gte=date_from)
+            payment_entries = payment_entries.filter(date__gte=date_from)
+        if date_to:
+            wage_entries = wage_entries.filter(date__lte=date_to)
+            payment_entries = payment_entries.filter(date__lte=date_to)
+
+        entries = []
+        for wage_entry in wage_entries:
+            entries.append({
+                'id': f'wage-{wage_entry.id}',
+                'entry_type': 'wage',
+                'site': wage_entry.site.name if wage_entry.site else None,
+                'debit': wage_entry.total_amount,
+                'credit': 0,
+                'date': wage_entry.date,
+                '_sort_id': wage_entry.id,
+            })
+
+        for payment_entry in payment_entries:
+            entries.append({
+                'id': f'payment-{payment_entry.id}',
+                'entry_type': 'payment',
+                'site': payment_entry.site.name if payment_entry.site else None,
+                'debit': 0,
+                'credit': payment_entry.amount,
+                'date': payment_entry.date,
+                '_sort_id': payment_entry.id,
+            })
+
+        entries.sort(key=lambda item: (item['date'], item['_sort_id'], item['entry_type']))
+        running_balance = 0
+        data = []
+        for entry in entries:
+            running_balance += entry['debit'] - entry['credit']
+            data.append({
+                'id': entry['id'],
+                'entry_type': entry['entry_type'],
+                'site': entry['site'],
+                'debit': entry['debit'],
+                'credit': entry['credit'],
+                'balance': running_balance,
+                'date': entry['date'],
+            })
         totals = {
-            'total_amount': sum(item['total_amount'] for item in data),
-            'paid_amount': sum(item['paid_amount'] for item in data),
-            'pending_amount': sum(item['pending_amount'] for item in data),
+            'total_amount': sum(item['debit'] for item in data),
+            'paid_amount': sum(item['credit'] for item in data),
+            'pending_amount': running_balance,
         }
         return Response({'labour': labour.name, 'payments': data, 'totals': totals})
 
@@ -67,7 +124,7 @@ class LabourViewSet(viewsets.ModelViewSet):
     def export_payment_ledger(self, request, pk=None):
         ledger_data = self.payment_ledger(request, pk).data
         rows = ledger_data['payments']
-        return self._export_report(rows, f"labour_{ledger_data['labour']}_payment_ledger", ['id', 'total_amount', 'paid_amount', 'pending_amount'])
+        return self._export_report(rows, f"labour_{ledger_data['labour']}_payment_ledger", ['id', 'entry_type', 'site', 'debit', 'credit', 'balance', 'date'])
 
     @action(detail=True, methods=['get'], url_path='payment-ledger/pdf')
     def export_payment_ledger_pdf(self, request, pk=None):
@@ -77,10 +134,17 @@ class LabourViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='reports/wage')
     def wage_report(self, request):
+        attendance_filter = Q()
+        date_from, date_to = self._date_range()
+        if date_from:
+            attendance_filter &= Q(labourattendance__date__gte=date_from)
+        if date_to:
+            attendance_filter &= Q(labourattendance__date__lte=date_to)
+
         data = (
             Labour.objects.annotate(
-                present_count=Count('labourattendance', filter=Q(labourattendance__present=True)),
-                attendance_count=Count('labourattendance'),
+                present_count=Count('labourattendance', filter=Q(labourattendance__present=True) & attendance_filter),
+                attendance_count=Count('labourattendance', filter=attendance_filter),
             )
             .values('id', 'name', 'phone', 'per_day_wage', 'attendance_count', 'present_count')
         )
@@ -110,8 +174,10 @@ class LabourViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='reports/attendance-summary')
     def attendance_summary(self, request):
+        attendance = self._filtered_attendance()
+
         data = (
-            LabourAttendance.objects.values('labour__id', 'labour__name')
+            attendance.values('labour__id', 'labour__name')
             .annotate(
                 present_count=Count('id', filter=Q(present=True)),
                 total_days=Count('id'),
@@ -136,8 +202,10 @@ class LabourViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='reports/attendance-daily')
     def attendance_daily_report(self, request):
+        attendance = self._filtered_attendance()
+
         data = (
-            LabourAttendance.objects.values('date')
+            attendance.values('date')
             .annotate(
                 present_count=Count('id', filter=Q(present=True)),
                 total_workers=Count('id'),
@@ -156,8 +224,10 @@ class LabourViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='reports/attendance-weekly')
     def attendance_weekly_report(self, request):
+        attendance = self._filtered_attendance()
+
         data = (
-            LabourAttendance.objects.annotate(week=TruncWeek('date'))
+            attendance.annotate(week=TruncWeek('date'))
             .values('week')
             .annotate(
                 present_count=Count('id', filter=Q(present=True)),
@@ -177,8 +247,10 @@ class LabourViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='reports/attendance-monthly')
     def attendance_monthly_report(self, request):
+        attendance = self._filtered_attendance()
+
         data = (
-            LabourAttendance.objects.annotate(month=TruncMonth('date'))
+            attendance.annotate(month=TruncMonth('date'))
             .values('month')
             .annotate(
                 present_count=Count('id', filter=Q(present=True)),
@@ -228,8 +300,10 @@ class LabourViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='reports/payment-summary')
     def payment_summary(self, request):
+        payments = self._filtered_payments()
+
         data = (
-            LabourPayment.objects.values('labour__id', 'labour__name')
+            payments.values('labour__id', 'labour__name')
             .annotate(
                 total_amount_sum=Sum('total_amount', output_field=FloatField()),
                 paid_amount_sum=Sum('paid_amount', output_field=FloatField()),
@@ -251,15 +325,123 @@ class LabourViewSet(viewsets.ModelViewSet):
             for item in data
         ])
 
+    @action(detail=False, methods=['get'], url_path='reports/site-wise')
+    def site_wise_report(self, request):
+        attendance = self._filtered_attendance()
+        payments = self._filtered_payments()
+
+        attendance_data = (
+            attendance.values('site__id', 'site__name')
+            .annotate(
+                present_count=Count('id', filter=Q(present=True)),
+                total_days=Count('id'),
+                total_wage=Sum(
+                    Case(
+                        When(present=True, then=F('labour__per_day_wage')),
+                        default=Value(0),
+                        output_field=FloatField(),
+                    )
+                ),
+            )
+            .order_by('site__name')
+        )
+        payment_map = {
+            item['site__id']: {
+                'paid_amount': item['paid_amount_sum'] or 0,
+                'pending_amount': (item['total_amount_sum'] or 0) - (item['paid_amount_sum'] or 0),
+            }
+            for item in payments.values('site__id').annotate(
+                total_amount_sum=Sum('total_amount', output_field=FloatField()),
+                paid_amount_sum=Sum('paid_amount', output_field=FloatField()),
+            )
+        }
+        return Response([
+            {
+                'site_id': item['site__id'],
+                'site_name': item['site__name'],
+                'present_count': int(item['present_count'] or 0),
+                'total_days': item['total_days'],
+                'absent_count': item['total_days'] - int(item['present_count'] or 0),
+                'total_wage': item['total_wage'] or 0,
+                'paid_amount': payment_map.get(item['site__id'], {}).get('paid_amount', 0),
+                'pending_amount': payment_map.get(item['site__id'], {}).get('pending_amount', 0),
+            }
+            for item in attendance_data
+        ])
+
+    @action(detail=False, methods=['get'], url_path=r'reports/site/(?P<site_id>[^/.]+)')
+    def site_specific_report(self, request, site_id=None):
+        attendance = self._filtered_attendance().filter(site_id=site_id)
+        payments = self._filtered_payments().filter(site_id=site_id)
+
+        attendance_data = (
+            attendance.values('labour__id', 'labour__name')
+            .annotate(
+                present_count=Count('id', filter=Q(present=True)),
+                total_days=Count('id'),
+                total_wage=Sum(
+                    Case(
+                        When(present=True, then=F('labour__per_day_wage')),
+                        default=Value(0),
+                        output_field=FloatField(),
+                    )
+                ),
+            )
+            .order_by('labour__name')
+        )
+        payment_map = {
+            item['labour__id']: {
+                'paid_amount': item['paid_amount_sum'] or 0,
+                'pending_amount': (item['total_amount_sum'] or 0) - (item['paid_amount_sum'] or 0),
+            }
+            for item in payments.values('labour__id').annotate(
+                total_amount_sum=Sum('total_amount', output_field=FloatField()),
+                paid_amount_sum=Sum('paid_amount', output_field=FloatField()),
+            )
+        }
+        return Response([
+            {
+                'labour_id': item['labour__id'],
+                'labour_name': item['labour__name'],
+                'present_count': int(item['present_count'] or 0),
+                'total_days': item['total_days'],
+                'absent_count': item['total_days'] - int(item['present_count'] or 0),
+                'total_wage': item['total_wage'] or 0,
+                'paid_amount': payment_map.get(item['labour__id'], {}).get('paid_amount', 0),
+                'pending_amount': payment_map.get(item['labour__id'], {}).get('pending_amount', 0),
+            }
+            for item in attendance_data
+        ])
+
     @action(detail=False, methods=['get'], url_path='reports/payment-summary/export')
     def export_payment_summary(self, request):
         report_data = self.payment_summary(request).data
         return self._export_report(report_data, 'labour_payment_summary', ['labour_id', 'labour_name', 'total_amount', 'paid_amount', 'pending_amount'])
 
+    @action(detail=False, methods=['get'], url_path='reports/site-wise/export')
+    def export_site_wise_report(self, request):
+        report_data = self.site_wise_report(request).data
+        return self._export_report(report_data, 'labour_site_wise_report', ['site_id', 'site_name', 'present_count', 'total_days', 'absent_count', 'total_wage', 'paid_amount', 'pending_amount'])
+
+    @action(detail=False, methods=['get'], url_path=r'reports/site/(?P<site_id>[^/.]+)/export')
+    def export_site_specific_report(self, request, site_id=None):
+        report_data = self.site_specific_report(request, site_id).data
+        return self._export_report(report_data, f'labour_site_{site_id}_report', ['labour_id', 'labour_name', 'present_count', 'total_days', 'absent_count', 'total_wage', 'paid_amount', 'pending_amount'])
+
     @action(detail=False, methods=['get'], url_path='reports/payment-summary/pdf')
     def export_payment_summary_pdf(self, request):
         report_data = self.payment_summary(request).data
         return self._export_pdf(report_data, 'labour_payment_summary')
+
+    @action(detail=False, methods=['get'], url_path='reports/site-wise/pdf')
+    def export_site_wise_report_pdf(self, request):
+        report_data = self.site_wise_report(request).data
+        return self._export_pdf(report_data, 'labour_site_wise_report')
+
+    @action(detail=False, methods=['get'], url_path=r'reports/site/(?P<site_id>[^/.]+)/pdf')
+    def export_site_specific_report_pdf(self, request, site_id=None):
+        report_data = self.site_specific_report(request, site_id).data
+        return self._export_pdf(report_data, f'labour_site_{site_id}_report')
 
     @action(detail=False, methods=['get'], url_path='chart/wage')
     def chart_wage(self, request):
@@ -299,39 +481,12 @@ class LabourViewSet(viewsets.ModelViewSet):
         return response
 
     def _export_pdf(self, report_data, filename_base, headers=None):
-        if not headers and report_data:
-            headers = list(report_data[0].keys())
-
-        output = BytesIO()
-        canvas = Canvas(output, pagesize=letter)
-        width, height = letter
-        y = height - inch
-
-        canvas.setFont('Helvetica-Bold', 12)
-        canvas.drawString(inch, y, filename_base.replace('_', ' ').title())
-        y -= 0.5 * inch
-        canvas.setFont('Helvetica', 10)
-
-        if report_data:
-            if headers:
-                canvas.drawString(inch, y, ' | '.join(headers))
-                y -= 0.3 * inch
-            for row in report_data:
-                if y < inch:
-                    canvas.showPage()
-                    canvas.setFont('Helvetica', 10)
-                    y = height - inch
-                line = ' | '.join(str(row.get(key, '')) for key in headers)
-                canvas.drawString(inch, y, line)
-                y -= 0.25 * inch
-        else:
-            canvas.drawString(inch, y, 'No data available')
-
-        canvas.save()
-        output.seek(0)
-        response = HttpResponse(output.read(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename_base}.pdf"'
-        return response
+        return build_pdf_response(
+            filename_base=filename_base,
+            title=filename_base.replace('_', ' ').title(),
+            rows=report_data,
+            headers=headers,
+        )
 
 
 class LabourAttendanceViewSet(viewsets.ModelViewSet):
@@ -344,9 +499,9 @@ class LabourAttendanceViewSet(viewsets.ModelViewSet):
 
 
 class LabourPaymentViewSet(viewsets.ModelViewSet):
-    queryset = LabourPayment.objects.select_related('labour').all().order_by('id')
+    queryset = LabourPayment.objects.select_related('labour', 'site').all().order_by('id')
     serializer_class = LabourPaymentSerializer
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['labour']
-    search_fields = ['labour__name']
+    filterset_fields = ['labour', 'site', 'date', 'period_start', 'period_end']
+    search_fields = ['labour__name', 'site__name', 'notes']

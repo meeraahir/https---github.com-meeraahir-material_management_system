@@ -2,9 +2,7 @@ from io import BytesIO
 
 from django.db.models import Sum, F, FloatField
 from django.http import HttpResponse
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.pdfgen.canvas import Canvas
+from core.pdf_utils import build_pdf_response
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -13,14 +11,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 from openpyxl import Workbook
 
 from sites.permissions import IsAdminOrReadOnly
-from .models import Material, MaterialStock
-from .serializers import MaterialSerializer, MaterialStockSerializer
+from .models import Material, MaterialStock, MaterialUsage
+from .serializers import MaterialSerializer, MaterialStockSerializer, MaterialUsageSerializer
 
 
 class MaterialViewSet(viewsets.ModelViewSet):
     queryset = Material.objects.all().order_by('id')
     serializer_class = MaterialSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['name', 'unit']
     search_fields = ['name', 'unit']
@@ -34,10 +32,21 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
     filterset_fields = ['site', 'material']
     search_fields = ['site__name', 'material__name']
 
+    def _apply_date_range(self, queryset):
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
+
+        return queryset
+
     @action(detail=False, methods=['get'], url_path='reports/material-wise')
     def material_wise_report(self, request):
         data = (
-            MaterialStock.objects.values('material__id', 'material__name')
+            self._apply_date_range(MaterialStock.objects.all()).values('material__id', 'material__name')
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
                 total_quantity_used=Sum('quantity_used', output_field=FloatField()),
@@ -67,7 +76,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='reports/site-wise')
     def site_wise_report(self, request):
         data = (
-            MaterialStock.objects.values('site__id', 'site__name')
+            self._apply_date_range(MaterialStock.objects.all()).values('site__id', 'site__name')
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
                 total_quantity_used=Sum('quantity_used', output_field=FloatField()),
@@ -115,7 +124,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path=r'reports/site/(?P<site_id>[^/.]+)')
     def site_specific_report(self, request, site_id=None):
         data = (
-            MaterialStock.objects.filter(site_id=site_id)
+            self._apply_date_range(MaterialStock.objects.filter(site_id=site_id))
             .values('material__id', 'material__name')
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
@@ -188,37 +197,18 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
         return response
 
     def _export_pdf(self, report_data, filename_base, headers=None):
-        if not headers and report_data:
-            headers = list(report_data[0].keys())
+        return build_pdf_response(
+            filename_base=filename_base,
+            title=filename_base.replace('_', ' ').title(),
+            rows=report_data,
+            headers=headers,
+        )
 
-        output = BytesIO()
-        canvas = Canvas(output, pagesize=letter)
-        width, height = letter
-        y = height - inch
 
-        canvas.setFont('Helvetica-Bold', 12)
-        canvas.drawString(inch, y, filename_base.replace('_', ' ').title())
-        y -= 0.5 * inch
-
-        canvas.setFont('Helvetica', 10)
-        if report_data:
-            if headers:
-                canvas.drawString(inch, y, ' | '.join(headers))
-                y -= 0.3 * inch
-            for row in report_data:
-                if y < inch:
-                    canvas.showPage()
-                    canvas.setFont('Helvetica', 10)
-                    y = height - inch
-                line = ' | '.join(str(row.get(key, '')) for key in headers)
-                canvas.drawString(inch, y, line)
-                y -= 0.25 * inch
-        else:
-            canvas.drawString(inch, y, 'No data available')
-
-        canvas.save()
-        output.seek(0)
-
-        response = HttpResponse(output.read(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename_base}.pdf"'
-        return response
+class MaterialUsageViewSet(viewsets.ModelViewSet):
+    queryset = MaterialUsage.objects.select_related('receipt', 'site', 'material').all().order_by('id')
+    serializer_class = MaterialUsageSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['site', 'material', 'receipt', 'date']
+    search_fields = ['site__name', 'material__name', 'receipt__invoice_number']

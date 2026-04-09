@@ -6,7 +6,7 @@ const previewEndpointMap: Record<ReportModuleKey, string> = {
   dashboard: "/core/dashboard/chart/",
   labour: "/labour/reports/wage/",
   materials: "/materials/reports/material-wise/",
-  receivables: "/finance/parties/reports/receivables/",
+  receivables: "/finance/reports/receivables/",
   vendors: "/vendors/reports/summary/",
 };
 
@@ -24,8 +24,8 @@ const exportEndpointMap: Record<ReportModuleKey, { excel: string; pdf: string }>
     pdf: "/materials/reports/material-wise/pdf/",
   },
   receivables: {
-    excel: "/finance/parties/reports/receivables/export/",
-    pdf: "/finance/parties/reports/receivables/pdf/",
+    excel: "/finance/reports/receivables/export/",
+    pdf: "/finance/reports/receivables/pdf/",
   },
   vendors: {
     excel: "/vendors/reports/summary/export/",
@@ -90,7 +90,12 @@ export const reportsService = {
   },
 
   async getPreview(filters: ReportFilters) {
-    const response = await apiClient.get(previewEndpointMap[filters.module]);
+    const response = await apiClient.get(previewEndpointMap[filters.module], {
+      params: {
+        date_from: filters.dateFrom || undefined,
+        date_to: filters.dateTo || undefined,
+      },
+    });
     const payload = response.data;
 
     if (Array.isArray(payload)) {

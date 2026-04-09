@@ -1,12 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import MaterialViewSet, MaterialStockViewSet
+from .views import MaterialViewSet, MaterialStockViewSet, MaterialUsageViewSet
 
 app_name = 'materials'
 
 router = DefaultRouter()
 router.register(r'materials', MaterialViewSet)
 router.register(r'stocks', MaterialStockViewSet)
+router.register(r'usages', MaterialUsageViewSet)
 
 urlpatterns = [
     # Clean aliases for frontend integration.
@@ -14,6 +15,8 @@ urlpatterns = [
     path('<int:pk>/', MaterialViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='material-detail'),
     path('stocks/', MaterialStockViewSet.as_view({'get': 'list', 'post': 'create'}), name='materialstock-list'),
     path('stocks/<int:pk>/', MaterialStockViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='materialstock-detail'),
+    path('usages/', MaterialUsageViewSet.as_view({'get': 'list', 'post': 'create'}), name='materialusage-list'),
+    path('usages/<int:pk>/', MaterialUsageViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='materialusage-detail'),
     path('reports/material-wise/', MaterialStockViewSet.as_view({'get': 'material_wise_report'}), name='material-report-material-wise'),
     path('reports/material-wise/export/', MaterialStockViewSet.as_view({'get': 'export_material_report'}), name='material-report-material-wise-export'),
     path('reports/material-wise/pdf/', MaterialStockViewSet.as_view({'get': 'export_material_report_pdf'}), name='material-report-material-wise-pdf'),

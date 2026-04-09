@@ -1,8 +1,10 @@
-from django.core.exceptions import ValidationError
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Lower
+from django.utils import timezone
 from sites.models import Site
 
 
@@ -38,13 +40,15 @@ class MaterialStock(models.Model):
     site = models.ForeignKey(Site, on_delete=models.CASCADE)
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
 
-    quantity_received = models.FloatField(default=0)
-    quantity_used = models.FloatField(default=0)
+    quantity_received = models.DecimalField(max_digits=14, decimal_places=3, default=Decimal('0'))
+    quantity_used = models.DecimalField(max_digits=14, decimal_places=3, default=Decimal('0'))
 
-    cost_per_unit = models.FloatField()
-    transport_cost = models.FloatField(default=0)
+    cost_per_unit = models.DecimalField(max_digits=14, decimal_places=2)
+    transport_cost = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'))
+    invoice_number = models.CharField(max_length=50, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
 
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(default=timezone.now)
 
     def total_cost(self):
         return (self.quantity_received * self.cost_per_unit) + self.transport_cost
@@ -118,6 +122,63 @@ class MaterialStock(models.Model):
                     errors['quantity_used'] += f' Also {message}'
                 else:
                     errors['quantity_used'] = message
+
+        if errors:
+            raise ValidationError(errors)
+
+
+class MaterialUsage(models.Model):
+    receipt = models.ForeignKey(MaterialStock, on_delete=models.CASCADE, related_name='usage_entries')
+    site = models.ForeignKey(Site, on_delete=models.CASCADE)
+    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=14, decimal_places=3)
+    date = models.DateField(default=timezone.now)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['date', 'id']
+
+    def __str__(self):
+        return f'{self.material.name} usage at {self.site.name} on {self.date}'
+
+    def _sync_receipt_quantity_used(self):
+        if not self.receipt_id:
+            return
+        total_used = self.receipt.usage_entries.aggregate(total=Sum('quantity'))['total'] or 0
+        MaterialStock.objects.filter(pk=self.receipt_id).update(quantity_used=total_used)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        self._sync_receipt_quantity_used()
+
+    def delete(self, *args, **kwargs):
+        receipt_id = self.receipt_id
+        super().delete(*args, **kwargs)
+        if receipt_id:
+            total_used = MaterialUsage.objects.filter(receipt_id=receipt_id).aggregate(total=Sum('quantity'))['total'] or 0
+            MaterialStock.objects.filter(pk=receipt_id).update(quantity_used=total_used)
+
+    def clean(self):
+        errors = {}
+
+        if self.quantity <= 0:
+            errors['quantity'] = 'Used quantity must be greater than zero.'
+
+        if self.receipt_id is None:
+            errors['receipt'] = 'Receipt must be provided.'
+
+        if self.receipt_id:
+            if self.site_id != self.receipt.site_id:
+                errors['site'] = 'Usage site must match the receipt site.'
+            if self.material_id != self.receipt.material_id:
+                errors['material'] = 'Usage material must match the receipt material.'
+            if self.date and self.receipt.date and self.date < self.receipt.date:
+                errors['date'] = 'Usage date cannot be earlier than the receipt date.'
+
+            existing_total = self.receipt.usage_entries.exclude(pk=self.pk).aggregate(total=Sum('quantity'))['total'] or 0
+            if existing_total + self.quantity > self.receipt.quantity_received:
+                errors['quantity'] = 'Used quantity cannot exceed the received quantity for this receipt.'
 
         if errors:
             raise ValidationError(errors)

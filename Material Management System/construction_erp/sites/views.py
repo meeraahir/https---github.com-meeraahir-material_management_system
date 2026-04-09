@@ -4,9 +4,7 @@ from io import BytesIO
 from django.db.models import Sum, F, FloatField, Count, Q
 from django.http import HttpResponse
 from openpyxl import Workbook
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.pdfgen.canvas import Canvas
+from core.pdf_utils import build_pdf_sections_response
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -15,8 +13,8 @@ from .serializers import SiteSerializer
 from .permissions import IsAdminOrReadOnly
 from materials.models import MaterialStock
 from vendors.models import VendorTransaction
-from labour.models import LabourAttendance
-from finance.models import Transaction
+from labour.models import LabourAttendance, LabourPayment
+from finance.models import Transaction, ClientReceipt
 
 # Create your views here.
 
@@ -29,13 +27,38 @@ class SiteViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'location', 'description']
 
     def _get_dashboard_data(self, site):
-        material_data = MaterialStock.objects.filter(site=site).select_related('material').values('material__id', 'material__name').annotate(
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+
+        material_qs = MaterialStock.objects.filter(site=site)
+        vendor_qs = VendorTransaction.objects.filter(site=site)
+        attendance_qs = LabourAttendance.objects.filter(site=site)
+        finance_invoice_qs = Transaction.objects.filter(site=site)
+        finance_receipt_qs = ClientReceipt.objects.filter(site=site)
+        labour_payment_qs = LabourPayment.objects.filter(site=site)
+
+        if date_from:
+            material_qs = material_qs.filter(date__gte=date_from)
+            vendor_qs = vendor_qs.filter(date__gte=date_from)
+            attendance_qs = attendance_qs.filter(date__gte=date_from)
+            finance_invoice_qs = finance_invoice_qs.filter(date__gte=date_from)
+            finance_receipt_qs = finance_receipt_qs.filter(date__gte=date_from)
+            labour_payment_qs = labour_payment_qs.filter(date__gte=date_from)
+        if date_to:
+            material_qs = material_qs.filter(date__lte=date_to)
+            vendor_qs = vendor_qs.filter(date__lte=date_to)
+            attendance_qs = attendance_qs.filter(date__lte=date_to)
+            finance_invoice_qs = finance_invoice_qs.filter(date__lte=date_to)
+            finance_receipt_qs = finance_receipt_qs.filter(date__lte=date_to)
+            labour_payment_qs = labour_payment_qs.filter(date__lte=date_to)
+
+        material_data = material_qs.select_related('material').values('material__id', 'material__name').annotate(
             total_received=Sum('quantity_received', output_field=FloatField()),
             total_used=Sum('quantity_used', output_field=FloatField()),
             total_cost=Sum(F('quantity_received') * F('cost_per_unit') + F('transport_cost'), output_field=FloatField()),
             remaining_stock=Sum(F('quantity_received') - F('quantity_used'), output_field=FloatField()),
         )
-        vendor_data = VendorTransaction.objects.filter(site=site).values('vendor__id', 'vendor__name').annotate(
+        vendor_data = vendor_qs.values('vendor__id', 'vendor__name').annotate(
             total_amount_sum=Sum('total_amount', output_field=FloatField()),
             paid_amount_sum=Sum('paid_amount', output_field=FloatField()),
             pending_amount_sum=(
@@ -43,14 +66,28 @@ class SiteViewSet(viewsets.ModelViewSet):
                 - Sum('paid_amount', output_field=FloatField())
             ),
         )
-        labour_data = LabourAttendance.objects.filter(site=site).values('labour__id', 'labour__name').annotate(
+        labour_data = attendance_qs.values('labour__id', 'labour__name', 'labour__per_day_wage').annotate(
             present_count=Count('id', filter=Q(present=True)),
             total_days=Count('id'),
         )
-        finance_data = Transaction.objects.filter(site=site).values('party__id', 'party__name').annotate(
+        labour_payment_map = {
+            item['labour__id']: {
+                'paid_amount': item['paid_amount'] or 0,
+                'pending_amount': item['pending_amount'] or 0,
+            }
+            for item in labour_payment_qs.values('labour__id').annotate(
+                paid_amount=Sum('paid_amount', output_field=FloatField()),
+                pending_amount=Sum(F('total_amount') - F('paid_amount'), output_field=FloatField()),
+            )
+        }
+        receipt_map = {
+            item['party__id']: item['received_amount'] or 0
+            for item in finance_receipt_qs.values('party__id').annotate(
+                received_amount=Sum('amount', output_field=FloatField())
+            )
+        }
+        finance_rows = finance_invoice_qs.values('party__id', 'party__name').annotate(
             total_amount=Sum('amount', output_field=FloatField()),
-            received_amount=Sum('amount', filter=Q(received=True), output_field=FloatField()),
-            pending_amount=Sum('amount', filter=Q(received=False), output_field=FloatField()),
         )
         return {
             'site': {'id': site.id, 'name': site.name, 'location': site.location, 'description': site.description},
@@ -72,10 +109,22 @@ class SiteViewSet(viewsets.ModelViewSet):
                     'present_count': int(item['present_count'] or 0),
                     'total_days': item['total_days'],
                     'absent_count': item['total_days'] - int(item['present_count'] or 0),
+                    'total_wage': float((item['present_count'] or 0) * (item['labour__per_day_wage'] or 0)),
+                    'paid_amount': labour_payment_map.get(item['labour__id'], {}).get('paid_amount', 0),
+                    'pending_amount': labour_payment_map.get(item['labour__id'], {}).get('pending_amount', 0),
                 }
                 for item in labour_data
             ],
-            'finance_summary': list(finance_data),
+            'finance_summary': [
+                {
+                    'party__id': item['party__id'],
+                    'party__name': item['party__name'],
+                    'total_amount': item['total_amount'] or 0,
+                    'received_amount': receipt_map.get(item['party__id'], 0),
+                    'pending_amount': (item['total_amount'] or 0) - receipt_map.get(item['party__id'], 0),
+                }
+                for item in finance_rows
+            ],
         }
 
     @action(detail=True, methods=['get'], url_path='dashboard')
@@ -136,54 +185,25 @@ class SiteViewSet(viewsets.ModelViewSet):
         return response
 
     def _export_pdf(self, data, filename_base):
-        output = BytesIO()
-        canvas = Canvas(output, pagesize=letter)
-        width, height = letter
-        y = height - inch
-        canvas.setFont('Helvetica-Bold', 12)
-        canvas.drawString(inch, y, f"Site Dashboard {data['site']['name']}")
-        y -= 0.4 * inch
-        canvas.setFont('Helvetica', 10)
-        for key, value in [
+        summary_rows = [
             ('Site ID', data['site']['id']),
+            ('Site Name', data['site']['name']),
             ('Location', data['site']['location']),
+            ('Description', data['site']['description'] or '-'),
             ('Material Summary Count', len(data['material_summary'])),
             ('Vendor Summary Count', len(data['vendor_summary'])),
             ('Labour Summary Count', len(data['labour_summary'])),
             ('Finance Summary Count', len(data['finance_summary'])),
-        ]:
-            canvas.drawString(inch, y, f'{key}: {value}')
-            y -= 0.25 * inch
-        y -= 0.2 * inch
-
-        def draw_rows(title, rows):
-            nonlocal y
-            canvas.setFont('Helvetica-Bold', 11)
-            canvas.drawString(inch, y, title)
-            y -= 0.25 * inch
-            canvas.setFont('Helvetica', 9)
-            if not rows:
-                canvas.drawString(inch, y, 'No data available')
-                y -= 0.25 * inch
-                return
-            headers = list(rows[0].keys())
-            canvas.drawString(inch, y, ' | '.join(headers))
-            y -= 0.2 * inch
-            for row in rows:
-                if y < inch:
-                    canvas.showPage()
-                    canvas.setFont('Helvetica', 9)
-                    y = height - inch
-                canvas.drawString(inch, y, ' | '.join(str(row.get(k, '')) for k in headers))
-                y -= 0.2 * inch
-            y -= 0.1 * inch
-
-        draw_rows('Material Summary', data['material_summary'])
-        draw_rows('Vendor Summary', data['vendor_summary'])
-        draw_rows('Labour Summary', data['labour_summary'])
-        draw_rows('Finance Summary', data['finance_summary'])
-        canvas.save()
-        output.seek(0)
-        response = HttpResponse(output.read(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename_base}.pdf"'
-        return response
+        ]
+        sections = [
+            {'title': 'Material Summary', 'rows': data['material_summary']},
+            {'title': 'Vendor Summary', 'rows': data['vendor_summary']},
+            {'title': 'Labour Summary', 'rows': data['labour_summary']},
+            {'title': 'Finance Summary', 'rows': data['finance_summary']},
+        ]
+        return build_pdf_sections_response(
+            filename_base=filename_base,
+            title=f"Site Dashboard {data['site']['name']}",
+            summary_rows=summary_rows,
+            sections=sections,
+        )

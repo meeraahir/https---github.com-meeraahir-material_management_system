@@ -1,7 +1,9 @@
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Sum
 from rest_framework import serializers
 
-from .models import Material, MaterialStock
+from .models import Material, MaterialStock, MaterialUsage
 
 
 class MaterialSerializer(serializers.ModelSerializer):
@@ -52,6 +54,8 @@ class MaterialStockSerializer(serializers.ModelSerializer):
             'quantity_used',
             'cost_per_unit',
             'transport_cost',
+            'invoice_number',
+            'notes',
             'date',
             'total_cost',
             'remaining_stock',
@@ -87,21 +91,73 @@ class MaterialStockSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    def _sync_usage_history(self, stock, desired_usage, current_usage, usage_date):
+        if desired_usage < current_usage:
+            raise serializers.ValidationError({
+                'quantity_used': 'Used quantity cannot be reduced because usage history is already recorded.'
+            })
+
+        delta = desired_usage - current_usage
+        if delta > 0:
+            MaterialUsage.objects.create(
+                receipt=stock,
+                site=stock.site,
+                material=stock.material,
+                quantity=delta,
+                date=usage_date or stock.date,
+            )
+
+        if stock.quantity_used != desired_usage:
+            stock.quantity_used = desired_usage
+            stock.save(update_fields=['quantity_used'])
+
     def create(self, validated_data):
-        instance = MaterialStock(**validated_data)
-        instance.full_clean()
-        instance.save()
-        return instance
+        desired_usage = validated_data.get('quantity_used', 0)
+
+        with transaction.atomic():
+            instance = MaterialStock(**validated_data)
+            instance.full_clean()
+            instance.save()
+            self._sync_usage_history(instance, desired_usage, 0, validated_data.get('date'))
+            return instance
 
     def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.full_clean()
-        instance.save()
-        return instance
+        current_usage = instance.usage_entries.aggregate(total=Sum('quantity'))['total'] or instance.quantity_used
+        desired_usage = validated_data.get('quantity_used', instance.quantity_used)
+
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.full_clean()
+            instance.save()
+            self._sync_usage_history(instance, desired_usage, current_usage, validated_data.get('date', instance.date))
+            return instance
 
     def get_total_cost(self, obj):
         return obj.total_cost()
 
     def get_remaining_stock(self, obj):
         return obj.remaining_stock()
+
+
+class MaterialUsageSerializer(serializers.ModelSerializer):
+    material_name = serializers.CharField(source='material.name', read_only=True)
+    site_name = serializers.CharField(source='site.name', read_only=True)
+    receipt_date = serializers.DateField(source='receipt.date', read_only=True)
+    receipt_invoice_number = serializers.CharField(source='receipt.invoice_number', read_only=True)
+
+    class Meta:
+        model = MaterialUsage
+        fields = [
+            'id',
+            'receipt',
+            'receipt_date',
+            'receipt_invoice_number',
+            'site',
+            'site_name',
+            'material',
+            'material_name',
+            'quantity',
+            'date',
+            'notes',
+        ]

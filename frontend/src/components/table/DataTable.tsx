@@ -9,6 +9,7 @@ import { Button } from "../ui/Button";
 
 interface DataTableProps<T> {
   actions?: TableAction<T>[];
+  clientPagination?: boolean;
   columns: TableColumn<T>[];
   data: T[];
   emptyDescription: string;
@@ -27,6 +28,7 @@ interface DataTableProps<T> {
 
 export function DataTable<T>({
   actions,
+  clientPagination = false,
   columns,
   data,
   emptyDescription,
@@ -88,6 +90,9 @@ export function DataTable<T>({
 
   const effectiveCount = searchValue.trim() ? filteredRows.length : totalCount;
   const totalPages = Math.max(1, Math.ceil(effectiveCount / pageSize));
+  const paginatedRows = clientPagination
+    ? rows.slice((page - 1) * pageSize, page * pageSize)
+    : rows;
 
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
@@ -166,7 +171,7 @@ export function DataTable<T>({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
-              {rows.map((row, index) => (
+              {paginatedRows.map((row, index) => (
                 <tr
                   className="transition hover:bg-slate-50 dark:hover:bg-slate-900/60"
                   key={keyExtractor(row, index)}

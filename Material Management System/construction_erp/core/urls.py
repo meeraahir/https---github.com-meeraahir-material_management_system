@@ -1,9 +1,11 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
+
+from accounts.views import EmailOrUsernameLoginView
 from .views import DashboardView, DashboardChartView, DashboardExportView, DashboardPDFView
 
 urlpatterns = [
-    path('token/', TokenObtainPairView.as_view()),
+    path('token/', EmailOrUsernameLoginView.as_view()),
     path('token/refresh/', TokenRefreshView.as_view()),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('dashboard/chart/', DashboardChartView.as_view(), name='dashboard-chart'),

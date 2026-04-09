@@ -4,7 +4,7 @@ import { CrudModulePage } from "../../components/forms/CrudModulePage";
 import { vendorsService } from "../../services/vendorsService";
 import type { Vendor, VendorFormValues } from "../../types/erp.types";
 
-const phoneRegex = /^[0-9]{10,15}$/;
+const phoneRegex = /^[0-9]{10}$/;
 const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const aadharRegex = /^[0-9]{12}$/;
 const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
@@ -56,7 +56,10 @@ const vendorSchema = z.object({
   phone: z
     .string()
     .trim()
-    .refine((value) => phoneRegex.test(value), "Phone number must be 10 to 15 digits."),
+    .refine(
+      (value) => phoneRegex.test(value),
+      "Mobile number must be exactly 10 digits.",
+    ),
   tax_identifier: optionalText(60),
 });
 
@@ -89,7 +92,6 @@ export function VendorsPage() {
       emptyDescription="No vendors are available yet."
       emptyTitle="No vendors found"
       fields={[
-        { kind: "text", label: "Vendor Name", name: "name", placeholder: "Supplier name" },
         {
           kind: "text",
           label: "Vendor Name",
@@ -101,12 +103,14 @@ export function VendorsPage() {
         },
         {
           kind: "text",
-          label: "Phone",
-          maxLength: 15,
+          digitsOnly: true,
+          inputMode: "numeric",
+          label: "Mobile Number",
+          maxLength: 10,
           minLength: 10,
           name: "phone",
-          pattern: "[0-9]{10,15}",
-          placeholder: "10 to 15 digit number",
+          pattern: "[0-9]{10}",
+          placeholder: "Enter 10 digit mobile number",
           required: true,
         },
         {

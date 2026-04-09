@@ -6,16 +6,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Count, F, FloatField, Q
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.pdfgen.canvas import Canvas
+from .pdf_utils import build_pdf_sections_response
 from openpyxl import Workbook
 
 from sites.models import Site
 from materials.models import Material, MaterialStock
 from vendors.models import Vendor, VendorTransaction
 from labour.models import Labour, LabourPayment
-from finance.models import Party, Transaction
+from finance.models import Party, Transaction, ClientReceipt
 
 # Create your views here.
 
@@ -30,17 +28,20 @@ class DashboardMixin:
             total=Sum(F('quantity_received') * F('cost_per_unit') + F('transport_cost'), output_field=FloatField())
         )['total'] or 0
         total_vendor_cost = VendorTransaction.objects.aggregate(total=Sum('total_amount'))['total'] or 0
-        total_labour_cost = LabourPayment.objects.aggregate(total=Sum('total_amount'))['total'] or 0
-        total_receivables = Transaction.objects.aggregate(total=Sum('amount'))['total'] or 0
-        total_received = Transaction.objects.filter(received=True).aggregate(total=Sum('amount'))['total'] or 0
-        pending_receivables = Transaction.objects.filter(received=False).aggregate(total=Sum('amount'))['total'] or 0
-        pending_vendor_amounts = VendorTransaction.objects.aggregate(total=Sum(F('total_amount') - F('paid_amount'), output_field=FloatField()))['total'] or 0
+        total_labour_cost = LabourPayment.objects.aggregate(total=Sum('paid_amount', output_field=FloatField()))['total'] or 0
         pending_labour_amounts = LabourPayment.objects.aggregate(total=Sum(F('total_amount') - F('paid_amount'), output_field=FloatField()))['total'] or 0
+        total_receivables = Transaction.objects.aggregate(total=Sum('amount'))['total'] or 0
+        total_received = ClientReceipt.objects.aggregate(total=Sum('amount'))['total'] or 0
+        pending_receivables = total_receivables - total_received
+        other_vendor_expenses = VendorTransaction.objects.filter(material__isnull=True).aggregate(total=Sum('total_amount', output_field=FloatField()))['total'] or 0
+        total_expenses = total_material_cost + total_labour_cost + other_vendor_expenses
+        pending_vendor_amounts = VendorTransaction.objects.aggregate(total=Sum(F('total_amount') - F('paid_amount'), output_field=FloatField()))['total'] or 0
 
         data = {
             'total_sites': Site.objects.count(),
             'total_materials': Material.objects.count(),
             'total_vendors': Vendor.objects.count(),
+            'total_expenses': total_expenses,
             'total_material_cost': total_material_cost,
             'total_vendor_cost': total_vendor_cost,
             'total_labour_cost': total_labour_cost,
@@ -88,29 +89,27 @@ class DashboardMixin:
         return response
 
     def _export_pdf(self, data, filename_base):
-        output = BytesIO()
-        canvas = Canvas(output, pagesize=letter)
-        width, height = letter
-        y = height - inch
-        canvas.setFont('Helvetica-Bold', 12)
-        canvas.drawString(inch, y, 'Dashboard Summary')
-        y -= 0.4 * inch
-        canvas.setFont('Helvetica', 10)
-        for key, value in data.items():
-            if isinstance(value, (list, dict)):
-                continue
-            canvas.drawString(inch, y, f'{key}: {value}')
-            y -= 0.25 * inch
-            if y < inch:
-                canvas.showPage()
-                canvas.setFont('Helvetica', 10)
-                y = height - inch
+        summary_rows = [
+            (key, value)
+            for key, value in data.items()
+            if not isinstance(value, (list, dict))
+        ]
+        sections = [
+            {'title': 'Recent Sites', 'rows': data.get('recent_sites', [])},
+            {'title': 'Recent Materials', 'rows': data.get('recent_materials', [])},
+            {'title': 'Recent Vendors', 'rows': data.get('recent_vendors', [])},
+        ]
+        if data.get('recent_labour'):
+            sections.append({'title': 'Recent Labour', 'rows': data.get('recent_labour', [])})
+        if data.get('recent_transactions'):
+            sections.append({'title': 'Recent Transactions', 'rows': data.get('recent_transactions', [])})
 
-        canvas.save()
-        output.seek(0)
-        response = HttpResponse(output.read(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename_base}.pdf"'
-        return response
+        return build_pdf_sections_response(
+            filename_base=filename_base,
+            title='Dashboard Summary',
+            summary_rows=summary_rows,
+            sections=sections,
+        )
 
 
 class DashboardView(DashboardMixin, APIView):
