@@ -5,7 +5,8 @@ from django.db.models import Sum, F, FloatField, Count, Q
 from django.http import HttpResponse
 from openpyxl import Workbook
 from core.pdf_utils import build_pdf_sections_response
-from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Site
@@ -23,6 +24,7 @@ class SiteViewSet(viewsets.ModelViewSet):
     queryset = Site.objects.all().order_by('id')
     serializer_class = SiteSerializer
     permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['name', 'location']
     search_fields = ['name', 'location', 'description']
 

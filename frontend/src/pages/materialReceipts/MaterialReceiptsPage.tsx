@@ -9,7 +9,18 @@ import { getCrudPermissions } from "../../utils/permissions";
 
 const receiptSchema = z.object({
   cost_per_unit: z.number().min(0, "Cost per unit must be zero or more."),
+  date: z.string().min(1, "Receipt date is required."),
+  invoice_number: z
+    .string()
+    .max(50, "Invoice number must be 50 characters or fewer.")
+    .optional()
+    .or(z.literal("")),
   material: z.number().min(1, "Material is required."),
+  notes: z
+    .string()
+    .max(600, "Notes must be 600 characters or fewer.")
+    .optional()
+    .or(z.literal("")),
   quantity_received: z.number().gt(0, "Received quantity must be greater than zero."),
   quantity_used: z.number().min(0, "Used quantity must be zero or more."),
   site: z.number().min(1, "Site is required."),
@@ -32,6 +43,8 @@ export function MaterialReceiptsPage() {
       columns={[
         { key: "site", header: "Site", accessor: (row) => row.site_name, sortValue: (row) => row.site_name },
         { key: "material", header: "Material", accessor: (row) => row.material_name, sortValue: (row) => row.material_name },
+        { key: "invoice", header: "Invoice", accessor: (row) => row.invoice_number || "-", sortValue: (row) => row.invoice_number || "" },
+        { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
         { key: "received", header: "Received", accessor: (row) => row.quantity_received, sortValue: (row) => row.quantity_received },
         { key: "used", header: "Used", accessor: (row) => row.quantity_used, sortValue: (row) => row.quantity_used },
         { key: "remaining", header: "Remaining", accessor: (row) => row.remaining_stock, sortValue: (row) => row.remaining_stock },
@@ -40,7 +53,10 @@ export function MaterialReceiptsPage() {
       createLabel="Add Receipt"
       defaultValues={{
         cost_per_unit: 0,
+        date: new Date().toISOString().slice(0, 10),
+        invoice_number: "",
         material: 0,
+        notes: "",
         quantity_received: 0,
         quantity_used: 0,
         site: 0,
@@ -66,6 +82,14 @@ export function MaterialReceiptsPage() {
           options: references.materials.map((material) => ({ label: material.name, value: material.id })),
           required: true,
           valueType: "number",
+        },
+        { kind: "date", label: "Receipt Date", name: "date", required: true },
+        {
+          kind: "text",
+          label: "Invoice Number",
+          maxLength: 50,
+          name: "invoice_number",
+          placeholder: "Optional invoice reference",
         },
         {
           kind: "number",
@@ -99,10 +123,21 @@ export function MaterialReceiptsPage() {
           required: true,
           valueType: "number",
         },
+        {
+          kind: "textarea",
+          label: "Notes",
+          name: "notes",
+          placeholder: "Transport, batch, or delivery notes",
+          rows: 4,
+          wrapperClassName: "md:col-span-2",
+        },
       ]}
       getEditValues={(entity) => ({
         cost_per_unit: entity.cost_per_unit,
+        date: entity.date,
+        invoice_number: entity.invoice_number || "",
         material: entity.material,
+        notes: entity.notes || "",
         quantity_received: entity.quantity_received,
         quantity_used: entity.quantity_used,
         site: entity.site,

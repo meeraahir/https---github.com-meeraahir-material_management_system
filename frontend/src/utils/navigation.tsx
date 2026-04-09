@@ -9,10 +9,12 @@ export interface NavigationItem {
 }
 
 export interface NavigationGroup {
+  description: string;
   icon: ReactNode;
   id: string;
   items: NavigationItem[];
   label: string;
+  theme: "amber" | "emerald" | "rose" | "sky" | "slate";
 }
 
 export const navigationPrimaryItems: NavigationItem[] = [
@@ -22,6 +24,7 @@ export const navigationPrimaryItems: NavigationItem[] = [
 
 export const navigationGroups: NavigationGroup[] = [
   {
+    description: "Stock masters and receipts",
     icon: icons.materials({ className: "h-5 w-5" }),
     id: "inventory",
     items: [
@@ -29,8 +32,10 @@ export const navigationGroups: NavigationGroup[] = [
       { icon: icons.receipts({ className: "h-4 w-4" }), label: "Material Receipts", to: "/material-receipts" },
     ],
     label: "Inventory",
+    theme: "amber",
   },
   {
+    description: "Suppliers and purchase flow",
     icon: icons.purchases({ className: "h-5 w-5" }),
     id: "procurement",
     items: [
@@ -38,8 +43,10 @@ export const navigationGroups: NavigationGroup[] = [
       { icon: icons.purchases({ className: "h-4 w-4" }), label: "Vendor Purchases", to: "/vendor-purchases" },
     ],
     label: "Procurement",
+    theme: "sky",
   },
   {
+    description: "Labour records and attendance",
     icon: icons.labour({ className: "h-5 w-5" }),
     id: "workforce",
     items: [
@@ -47,8 +54,10 @@ export const navigationGroups: NavigationGroup[] = [
       { icon: icons.attendance({ className: "h-4 w-4" }), label: "Attendance", to: "/attendance" },
     ],
     label: "Workforce",
+    theme: "emerald",
   },
   {
+    description: "Payments and receivables",
     icon: icons.payments({ className: "h-5 w-5" }),
     id: "finance",
     items: [
@@ -56,8 +65,10 @@ export const navigationGroups: NavigationGroup[] = [
       { icon: icons.receivables({ className: "h-4 w-4" }), label: "Receivables", to: "/receivables" },
     ],
     label: "Finance",
+    theme: "rose",
   },
   {
+    description: "Parties and reporting",
     icon: icons.reports({ className: "h-5 w-5" }),
     id: "analytics",
     items: [
@@ -65,6 +76,7 @@ export const navigationGroups: NavigationGroup[] = [
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Reports", to: "/reports" },
     ],
     label: "Analytics",
+    theme: "slate",
   },
 ];
 

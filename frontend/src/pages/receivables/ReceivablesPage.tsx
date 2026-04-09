@@ -9,9 +9,18 @@ import { getCrudPermissions } from "../../utils/permissions";
 
 const receivableSchema = z.object({
   amount: z.number().gt(0, "Amount must be greater than zero."),
+  date: z.string().min(1, "Invoice date is required."),
   party: z.number().min(1, "Party is required."),
-  received: z.boolean(),
+  received_amount: z.number().min(0, "Received amount must be zero or more.").optional(),
   site: z.number().min(1, "Site is required."),
+}).superRefine((value, context) => {
+  if ((value.received_amount ?? 0) > value.amount) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Received amount cannot exceed invoice amount.",
+      path: ["received_amount"],
+    });
+  }
 });
 
 export function ReceivablesPage() {
@@ -42,12 +51,35 @@ export function ReceivablesPage() {
           sortValue: (row) => siteNameMap.get(row.site) || row.site,
         },
         { key: "amount", header: "Amount", accessor: (row) => row.amount, sortValue: (row) => row.amount },
-        { key: "received", header: "Received", accessor: (row) => (row.received ? "Yes" : "No"), sortValue: (row) => row.received },
+        {
+          key: "received_amount",
+          header: "Received Amount",
+          accessor: (row) => row.current_received_amount ?? 0,
+          sortValue: (row) => row.current_received_amount ?? 0,
+        },
+        {
+          key: "pending",
+          header: "Pending Amount",
+          accessor: (row) => row.pending_amount ?? row.amount,
+          sortValue: (row) => row.pending_amount ?? row.amount,
+        },
+        {
+          key: "status",
+          header: "Status",
+          accessor: (row) => ((row.pending_amount ?? row.amount) > 0 ? "Pending" : "Received"),
+          sortValue: (row) => ((row.pending_amount ?? row.amount) > 0 ? "Pending" : "Received"),
+        },
         { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
       ]}
       createLabel="Add Receivable"
-      defaultValues={{ amount: 0, party: 0, received: false, site: 0 }}
-      description="Record receivables and mark whether client payments have been received."
+      defaultValues={{
+        amount: 0,
+        date: new Date().toISOString().slice(0, 10),
+        party: 0,
+        received_amount: 0,
+        site: 0,
+      }}
+      description="Track client invoices with partial receipt amounts and real pending balances."
       emptyDescription="No receivables have been recorded."
       emptyTitle="No receivables found"
       externalError={references.error}
@@ -76,12 +108,21 @@ export function ReceivablesPage() {
           required: true,
           valueType: "number",
         },
-        { kind: "checkbox", label: "Received", name: "received" },
+        { kind: "date", label: "Invoice Date", name: "date", required: true },
+        {
+          kind: "number",
+          label: "Received Amount",
+          min: 0,
+          name: "received_amount",
+          required: true,
+          valueType: "number",
+        },
       ]}
       getEditValues={(entity) => ({
         amount: entity.amount,
+        date: entity.date,
         party: entity.party,
-        received: entity.received,
+        received_amount: entity.current_received_amount ?? 0,
         site: entity.site,
       })}
       getId={(entity) => entity.id}

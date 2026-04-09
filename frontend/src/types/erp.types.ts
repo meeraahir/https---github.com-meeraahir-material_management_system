@@ -107,6 +107,8 @@ export interface Receipt {
   quantity_used: number;
   cost_per_unit: number;
   transport_cost: number;
+  invoice_number?: string | null;
+  notes?: string | null;
   date: string;
   total_cost: number;
   remaining_stock: number;
@@ -119,6 +121,9 @@ export interface ReceiptFormValues {
   quantity_used: number;
   cost_per_unit: number;
   transport_cost: number;
+  invoice_number?: string;
+  notes?: string;
+  date: string;
 }
 
 export interface Purchase {
@@ -183,10 +188,11 @@ export interface PaymentFormValues {
   total_amount: number;
   paid_amount: number;
   site?: number;
-  date?: string;
+  date: string;
   period_start?: string;
   period_end?: string;
   notes?: string | null;
+  auto_calculate_total?: boolean;
 }
 
 export interface Receivable {
@@ -204,7 +210,8 @@ export interface ReceivableFormValues {
   party: number;
   site: number;
   amount: number;
-  received: boolean;
+  date: string;
+  received_amount?: number;
 }
 
 export interface DashboardStats {
