@@ -62,7 +62,7 @@ class VendorModuleTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         transactions = response.data['transactions']
         self.assertEqual(len(transactions), 1)
-        self.assertEqual(transactions[0]['total_amount'], 500)
+        self.assertEqual(transactions[0]['debit'], 500)
 
     def test_vendor_ledger_pdf_export_returns_pdf(self):
         VendorTransaction.objects.create(
@@ -77,3 +77,32 @@ class VendorModuleTests(TestCase):
         response = self.client.get(f'/api/vendors/vendors/{self.vendor.id}/ledger/pdf/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response['Content-Type'], 'application/pdf')
+
+    def test_site_reports_are_available(self):
+        second_site = Site.objects.create(name='Secondary Site', location='Another Location')
+        VendorTransaction.objects.create(
+            vendor=self.vendor,
+            site=self.site,
+            material=self.material,
+            total_amount=1000,
+            paid_amount=400,
+            date=date.today(),
+        )
+        VendorTransaction.objects.create(
+            vendor=self.vendor,
+            site=second_site,
+            material=self.material,
+            total_amount=1500,
+            paid_amount=500,
+            date=date.today(),
+        )
+
+        site_wise = self.client.get('/api/vendors/reports/site-wise/')
+        self.assertEqual(site_wise.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(site_wise.data), 2)
+
+        site_specific = self.client.get(f'/api/vendors/reports/site/{self.site.id}/')
+        self.assertEqual(site_specific.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(site_specific.data), 1)
+        self.assertEqual(site_specific.data[0]['vendor_name'], self.vendor.name)
+        self.assertEqual(site_specific.data[0]['pending_amount'], 600)

@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 from sites.models import Site
 from materials.models import Material
@@ -75,8 +76,8 @@ class VendorTransaction(models.Model):
     invoice_number = models.CharField(max_length=50, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
 
-    total_amount = models.FloatField()
-    paid_amount = models.FloatField(default=0)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     date = models.DateField(default=timezone.now)
 
     class Meta:
@@ -89,6 +90,15 @@ class VendorTransaction(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+    def payments_total(self):
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    def refresh_paid_amount(self, save=True):
+        self.paid_amount = self.payments_total()
+        if save:
+            super().save(update_fields=['paid_amount'])
+        return self.paid_amount
+
     def pending_amount(self):
         return self.total_amount - self.paid_amount
 
@@ -99,12 +109,54 @@ class VendorTransaction(models.Model):
             errors['total_amount'] = 'Total amount must be zero or positive.'
         if self.paid_amount < 0:
             errors['paid_amount'] = 'Paid amount must be zero or positive.'
+        existing_paid_amount = self.payments_total() if self.pk else 0
+        if self.paid_amount < existing_paid_amount:
+            errors['paid_amount'] = 'Paid amount cannot be reduced below the amount already recorded in payment history.'
         if self.paid_amount > self.total_amount:
             errors['paid_amount'] = 'Paid amount cannot exceed total amount.'
         if self.vendor_id is None:
             errors['vendor'] = 'Vendor must be provided.'
         if self.site_id is None:
             errors['site'] = 'Site must be provided.'
+
+        if errors:
+            raise ValidationError(errors)
+
+
+class VendorPayment(models.Model):
+    purchase = models.ForeignKey(VendorTransaction, on_delete=models.CASCADE, related_name='payments')
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    site = models.ForeignKey(Site, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    reference_number = models.CharField(max_length=50, blank=True, null=True)
+    remarks = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['date', 'id']
+
+    def __str__(self):
+        return f'{self.vendor.name} payment {self.amount} on {self.date}'
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        errors = {}
+
+        if self.amount <= 0:
+            errors['amount'] = 'Payment amount must be greater than zero.'
+
+        if self.purchase_id:
+            if self.vendor_id != self.purchase.vendor_id:
+                errors['vendor'] = 'Payment vendor must match the purchase vendor.'
+            if self.site_id != self.purchase.site_id:
+                errors['site'] = 'Payment site must match the purchase site.'
+
+            existing_total = self.purchase.payments.exclude(pk=self.pk).aggregate(total=Sum('amount'))['total'] or 0
+            if existing_total + self.amount > self.purchase.total_amount:
+                errors['amount'] = 'Payment amount cannot exceed the remaining amount for this purchase.'
 
         if errors:
             raise ValidationError(errors)

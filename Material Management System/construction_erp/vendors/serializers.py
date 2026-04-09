@@ -1,6 +1,7 @@
+from django.db import transaction
 from rest_framework import serializers
 
-from .models import Vendor, VendorTransaction
+from .models import Vendor, VendorTransaction, VendorPayment
 
 
 class VendorSerializer(serializers.ModelSerializer):
@@ -52,3 +53,46 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
 
     def get_pending_amount(self, obj):
         return obj.pending_amount()
+
+    def _sync_payment_history(self, purchase, desired_paid_amount, payment_date):
+        current_paid_amount = purchase.payments_total()
+
+        if desired_paid_amount < current_paid_amount:
+            raise serializers.ValidationError({
+                'paid_amount': 'Paid amount cannot be reduced because payment history already exists.'
+            })
+
+        delta = desired_paid_amount - current_paid_amount
+        if delta > 0:
+            VendorPayment.objects.create(
+                purchase=purchase,
+                vendor=purchase.vendor,
+                site=purchase.site,
+                amount=delta,
+                date=payment_date or purchase.date,
+                reference_number=purchase.invoice_number,
+                remarks='Auto-created from vendor purchase update.',
+            )
+
+        purchase.refresh_paid_amount(save=True)
+
+    def create(self, validated_data):
+        desired_paid_amount = validated_data.get('paid_amount', 0)
+
+        with transaction.atomic():
+            purchase = VendorTransaction(**validated_data)
+            purchase.full_clean()
+            purchase.save()
+            self._sync_payment_history(purchase, desired_paid_amount, validated_data.get('date'))
+            return purchase
+
+    def update(self, instance, validated_data):
+        desired_paid_amount = validated_data.get('paid_amount', instance.paid_amount)
+
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.full_clean()
+            instance.save()
+            self._sync_payment_history(instance, desired_paid_amount, validated_data.get('date', instance.date))
+            return instance
