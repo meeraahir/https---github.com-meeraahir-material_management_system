@@ -1,3 +1,4 @@
+from datetime import date as date_cls
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -85,6 +86,11 @@ class LabourPayment(models.Model):
 
         start_date = self.period_start or self.date
         end_date = self.period_end or self.period_start or self.date
+
+        if isinstance(start_date, str):
+            start_date = date_cls.fromisoformat(start_date)
+        if isinstance(end_date, str):
+            end_date = date_cls.fromisoformat(end_date)
 
         if start_date:
             queryset = queryset.filter(date__gte=start_date)

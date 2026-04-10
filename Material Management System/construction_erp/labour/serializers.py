@@ -104,11 +104,16 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
         period_start = attrs.get('period_start', getattr(self.instance, 'period_start', None))
         period_end = attrs.get('period_end', getattr(self.instance, 'period_end', None))
         auto_calculate_total = attrs.get('auto_calculate_total', False)
+        auto_calculate_missing = (
+            self.instance is None
+            and 'auto_calculate_total' not in attrs
+            and total_amount == 0
+        )
 
         if self.instance is None and 'total_amount' not in attrs:
             auto_calculate_total = True
 
-        if auto_calculate_total:
+        if auto_calculate_total or auto_calculate_missing:
             if labour is None:
                 raise serializers.ValidationError({'labour': 'Labour is required to auto-calculate total amount.'})
 
