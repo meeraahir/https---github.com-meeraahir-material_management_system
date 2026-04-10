@@ -19,7 +19,7 @@ import type {
   SiteWiseMaterialReportRow,
 } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
-import { formatCompactNumber, formatCurrency, formatNumber } from "../../utils/format";
+import { formatCurrency, formatNumber } from "../../utils/format";
 
 function getSiteLabel(row: SiteWiseMaterialReportRow) {
   return row.site_name || row.name || "Unknown Site";
@@ -161,7 +161,7 @@ export function DashboardPage() {
       accent: "from-slate-500/20 to-slate-400/5",
       helper: "Total stock volume available",
       label: "Material Stock",
-      value: formatCompactNumber(stats?.total_material_stock),
+      value: formatNumber(stats?.total_material_stock),
     },
   ];
 

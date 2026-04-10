@@ -1,5 +1,10 @@
 import { apiClient } from "../api/client";
-import type { ReportFilters, ReportModuleKey } from "../types/erp.types";
+import type {
+  PartyLedger,
+  ReportFilters,
+  ReportModuleKey,
+  VendorLedger,
+} from "../types/erp.types";
 import { downloadBlob } from "../utils/download";
 
 const previewEndpointMap: Record<ReportModuleKey, string> = {
@@ -73,6 +78,46 @@ function filterByDateRange<T>(rows: T[], filters: ReportFilters): T[] {
 }
 
 export const reportsService = {
+  async exportPartyLedger(
+    partyId: number,
+    format: "excel" | "pdf",
+    filters?: Pick<ReportFilters, "dateFrom" | "dateTo">,
+  ) {
+    const endpoint =
+      format === "excel"
+        ? `/finance/${partyId}/ledger/export/`
+        : `/finance/${partyId}/ledger/pdf/`;
+    const response = await apiClient.get(endpoint, {
+      params: {
+        date_from: filters?.dateFrom || undefined,
+        date_to: filters?.dateTo || undefined,
+      },
+      responseType: "blob",
+    });
+
+    downloadBlob(response.data, `party-${partyId}-ledger.${format === "excel" ? "xlsx" : "pdf"}`);
+  },
+
+  async exportVendorLedger(
+    vendorId: number,
+    format: "excel" | "pdf",
+    filters?: Pick<ReportFilters, "dateFrom" | "dateTo">,
+  ) {
+    const endpoint =
+      format === "excel"
+        ? `/vendors/${vendorId}/ledger/export/`
+        : `/vendors/${vendorId}/ledger/pdf/`;
+    const response = await apiClient.get(endpoint, {
+      params: {
+        date_from: filters?.dateFrom || undefined,
+        date_to: filters?.dateTo || undefined,
+      },
+      responseType: "blob",
+    });
+
+    downloadBlob(response.data, `vendor-${vendorId}-ledger.${format === "excel" ? "xlsx" : "pdf"}`);
+  },
+
   async exportExcel(module: ReportModuleKey, filters?: Pick<ReportFilters, "dateFrom" | "dateTo">) {
     const response = await apiClient.get(exportEndpointMap[module].excel, {
       params: {
@@ -111,5 +156,27 @@ export const reportsService = {
     }
 
     return payload;
+  },
+
+  async getPartyLedger(partyId: number, filters?: Pick<ReportFilters, "dateFrom" | "dateTo">) {
+    const response = await apiClient.get<PartyLedger>(`/finance/${partyId}/ledger/`, {
+      params: {
+        date_from: filters?.dateFrom || undefined,
+        date_to: filters?.dateTo || undefined,
+      },
+    });
+
+    return response.data;
+  },
+
+  async getVendorLedger(vendorId: number, filters?: Pick<ReportFilters, "dateFrom" | "dateTo">) {
+    const response = await apiClient.get<VendorLedger>(`/vendors/${vendorId}/ledger/`, {
+      params: {
+        date_from: filters?.dateFrom || undefined,
+        date_to: filters?.dateTo || undefined,
+      },
+    });
+
+    return response.data;
   },
 };

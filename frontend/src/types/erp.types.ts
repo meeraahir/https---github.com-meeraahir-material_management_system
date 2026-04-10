@@ -110,6 +110,7 @@ export interface Receipt {
   invoice_number?: string | null;
   notes?: string | null;
   date: string;
+  date_display?: string | null;
   total_cost: number;
   remaining_stock: number;
 }
@@ -159,6 +160,7 @@ export interface VendorPayment {
   purchase_invoice_number: string | null;
   purchase_total_amount: number;
   purchase_pending_amount: number;
+  pending_after_payment?: number;
   vendor: number;
   vendor_name: string;
   site: number;
@@ -280,6 +282,10 @@ export interface ReportFilters {
   dateTo: string;
   labourId?: number;
   labourQuery?: string;
+  partyId?: number;
+  partyQuery?: string;
+  vendorId?: number;
+  vendorQuery?: string;
 }
 
 export interface SelectOption {
@@ -340,4 +346,51 @@ export interface LabourReportSummary {
 export interface LabourReportData {
   ledger: LabourPaymentLedger;
   summary: LabourReportSummary;
+}
+
+export interface VendorLedgerEntry {
+  id: number | string;
+  entry_type: string;
+  reference: string;
+  description: string | null;
+  site: string;
+  material: string | null;
+  debit: number;
+  credit: number;
+  balance: number;
+  date: string;
+}
+
+export interface VendorLedgerTotals {
+  total_amount: number;
+  paid_amount: number;
+  pending_amount: number;
+}
+
+export interface VendorLedger {
+  vendor: string;
+  transactions: VendorLedgerEntry[];
+  totals: VendorLedgerTotals;
+}
+
+export interface PartyLedgerEntry {
+  id: number | string;
+  entry_type: string;
+  site: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  date: string;
+}
+
+export interface PartyLedgerTotals {
+  total_amount: number;
+  received_amount: number;
+  pending_amount: number;
+}
+
+export interface PartyLedger {
+  party: string;
+  transactions: PartyLedgerEntry[];
+  totals: PartyLedgerTotals;
 }

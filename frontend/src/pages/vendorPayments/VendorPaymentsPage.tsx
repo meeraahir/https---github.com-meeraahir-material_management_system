@@ -12,6 +12,7 @@ import type {
   VendorPaymentFormValues,
 } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
+import { formatNumber } from "../../utils/format";
 import { getCrudPermissions } from "../../utils/permissions";
 
 const vendorPaymentSchema = z.object({
@@ -29,7 +30,7 @@ const vendorPaymentSchema = z.object({
 function getPurchaseLabel(purchase: Purchase) {
   const reference = purchase.invoice_number || `Purchase #${purchase.id}`;
   const material = purchase.material_name ? ` | ${purchase.material_name}` : "";
-  return `${purchase.vendor_name} | ${reference}${material} | Pending ${purchase.pending_amount}`;
+  return `${purchase.vendor_name} | ${reference}${material} | Pending ${formatNumber(purchase.pending_amount)}`;
 }
 
 export function VendorPaymentsPage() {
@@ -78,9 +79,9 @@ export function VendorPaymentsPage() {
         },
         {
           key: "pending",
-          header: "Purchase Pending",
-          accessor: (row) => row.purchase_pending_amount,
-          sortValue: (row) => row.purchase_pending_amount,
+          header: "Pending After Payment",
+          accessor: (row) => row.pending_after_payment ?? row.purchase_pending_amount,
+          sortValue: (row) => row.pending_after_payment ?? row.purchase_pending_amount,
         },
       ]}
       createLabel="Record Vendor Payment"

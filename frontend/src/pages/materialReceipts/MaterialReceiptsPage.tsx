@@ -5,6 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { materialReceiptsService } from "../../services/materialReceiptsService";
 import type { Receipt, ReceiptFormValues } from "../../types/erp.types";
+import { formatNumber } from "../../utils/format";
 import { getCrudPermissions } from "../../utils/permissions";
 
 const receiptSchema = z.object({
@@ -30,6 +31,35 @@ const receiptSchema = z.object({
   path: ["quantity_used"],
 });
 
+const unitLabels: Record<string, { singular: string; plural: string }> = {
+  bag: { singular: "bag", plural: "bags" },
+  kg: { singular: "kg", plural: "kg" },
+  litre: { singular: "litre", plural: "litres" },
+  meter: { singular: "meter", plural: "meters" },
+  piece: { singular: "piece", plural: "pieces" },
+  ton: { singular: "ton", plural: "tons" },
+};
+
+function getUnitLabel(unit: string) {
+  return unitLabels[unit]?.singular ?? unit;
+}
+
+function getQuantityLabel(quantity: number, unit: string) {
+  const unitLabel = quantity === 1
+    ? unitLabels[unit]?.singular ?? unit
+    : unitLabels[unit]?.plural ?? unit;
+
+  return `${formatNumber(quantity)} ${unitLabel}`;
+}
+
+function getCostPerUnitLabel(row: Receipt) {
+  return `${formatNumber(row.cost_per_unit)} / ${getUnitLabel(row.material_unit)}`;
+}
+
+function getTotalCostCalculation(row: Receipt) {
+  return `${formatNumber(row.quantity_received)} x ${formatNumber(row.cost_per_unit)} + ${formatNumber(row.transport_cost)} = ${formatNumber(row.total_cost)}`;
+}
+
 export function MaterialReceiptsPage() {
   const { user } = useAuth();
   const references = useReferenceData();
@@ -43,12 +73,16 @@ export function MaterialReceiptsPage() {
       columns={[
         { key: "site", header: "Site", accessor: (row) => row.site_name, sortValue: (row) => row.site_name },
         { key: "material", header: "Material", accessor: (row) => row.material_name, sortValue: (row) => row.material_name },
+        { key: "unit", header: "Unit", accessor: (row) => getUnitLabel(row.material_unit), sortValue: (row) => row.material_unit },
         { key: "invoice", header: "Invoice", accessor: (row) => row.invoice_number || "-", sortValue: (row) => row.invoice_number || "" },
-        { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
-        { key: "received", header: "Received", accessor: (row) => row.quantity_received, sortValue: (row) => row.quantity_received },
-        { key: "used", header: "Used", accessor: (row) => row.quantity_used, sortValue: (row) => row.quantity_used },
-        { key: "remaining", header: "Remaining", accessor: (row) => row.remaining_stock, sortValue: (row) => row.remaining_stock },
+        { key: "date", header: "Date", accessor: (row) => row.date_display || row.date, sortValue: (row) => row.date },
+        { key: "received", header: "Received", accessor: (row) => getQuantityLabel(row.quantity_received, row.material_unit), sortValue: (row) => row.quantity_received },
+        { key: "used", header: "Used", accessor: (row) => getQuantityLabel(row.quantity_used, row.material_unit), sortValue: (row) => row.quantity_used },
+        { key: "remaining", header: "Remaining Stock", accessor: (row) => getQuantityLabel(row.remaining_stock, row.material_unit), sortValue: (row) => row.remaining_stock },
+        { key: "costPerUnit", header: "Cost / Unit", accessor: (row) => getCostPerUnitLabel(row), sortValue: (row) => row.cost_per_unit },
+        { key: "transport", header: "Transport Cost", accessor: (row) => row.transport_cost, sortValue: (row) => row.transport_cost },
         { key: "cost", header: "Total Cost", accessor: (row) => row.total_cost, sortValue: (row) => row.total_cost },
+        { key: "calculation", header: "Total Calculation", accessor: (row) => getTotalCostCalculation(row), sortValue: (row) => row.total_cost },
       ]}
       createLabel="Add Receipt"
       defaultValues={{

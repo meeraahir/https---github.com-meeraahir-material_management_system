@@ -14,8 +14,8 @@ const numberFormatter = new Intl.NumberFormat("en-IN", {
 });
 
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
-  day: "2-digit",
-  month: "short",
+  day: "numeric",
+  month: "long",
   year: "numeric",
 });
 
@@ -36,7 +36,14 @@ export function formatDate(value: string | null | undefined): string {
     return "-";
   }
 
-  const parsedDate = new Date(value);
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const parsedDate = dateOnlyMatch
+    ? new Date(
+        Number(dateOnlyMatch[1]),
+        Number(dateOnlyMatch[2]) - 1,
+        Number(dateOnlyMatch[3]),
+      )
+    : new Date(value);
 
   if (Number.isNaN(parsedDate.getTime())) {
     return value;

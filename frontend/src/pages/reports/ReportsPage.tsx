@@ -19,7 +19,7 @@ import type { ReportFilters, ReportModuleKey } from "../../types/erp.types";
 import type { TableColumn } from "../../types/ui.types";
 import { getErrorMessage } from "../../utils/apiError";
 import { downloadCsv } from "../../utils/download";
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatCurrency, formatDate, formatNumber } from "../../utils/format";
 
 const reportModuleOptions: Array<{ label: string; value: ReportModuleKey }> = [
   { label: "Dashboard", value: "dashboard" },
@@ -28,6 +28,34 @@ const reportModuleOptions: Array<{ label: string; value: ReportModuleKey }> = [
   { label: "Labour", value: "labour" },
   { label: "Receivables", value: "receivables" },
 ];
+
+const numericReportKeyPattern =
+  /(amount|balance|cost|credit|debit|paid|pending|quantity|received|stock|total|used|wage)/i;
+
+function formatReportValue(key: string, value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (
+    typeof value === "string" &&
+    numericReportKeyPattern.test(key) &&
+    value.trim() !== "" &&
+    Number.isFinite(Number(value))
+  ) {
+    return formatNumber(Number(value));
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  return String(value);
+}
 
 function buildColumns(
   rows: Record<string, unknown>[],
@@ -41,7 +69,7 @@ function buildColumns(
   return Object.keys(firstRow).map((key) => ({
     key,
     header: key.replaceAll("_", " "),
-    accessor: (row) => String(row[key] ?? "-"),
+    accessor: (row) => formatReportValue(key, row[key]),
     sortValue: (row) => {
       const value = row[key];
       return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
@@ -61,6 +89,10 @@ export function ReportsPage() {
     labourId: undefined,
     labourQuery: "",
     module: "materials",
+    partyId: undefined,
+    partyQuery: "",
+    vendorId: undefined,
+    vendorQuery: "",
   });
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [tablePage, setTablePage] = useState(1);
@@ -68,6 +100,50 @@ export function ReportsPage() {
   const [isExportingLabour, setIsExportingLabour] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [error, setError] = useState("");
+
+  const partyOptions = useMemo(
+    () =>
+      references.parties
+        .filter((party) => {
+          const query = (filters.partyQuery ?? "").trim().toLowerCase();
+
+          if (!query) {
+            return true;
+          }
+
+          return (
+            party.name.toLowerCase().includes(query) ||
+            String(party.id).includes(query)
+          );
+        })
+        .map((party) => ({
+          label: `${party.name} (#${party.id})`,
+          value: party.id,
+        })),
+    [filters.partyQuery, references.parties],
+  );
+
+  const vendorOptions = useMemo(
+    () =>
+      references.vendors
+        .filter((vendor) => {
+          const query = (filters.vendorQuery ?? "").trim().toLowerCase();
+
+          if (!query) {
+            return true;
+          }
+
+          return (
+            vendor.name.toLowerCase().includes(query) ||
+            String(vendor.id).includes(query)
+          );
+        })
+        .map((vendor) => ({
+          label: `${vendor.name} (#${vendor.id})`,
+          value: vendor.id,
+        })),
+    [filters.vendorQuery, references.vendors],
+  );
 
   async function handleLabourCsvExport() {
     if (!filters.labourId || !labourReportState.report) {
@@ -159,6 +235,52 @@ export function ReportsPage() {
       return;
     }
 
+    if (filters.module === "receivables" && filters.partyId) {
+      setIsLoading(true);
+
+      try {
+        setError("");
+        const response = await reportsService.getPartyLedger(filters.partyId, {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        });
+        setRows(response.transactions as unknown as Record<string, unknown>[]);
+        setTablePage(1);
+      } catch (previewError) {
+        const message = getErrorMessage(previewError);
+        setError(message);
+        setRows([]);
+        showError("Unable to load receivable report", message);
+      } finally {
+        setIsLoading(false);
+      }
+
+      return;
+    }
+
+    if (filters.module === "vendors" && filters.vendorId) {
+      setIsLoading(true);
+
+      try {
+        setError("");
+        const response = await reportsService.getVendorLedger(filters.vendorId, {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        });
+        setRows(response.transactions as unknown as Record<string, unknown>[]);
+        setTablePage(1);
+      } catch (previewError) {
+        const message = getErrorMessage(previewError);
+        setError(message);
+        setRows([]);
+        showError("Unable to load vendor report", message);
+      } finally {
+        setIsLoading(false);
+      }
+
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -190,6 +312,22 @@ export function ReportsPage() {
     try {
       if (filters.module === "labour" && filters.labourId) {
         await labourReportsService.exportLedger(filters.labourId, format, {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        });
+        return;
+      }
+
+      if (filters.module === "receivables" && filters.partyId) {
+        await reportsService.exportPartyLedger(filters.partyId, format, {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        });
+        return;
+      }
+
+      if (filters.module === "vendors" && filters.vendorId) {
+        await reportsService.exportVendorLedger(filters.vendorId, format, {
           dateFrom: filters.dateFrom,
           dateTo: filters.dateTo,
         });
@@ -259,7 +397,13 @@ export function ReportsPage() {
 
       <ErrorMessage message={error || labourReportState.error || references.error} />
 
-      <section className="grid gap-4 rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75 lg:grid-cols-4">
+      <section
+        className={
+          filters.module === "vendors" || filters.module === "receivables"
+            ? "grid gap-4 rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75 md:grid-cols-2 xl:grid-cols-6"
+            : "grid gap-4 rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75 md:grid-cols-2 lg:grid-cols-4"
+        }
+      >
         <Select
           label="Module"
           options={reportModuleOptions}
@@ -269,9 +413,67 @@ export function ReportsPage() {
               ...currentValue,
               labourId: undefined,
               module: event.target.value as ReportModuleKey,
+              partyId: undefined,
+              vendorId: undefined,
             }))
           }
         />
+        {filters.module === "receivables" ? (
+          <>
+            <Input
+              description="Filter party options by name or party ID."
+              label="Search Party"
+              placeholder="Type party name or ID"
+              value={filters.partyQuery ?? ""}
+              onChange={(event) =>
+                setFilters((currentValue) => ({
+                  ...currentValue,
+                  partyQuery: event.target.value,
+                }))
+              }
+            />
+            <Select
+              description="Select a party to preview and export that receivable ledger."
+              label="Party"
+              options={partyOptions}
+              value={filters.partyId ?? ""}
+              onChange={(event) =>
+                setFilters((currentValue) => ({
+                  ...currentValue,
+                  partyId: event.target.value ? Number(event.target.value) : undefined,
+                }))
+              }
+            />
+          </>
+        ) : null}
+        {filters.module === "vendors" ? (
+          <>
+            <Input
+              description="Filter vendor options by name or vendor ID."
+              label="Search Vendor"
+              placeholder="Type vendor name or ID"
+              value={filters.vendorQuery ?? ""}
+              onChange={(event) =>
+                setFilters((currentValue) => ({
+                  ...currentValue,
+                  vendorQuery: event.target.value,
+                }))
+              }
+            />
+            <Select
+              description="Select a vendor to preview and export that vendor ledger."
+              label="Vendor"
+              options={vendorOptions}
+              value={filters.vendorId ?? ""}
+              onChange={(event) =>
+                setFilters((currentValue) => ({
+                  ...currentValue,
+                  vendorId: event.target.value ? Number(event.target.value) : undefined,
+                }))
+              }
+            />
+          </>
+        ) : null}
         <Input
           label="Date From"
           type="date"

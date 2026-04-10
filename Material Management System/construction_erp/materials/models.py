@@ -144,7 +144,7 @@ class MaterialUsage(models.Model):
     def _sync_receipt_quantity_used(self):
         if not self.receipt_id:
             return
-        total_used = self.receipt.usage_entries.aggregate(total=Sum('quantity'))['total'] or 0
+        total_used = self.receipt.usage_entries.aggregate(total=Sum('quantity'))['total'] or Decimal('0')
         MaterialStock.objects.filter(pk=self.receipt_id).update(quantity_used=total_used)
 
     def save(self, *args, **kwargs):
@@ -156,7 +156,7 @@ class MaterialUsage(models.Model):
         receipt_id = self.receipt_id
         super().delete(*args, **kwargs)
         if receipt_id:
-            total_used = MaterialUsage.objects.filter(receipt_id=receipt_id).aggregate(total=Sum('quantity'))['total'] or 0
+            total_used = MaterialUsage.objects.filter(receipt_id=receipt_id).aggregate(total=Sum('quantity'))['total'] or Decimal('0')
             MaterialStock.objects.filter(pk=receipt_id).update(quantity_used=total_used)
 
     def clean(self):

@@ -1,9 +1,17 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Sum
 from rest_framework import serializers
 
 from .models import Material, MaterialStock, MaterialUsage
+
+
+def format_date_display(value):
+    if not value:
+        return None
+    return f'{value.day} {value.strftime("%B %Y")}'
 
 
 class MaterialSerializer(serializers.ModelSerializer):
@@ -35,11 +43,12 @@ class MaterialStockSerializer(serializers.ModelSerializer):
     material_name = serializers.CharField(source='material.name', read_only=True)
     material_unit = serializers.CharField(source='material.unit', read_only=True)
     site_name = serializers.CharField(source='site.name', read_only=True)
+    date_display = serializers.SerializerMethodField(read_only=True)
 
-    quantity_received = serializers.FloatField(min_value=0)
-    quantity_used = serializers.FloatField(min_value=0)
-    cost_per_unit = serializers.FloatField(min_value=0)
-    transport_cost = serializers.FloatField(min_value=0)
+    quantity_received = serializers.DecimalField(max_digits=14, decimal_places=3, min_value=Decimal('0'))
+    quantity_used = serializers.DecimalField(max_digits=14, decimal_places=3, min_value=Decimal('0'))
+    cost_per_unit = serializers.DecimalField(max_digits=14, decimal_places=2, min_value=Decimal('0'))
+    transport_cost = serializers.DecimalField(max_digits=14, decimal_places=2, min_value=Decimal('0'))
 
     class Meta:
         model = MaterialStock
@@ -57,41 +66,50 @@ class MaterialStockSerializer(serializers.ModelSerializer):
             'invoice_number',
             'notes',
             'date',
+            'date_display',
             'total_cost',
             'remaining_stock',
         ]
 
     def validate(self, attrs):
-        site = attrs.get('site', getattr(self.instance, 'site', None))
-        material = attrs.get('material', getattr(self.instance, 'material', None))
-        quantity_received = attrs.get('quantity_received', getattr(self.instance, 'quantity_received', 0))
-        quantity_used = attrs.get('quantity_used', getattr(self.instance, 'quantity_used', 0))
-        cost_per_unit = attrs.get('cost_per_unit', getattr(self.instance, 'cost_per_unit', 0))
-        transport_cost = attrs.get('transport_cost', getattr(self.instance, 'transport_cost', 0))
-
-        data = {
-            'site': site,
-            'material': material,
-            'quantity_received': quantity_received,
-            'quantity_used': quantity_used,
-            'cost_per_unit': cost_per_unit,
-            'transport_cost': transport_cost,
-        }
-
         if self.instance:
-            material_stock = MaterialStock(**data)
-            material_stock.pk = self.instance.pk
+            material_stock = self.instance
+            original_values = {
+                'site': material_stock.site,
+                'material': material_stock.material,
+                'quantity_received': material_stock.quantity_received,
+                'quantity_used': material_stock.quantity_used,
+                'cost_per_unit': material_stock.cost_per_unit,
+                'transport_cost': material_stock.transport_cost,
+                'invoice_number': material_stock.invoice_number,
+                'notes': material_stock.notes,
+                'date': material_stock.date,
+            }
+            for attr, value in attrs.items():
+                setattr(material_stock, attr, value)
         else:
-            material_stock = MaterialStock(**data)
+            material_stock = MaterialStock(**attrs)
 
         try:
             material_stock.full_clean()
         except ValidationError as exc:
             raise serializers.ValidationError(exc.message_dict)
+        finally:
+            if self.instance:
+                for attr, value in original_values.items():
+                    setattr(material_stock, attr, value)
 
         return attrs
 
+    def _as_decimal(self, value):
+        if isinstance(value, Decimal):
+            return value
+        return Decimal(str(value or 0))
+
     def _sync_usage_history(self, stock, desired_usage, current_usage, usage_date):
+        desired_usage = self._as_decimal(desired_usage)
+        current_usage = self._as_decimal(current_usage)
+
         if desired_usage < current_usage:
             raise serializers.ValidationError({
                 'quantity_used': 'Used quantity cannot be reduced because usage history is already recorded.'
@@ -112,13 +130,13 @@ class MaterialStockSerializer(serializers.ModelSerializer):
             stock.save(update_fields=['quantity_used'])
 
     def create(self, validated_data):
-        desired_usage = validated_data.get('quantity_used', 0)
+        desired_usage = validated_data.get('quantity_used', Decimal('0'))
 
         with transaction.atomic():
             instance = MaterialStock(**validated_data)
             instance.full_clean()
             instance.save()
-            self._sync_usage_history(instance, desired_usage, 0, validated_data.get('date'))
+            self._sync_usage_history(instance, desired_usage, Decimal('0'), validated_data.get('date'))
             return instance
 
     def update(self, instance, validated_data):
@@ -138,6 +156,9 @@ class MaterialStockSerializer(serializers.ModelSerializer):
 
     def get_remaining_stock(self, obj):
         return obj.remaining_stock()
+
+    def get_date_display(self, obj):
+        return format_date_display(obj.date)
 
 
 class MaterialUsageSerializer(serializers.ModelSerializer):

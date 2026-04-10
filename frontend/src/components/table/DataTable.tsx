@@ -1,7 +1,9 @@
 import clsx from "clsx";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import type { TableAction, TableColumn } from "../../types/ui.types";
+import { formatDate, formatNumber } from "../../utils/format";
 import { EmptyState } from "../ui/EmptyState";
 import { Input } from "../ui/Input";
 import { Loader } from "../ui/Loader";
@@ -24,6 +26,30 @@ interface DataTableProps<T> {
   totalCount: number;
   onPageChange: (page: number) => void;
   onSearchChange: (value: string) => void;
+}
+
+function formatCellValue(value: ReactNode): ReactNode {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatDate(value);
+  }
+
+  return typeof value === "number" ? formatNumber(value) : value;
+}
+
+function serializeCellValue(value: ReactNode): string {
+  if (typeof value === "number") {
+    return `${value} ${formatNumber(value)}`;
+  }
+
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return `${value} ${formatDate(value)}`;
+  }
+
+  if (typeof value === "string" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return "";
 }
 
 export function DataTable<T>({
@@ -56,7 +82,7 @@ export function DataTable<T>({
     }
 
     const serializedRow = columns
-      .map((column) => column.accessor(row))
+      .map((column) => serializeCellValue(column.accessor(row)))
       .join(" ")
       .toLowerCase();
 
@@ -104,7 +130,7 @@ export function DataTable<T>({
             </h2>
           ) : null}
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {effectiveCount} records available
+            {formatNumber(effectiveCount)} records available
           </p>
         </div>
         <div className="w-full max-w-sm">
@@ -126,18 +152,21 @@ export function DataTable<T>({
           <EmptyState description={emptyDescription} title={emptyTitle} />
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white/95 to-transparent dark:from-slate-950/90" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white/95 to-transparent dark:from-slate-950/90" />
+          <div className="table-scrollbar overflow-x-auto pb-2">
+          <table className="w-max min-w-full divide-y divide-slate-200 dark:divide-slate-800">
             <thead>
               <tr className="bg-slate-50/90 dark:bg-slate-900/70">
                 {columns.map((column) => (
                   <th
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400"
+                    className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400"
                     key={column.key}
                   >
                     <button
                       className={clsx(
-                        "inline-flex items-center gap-2",
+                        "inline-flex items-center gap-2 whitespace-nowrap",
                         column.sortValue ? "cursor-pointer" : "cursor-default",
                       )}
                       onClick={() => {
@@ -164,7 +193,7 @@ export function DataTable<T>({
                   </th>
                 ))}
                 {actions?.length ? (
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                     Actions
                   </th>
                 ) : null}
@@ -179,16 +208,16 @@ export function DataTable<T>({
                   {columns.map((column) => (
                     <td
                       className={clsx(
-                        "px-4 py-4 text-sm text-slate-700 dark:text-slate-200",
+                        "whitespace-nowrap px-4 py-4 text-sm text-slate-700 dark:text-slate-200",
                         column.className,
                       )}
                       key={column.key}
                     >
-                      {column.accessor(row)}
+                      {formatCellValue(column.accessor(row))}
                     </td>
                   ))}
                   {actions?.length ? (
-                    <td className="px-4 py-4">
+                    <td className="whitespace-nowrap px-4 py-4">
                       <div className="flex justify-end gap-2">
                         {actions.map((action) => (
                           <Button
@@ -208,12 +237,13 @@ export function DataTable<T>({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
         <span>
-          Page {page} of {totalPages}
+          Page {formatNumber(page)} of {formatNumber(totalPages)}
         </span>
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <Button

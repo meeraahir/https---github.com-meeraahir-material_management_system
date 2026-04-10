@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q, Sum
 from rest_framework import serializers
 
 from sites.models import Site
@@ -135,6 +136,9 @@ class VendorPaymentSerializer(serializers.ModelSerializer):
     vendor_name = serializers.CharField(source='vendor.name', read_only=True)
     site_name = serializers.CharField(source='site.name', read_only=True)
     purchase_invoice_number = serializers.CharField(source='purchase.invoice_number', read_only=True)
+    purchase_total_amount = serializers.SerializerMethodField(read_only=True)
+    purchase_pending_amount = serializers.SerializerMethodField(read_only=True)
+    pending_after_payment = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = VendorPayment
@@ -142,6 +146,9 @@ class VendorPaymentSerializer(serializers.ModelSerializer):
             'id',
             'purchase',
             'purchase_invoice_number',
+            'purchase_total_amount',
+            'purchase_pending_amount',
+            'pending_after_payment',
             'vendor',
             'vendor_name',
             'site',
@@ -175,6 +182,22 @@ class VendorPaymentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(errors)
 
         return attrs
+
+    def get_purchase_total_amount(self, obj):
+        return obj.purchase.total_amount if obj.purchase_id else 0
+
+    def get_purchase_pending_amount(self, obj):
+        return obj.purchase.pending_amount() if obj.purchase_id else 0
+
+    def get_pending_after_payment(self, obj):
+        if not obj.purchase_id:
+            return 0
+
+        paid_through_payment = VendorPayment.objects.filter(purchase_id=obj.purchase_id).filter(
+            Q(date__lt=obj.date) | Q(date=obj.date, id__lte=obj.id)
+        ).aggregate(total=Sum('amount'))['total'] or 0
+
+        return obj.purchase.total_amount - paid_through_payment
 
     def _refresh_purchases(self, *purchases):
         refreshed = set()
