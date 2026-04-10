@@ -55,30 +55,30 @@ export function EntityDetailsModal<TEntity>({
     >
       {item ? (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-blue-50/60 p-3 dark:border-slate-800 dark:from-slate-900 dark:via-slate-950 dark:to-blue-950/20">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600 dark:text-blue-300">
+          <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50/70 p-4 dark:border-blue-100 dark:from-blue-50 dark:via-white dark:to-cyan-50/70">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-600 dark:text-blue-600">
               Record Details
             </p>
-            <p className="mt-1.5 text-xs leading-5 text-slate-500 dark:text-slate-400">
-              Complete backend response details for this record. Empty optional values are shown as "-".
+            <p className="mt-1.5 text-xs leading-5 text-slate-600 dark:text-slate-600">
+              Important values stay visible in the table. This panel shows the complete record details, with empty optional values shown as "-".
             </p>
           </div>
 
-          <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {fields.map((field) => (
               <div
                 className={clsx(
-                  "rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/80",
+                  "rounded-xl border border-blue-100 bg-white px-3 py-2 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md dark:border-blue-100 dark:bg-white dark:hover:border-blue-200",
                   field.highlight &&
-                    "border-blue-200 bg-blue-50/70 dark:border-blue-900/70 dark:bg-blue-950/30",
+                    "border-blue-200 bg-blue-50/80 dark:border-blue-200 dark:bg-blue-50/80",
                   field.span === "full" && "sm:col-span-2 xl:col-span-3",
                 )}
                 key={field.label}
               >
-                <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                <dt className="text-[0.7rem] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">
                   {field.label}
                 </dt>
-                <dd className="mt-1 break-words text-sm font-semibold leading-5 text-slate-900 dark:text-slate-100">
+                <dd className="mt-1 break-words text-sm font-semibold leading-5 text-slate-900 dark:text-slate-900">
                   {formatDetailValue(field.value(item))}
                 </dd>
               </div>

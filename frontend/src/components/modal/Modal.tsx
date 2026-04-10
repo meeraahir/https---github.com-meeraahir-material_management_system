@@ -47,7 +47,7 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 p-3 backdrop-blur-sm sm:p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/35 p-3 backdrop-blur-sm sm:p-4">
       <div
         className={clsx(
           "mx-auto flex min-h-[calc(100vh-1.5rem)] w-full items-center justify-center sm:min-h-[calc(100vh-2rem)]",
@@ -55,16 +55,16 @@ export function Modal({
       >
         <div
           className={clsx(
-            "my-auto flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950",
+            "my-auto flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-2xl shadow-blue-950/15 dark:border-blue-100 dark:bg-white",
             sizeClasses[size],
           )}
         >
-          <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6 dark:border-slate-800">
-            <h2 className="text-lg font-semibold text-slate-950 sm:text-xl dark:text-slate-50">
+          <div className="flex items-center justify-between gap-4 border-b border-blue-100 bg-blue-50/45 px-5 py-4 sm:px-6 dark:border-blue-100 dark:bg-blue-50/45">
+            <h2 className="text-lg font-black text-slate-950 sm:text-xl dark:text-slate-950">
               {title}
             </h2>
             <button
-              className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+              className="rounded-full p-2 text-slate-500 transition hover:bg-white hover:text-blue-700 dark:hover:bg-white dark:hover:text-blue-700"
               onClick={onClose}
               type="button"
             >
@@ -75,7 +75,7 @@ export function Modal({
             {children}
           </div>
           {footer ? (
-            <div className="border-t border-slate-200 px-5 py-4 sm:px-6 dark:border-slate-800">
+            <div className="border-t border-blue-100 bg-slate-50/60 px-5 py-4 sm:px-6 dark:border-blue-100 dark:bg-slate-50/60">
               {footer}
             </div>
           ) : null}

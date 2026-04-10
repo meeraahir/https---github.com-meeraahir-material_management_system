@@ -27,6 +27,18 @@ const purchaseSchema = z
     path: ["paid_amount"],
   });
 
+function getPaymentStatus(row: Purchase) {
+  if (row.pending_amount <= 0) {
+    return "Paid";
+  }
+
+  if (row.paid_amount > 0) {
+    return "Partial";
+  }
+
+  return "Pending";
+}
+
 export function VendorPurchasesPage() {
   const { user } = useAuth();
   const references = useReferenceData();
@@ -46,6 +58,7 @@ export function VendorPurchasesPage() {
         { key: "total", header: "Total", accessor: (row) => row.total_amount, sortValue: (row) => row.total_amount },
         { key: "paid", header: "Paid", accessor: (row) => row.paid_amount, sortValue: (row) => row.paid_amount },
         { key: "pending", header: "Pending", accessor: (row) => row.pending_amount, sortValue: (row) => row.pending_amount },
+        { key: "status", header: "Status", accessor: (row) => getPaymentStatus(row), sortValue: (row) => getPaymentStatus(row) },
       ]}
       createLabel="Add Purchase"
       defaultValues={{
@@ -111,7 +124,8 @@ export function VendorPurchasesPage() {
         },
         {
           kind: "number",
-          label: "Paid Amount",
+          description: "Use only if some payment was done while creating this purchase. Later payments should be recorded from Vendor Payments.",
+          label: "Initial Paid Amount",
           min: 0,
           name: "paid_amount",
           required: true,
@@ -141,8 +155,9 @@ export function VendorPurchasesPage() {
         { label: "Invoice Number", value: (row) => row.invoice_number, highlight: true },
         { label: "Purchase Date", value: (row) => row.date },
         { label: "Total Amount", value: (row) => row.total_amount, highlight: true },
-        { label: "Paid Amount", value: (row) => row.paid_amount, highlight: true },
+        { label: "Initial Paid Amount", value: (row) => row.paid_amount, highlight: true },
         { label: "Pending Amount", value: (row) => row.pending_amount, highlight: true },
+        { label: "Payment Status", value: (row) => getPaymentStatus(row), highlight: true },
         { label: "Description", value: (row) => row.description, span: "full" },
       ]}
     />

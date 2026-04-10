@@ -11,6 +11,7 @@ import { ConfirmDialog } from "../modal/ConfirmDialog";
 import { DataTable } from "../table/DataTable";
 import { Button } from "../ui/Button";
 import { FormError } from "../ui/FormError";
+import { Input } from "../ui/Input";
 import { EntityDetailsModal } from "./EntityDetailsModal";
 import { EntityFormModal } from "./EntityFormModal";
 
@@ -108,6 +109,14 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
           ) : null
         }
         description={description}
+        search={
+          <Input
+            label="Search"
+            placeholder={searchPlaceholder}
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+          />
+        }
         title={title}
       />
 

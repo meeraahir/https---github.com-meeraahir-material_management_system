@@ -27,7 +27,6 @@ interface EntityFormModalProps<TFormValues extends FieldValues> {
 
 export function EntityFormModal<TFormValues extends FieldValues>({
   defaultValues,
-  description,
   fields,
   onClose,
   onSubmit,
@@ -64,26 +63,36 @@ export function EntityFormModal<TFormValues extends FieldValues>({
   return (
     <Modal
       footer={
-        <div className="flex justify-end gap-3">
-          <Button onClick={handleClose} type="button" variant="secondary">
-            Cancel
-          </Button>
-          <Button
-            disabled={!isValid}
-            isLoading={isSubmitting}
-            type="submit"
-            form={formId}
-          >
-            Save
-          </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-5 text-slate-600 dark:text-slate-600">
+            {isValid
+              ? "Ready to save. Please review the details once before submitting."
+              : "Complete required fields and fix highlighted errors to enable Save."}
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button onClick={handleClose} type="button" variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              disabled={!isValid}
+              isLoading={isSubmitting}
+              type="submit"
+              form={formId}
+            >
+              Save
+            </Button>
+          </div>
         </div>
       }
       onClose={handleClose}
       open={open}
-      size="lg"
+      size="xl"
       title={title}
     >
-      <FormWrapper description={description} title={title}>
+      <FormWrapper>
+        <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-xs leading-5 text-blue-700 dark:border-blue-100 dark:bg-blue-50/70 dark:text-blue-700">
+          Fields marked with <span className="font-semibold">*</span> are required. Optional fields can be left blank safely.
+        </div>
         <form
           className="grid gap-4 md:grid-cols-2"
           id={formId}
@@ -158,16 +167,23 @@ export function EntityFormModal<TFormValues extends FieldValues>({
             if (field.kind === "checkbox") {
               return (
                 <label
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                  className="flex items-center justify-between gap-4 rounded-2xl border border-blue-100 bg-blue-50/50 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm dark:border-blue-100 dark:bg-blue-50/50 dark:text-slate-700"
                   key={sharedKey}
                 >
+                  <span>
+                    <span className="block font-semibold">{field.label}</span>
+                    {field.description ? (
+                        <span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-500">
+                        {field.description}
+                      </span>
+                    ) : null}
+                  </span>
                   <input
-                    className="h-4 w-4"
+                    className="h-5 w-5 rounded border-blue-200 text-blue-600 focus:ring-blue-500 dark:border-blue-200"
                     disabled={fieldDisabled}
                     type="checkbox"
                     {...register(field.name as Path<TFormValues>)}
                   />
-                  <span>{field.label}</span>
                 </label>
               );
             }

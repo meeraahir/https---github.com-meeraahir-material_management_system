@@ -23,6 +23,21 @@ const receivableSchema = z.object({
   }
 });
 
+function getReceivableStatus(row: Receivable) {
+  const pendingAmount = row.pending_amount ?? row.amount;
+  const receivedAmount = row.current_received_amount ?? 0;
+
+  if (pendingAmount <= 0) {
+    return "Received";
+  }
+
+  if (receivedAmount > 0) {
+    return "Partial";
+  }
+
+  return "Pending";
+}
+
 export function ReceivablesPage() {
   const { user } = useAuth();
   const references = useReferenceData();
@@ -66,8 +81,8 @@ export function ReceivablesPage() {
         {
           key: "status",
           header: "Status",
-          accessor: (row) => ((row.pending_amount ?? row.amount) > 0 ? "Pending" : "Received"),
-          sortValue: (row) => ((row.pending_amount ?? row.amount) > 0 ? "Pending" : "Received"),
+          accessor: (row) => getReceivableStatus(row),
+          sortValue: (row) => getReceivableStatus(row),
         },
         { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
       ]}
@@ -102,6 +117,7 @@ export function ReceivablesPage() {
         },
         {
           kind: "number",
+          description: "Total invoice amount raised to the party.",
           label: "Amount",
           min: 0,
           name: "amount",
@@ -111,6 +127,7 @@ export function ReceivablesPage() {
         { kind: "date", label: "Invoice Date", name: "date", required: true },
         {
           kind: "number",
+          description: "Enter amount received so far. Leave 0 if nothing has been collected yet.",
           label: "Received Amount",
           min: 0,
           name: "received_amount",
@@ -149,7 +166,7 @@ export function ReceivablesPage() {
         { label: "Pending Amount", value: (row) => row.pending_amount, highlight: true },
         {
           label: "Status",
-          value: (row) => ((row.pending_amount ?? row.amount) > 0 ? "Pending" : "Received"),
+          value: (row) => getReceivableStatus(row),
         },
       ]}
     />

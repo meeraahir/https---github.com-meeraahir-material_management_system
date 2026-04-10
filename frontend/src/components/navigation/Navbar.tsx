@@ -14,47 +14,45 @@ export function Navbar({ onLogout, onMenuClick, user }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 px-5 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <header className="app-topbar sticky top-0 z-20 border-b border-[#8fb0bd]/70 bg-[#c5d8df]/88 px-5 py-3 shadow-sm shadow-teal-950/10 backdrop-blur-xl dark:border-[#8fb0bd]/70 dark:bg-[#c5d8df]/88">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <button
-            className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-100 lg:hidden"
+            className="rounded-xl p-2 text-slate-500 transition hover:bg-blue-50 hover:text-blue-700 lg:hidden"
             onClick={onMenuClick}
             type="button"
           >
             {icons.menu({ className: "h-5 w-5" })}
           </button>
-          <div className="space-y-2">
-            <Breadcrumb />
-          </div>
+          <Breadcrumb />
         </div>
 
         <div className="relative">
           <button
-            className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-left shadow-sm transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900"
+            className="app-user-menu flex items-center gap-3 rounded-2xl border border-[#8fb0bd]/60 bg-[#d4e2e7]/85 px-3 py-2 text-left shadow-sm shadow-teal-950/10 transition hover:border-teal-600/30 hover:shadow-md dark:border-[#8fb0bd]/60 dark:bg-[#d4e2e7]/85"
             onClick={() => setMenuOpen((currentValue) => !currentValue)}
             type="button"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
               {(user?.username?.slice(0, 1) || "U").toUpperCase()}
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              <p className="app-user-name text-sm font-semibold text-slate-900 dark:text-slate-900">
                 {user?.username ?? "User"}
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="app-user-email text-xs text-slate-500 dark:text-slate-500">
                 {user?.email ?? "Signed in"}
               </p>
             </div>
           </button>
 
           {menuOpen ? (
-            <div className="absolute right-0 mt-3 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-              <div className="rounded-xl px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
+            <div className="absolute right-0 mt-3 w-56 rounded-2xl border border-blue-100 bg-white p-2 shadow-xl shadow-blue-950/10 dark:border-blue-100 dark:bg-white">
+              <div className="rounded-xl px-3 py-2 text-sm text-slate-500 dark:text-slate-500">
                 Profile dropdown
               </div>
               <button
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-700 dark:hover:bg-blue-50"
                 onClick={onLogout}
                 type="button"
               >

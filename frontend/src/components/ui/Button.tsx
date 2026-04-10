@@ -13,11 +13,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 focus-visible:ring-blue-500",
+    "bg-gradient-to-r from-teal-700 to-cyan-700 text-white shadow-lg shadow-teal-900/18 hover:from-teal-800 hover:to-cyan-800 focus-visible:ring-teal-600",
   secondary:
-    "border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
+    "border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 hover:border-teal-600/40 hover:bg-[#c5d8df] focus-visible:ring-teal-600 dark:border-[#8fb0bd]/70 dark:bg-[#cfe0e6] dark:text-slate-800 dark:hover:bg-[#c5d8df]",
   ghost:
-    "bg-transparent text-slate-600 hover:bg-slate-100 focus-visible:ring-slate-400 dark:text-slate-300 dark:hover:bg-slate-800",
+    "bg-transparent text-slate-700 hover:bg-[#c5d8df] hover:text-teal-800 focus-visible:ring-teal-600 dark:text-slate-700 dark:hover:bg-[#c5d8df] dark:hover:text-teal-800",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -39,7 +39,7 @@ export function Button({
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-slate-950",
+        "inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-white",
         variantClasses[variant],
         sizeClasses[size],
         className,

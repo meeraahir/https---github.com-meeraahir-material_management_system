@@ -55,7 +55,7 @@ export function LabourFilter({
   );
 
   return (
-    <section className="grid gap-4 rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75 lg:grid-cols-5">
+    <section className="grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 lg:grid-cols-5">
       <Input
         description="Filter labour options by name or employee ID."
         label="Search Labour"

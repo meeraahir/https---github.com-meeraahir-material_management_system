@@ -21,10 +21,12 @@ export function ChartCard({
   title,
 }: ChartCardProps) {
   return (
-    <article className="rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-950/75 dark:shadow-none">
+    <article className="overflow-hidden rounded-[2rem] border border-blue-100/90 bg-white/95 shadow-lg shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/95 dark:shadow-blue-950/5">
+      <div className="h-1 bg-gradient-to-r from-blue-500/80 via-cyan-400/80 to-emerald-400/80" />
+      <div className="p-5">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">{title}</h2>
-        <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
+        <h2 className="text-xl font-black text-slate-950 dark:text-slate-950">{title}</h2>
+        <p className="text-sm leading-6 text-slate-600 dark:text-slate-600">{description}</p>
       </div>
 
       <div className="mt-5 h-[320px]">
@@ -43,6 +45,7 @@ export function ChartCard({
         ) : (
           children
         )}
+      </div>
       </div>
     </article>
   );

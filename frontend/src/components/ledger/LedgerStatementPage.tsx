@@ -5,6 +5,7 @@ import { PageHeader } from "../layout/PageHeader";
 import { DataTable } from "../table/DataTable";
 import { Button } from "../ui/Button";
 import { FormError } from "../ui/FormError";
+import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 import type { TableAction, TableColumn } from "../../types/ui.types";
 import { getErrorMessage } from "../../utils/apiError";
@@ -102,12 +103,20 @@ export function LedgerStatementPage<TEntry>({
     <div className="space-y-6">
       <PageHeader
         description={description}
+        search={
+          <Input
+            label="Search"
+            placeholder={searchPlaceholder}
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+          />
+        }
         title={title}
       />
 
       <FormError message={referenceError || error} />
 
-      <section className="grid gap-4 rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75 md:grid-cols-[minmax(0,1fr)_auto]">
+      <section className="grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-[minmax(0,1fr)_auto]">
         <Select
           label={entityLabel}
           options={entityOptions}
@@ -129,27 +138,27 @@ export function LedgerStatementPage<TEntry>({
 
       {totals ? (
         <section className="grid gap-4 md:grid-cols-3">
-          <article className="rounded-[1.5rem] border border-slate-200 bg-white/95 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+          <article className="rounded-[1.5rem] border border-blue-100 bg-white/95 p-4 shadow-sm shadow-blue-950/5 dark:border-blue-100 dark:bg-white/95">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">
               {totals.totalLabel}
             </p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+            <p className="mt-2 text-2xl font-black text-slate-950 dark:text-slate-950">
               {formatCurrency(totals.totalValue)}
             </p>
           </article>
-          <article className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm dark:border-emerald-900/70 dark:bg-emerald-950/25">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-300">
+          <article className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm dark:border-emerald-200 dark:bg-emerald-50/80">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-700">
               {totals.paidLabel}
             </p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+            <p className="mt-2 text-2xl font-black text-slate-950 dark:text-slate-950">
               {formatCurrency(totals.paidValue)}
             </p>
           </article>
-          <article className="rounded-[1.5rem] border border-amber-200 bg-amber-50/80 p-4 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/25">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-300">
+          <article className="rounded-[1.5rem] border border-amber-200 bg-amber-50/80 p-4 shadow-sm dark:border-amber-200 dark:bg-amber-50/80">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700 dark:text-amber-700">
               {totals.pendingLabel}
             </p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+            <p className="mt-2 text-2xl font-black text-slate-950 dark:text-slate-950">
               {formatCurrency(totals.pendingValue)}
             </p>
           </article>

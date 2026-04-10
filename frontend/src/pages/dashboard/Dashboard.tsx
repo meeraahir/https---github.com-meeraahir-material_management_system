@@ -178,7 +178,7 @@ export function DashboardPage() {
         {isLoading
           ? Array.from({ length: 6 }).map((_, index) => (
               <div
-                className="rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75"
+                className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95"
                 key={index}
               >
                 <Skeleton className="h-4 w-24" />
@@ -188,12 +188,12 @@ export function DashboardPage() {
             ))
           : summaryCards.map((card) => (
               <div
-                className={`rounded-[2rem] border border-slate-200 bg-gradient-to-br ${card.accent} p-1 shadow-sm dark:border-slate-800`}
+                className={`rounded-[2rem] border border-blue-100 bg-gradient-to-br ${card.accent} p-1 shadow-md shadow-blue-950/5 dark:border-blue-100`}
                 key={card.label}
               >
-                <div className="rounded-[1.7rem] bg-white/95 p-5 dark:bg-slate-950/80">
+                <div className="rounded-[1.7rem] bg-white/95 p-5 dark:bg-white/95">
                   <StatCard label={card.label} value={card.value} />
-                  <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                  <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-600">
                     {card.helper}
                   </p>
                 </div>
@@ -204,6 +204,7 @@ export function DashboardPage() {
       <section className="grid gap-5 xl:grid-cols-2">
         <ChartCard
           description="Total quantity used by material based on the material-wise report."
+          emptyDescription="No material usage has been recorded yet. Add material receipts with used quantity to populate this chart."
           isEmpty={materialUsageChartData.length === 0}
           isLoading={isLoading}
           title="Material Usage"
@@ -213,6 +214,7 @@ export function DashboardPage() {
 
         <ChartCard
           description="Material cost movement across tracked materials."
+          emptyDescription="No material cost data is available yet. Add material receipts with cost details to see cost movement."
           isEmpty={costTrackingChartData.length === 0}
           isLoading={isLoading}
           title="Cost Tracking"
@@ -222,6 +224,7 @@ export function DashboardPage() {
 
         <ChartCard
           description="Site-wise share of material stock and allocation."
+          emptyDescription="No site stock distribution is available yet. Add receipts against sites to build this chart."
           isEmpty={siteDistributionChartData.length === 0}
           isLoading={isLoading}
           title="Site-wise Material Distribution"
@@ -231,95 +234,13 @@ export function DashboardPage() {
 
         <ChartCard
           description="Overall used versus remaining stock position."
+          emptyDescription="No stock movement is available yet. Add received and used quantities to compare stock."
           isEmpty={stockComparisonChartData.length === 0}
           isLoading={isLoading}
           title="Stock Overview"
         >
           <StockComparisonChart data={stockComparisonChartData} />
         </ChartCard>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-3">
-        <article className="rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">
-            Recent Sites
-          </h2>
-          <div className="mt-4 space-y-3">
-            {stats?.recent_sites?.length ? (
-              stats.recent_sites.map((site) => (
-                <div
-                  className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50"
-                  key={site.id}
-                >
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {site.name}
-                  </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {site.location}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                No recent sites available.
-              </p>
-            )}
-          </div>
-        </article>
-
-        <article className="rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">
-            Recent Materials
-          </h2>
-          <div className="mt-4 space-y-3">
-            {stats?.recent_materials?.length ? (
-              stats.recent_materials.map((material) => (
-                <div
-                  className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50"
-                  key={material.id}
-                >
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {material.name}
-                  </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Unit: {material.unit}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                No recent materials available.
-              </p>
-            )}
-          </div>
-        </article>
-
-        <article className="rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">
-            Recent Vendors
-          </h2>
-          <div className="mt-4 space-y-3">
-            {stats?.recent_vendors?.length ? (
-              stats.recent_vendors.map((vendor) => (
-                <div
-                  className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50"
-                  key={vendor.id}
-                >
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {vendor.name}
-                  </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {vendor.phone}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                No recent vendors available.
-              </p>
-            )}
-          </div>
-        </article>
       </section>
     </div>
   );

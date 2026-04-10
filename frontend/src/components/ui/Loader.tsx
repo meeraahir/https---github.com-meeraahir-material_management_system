@@ -14,7 +14,7 @@ export function Loader({
   const content = (
     <div
       className={clsx(
-        "flex items-center justify-center gap-3 text-sm font-medium text-slate-600 dark:text-slate-300",
+        "flex items-center justify-center gap-3 text-sm font-medium text-slate-600 dark:text-slate-600",
         className,
       )}
     >
@@ -25,7 +25,7 @@ export function Loader({
 
   if (fullscreen) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950/5 dark:bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-blue-50/50 dark:bg-blue-50/50">
         {content}
       </div>
     );

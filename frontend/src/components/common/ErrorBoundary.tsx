@@ -35,14 +35,14 @@ export class ErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div className="flex min-h-screen items-center justify-center px-4">
-          <div className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white/95 p-8 text-center shadow-xl dark:border-slate-800 dark:bg-slate-950/90">
+          <div className="w-full max-w-lg rounded-[2rem] border border-blue-100 bg-white/95 p-8 text-center shadow-xl shadow-blue-950/10 dark:border-blue-100 dark:bg-white/95">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-600">
               Something went wrong
             </p>
-            <h1 className="mt-3 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+            <h1 className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
               The page hit an unexpected error.
             </h1>
-            <p className="mt-3 text-sm leading-7 text-slate-500 dark:text-slate-400">
+            <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-600">
               Reload the app to recover. Your backend data and API contracts were not changed.
             </p>
             <div className="mt-6 flex justify-center">

@@ -11,7 +11,7 @@ export function DashboardLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="h-screen overflow-hidden bg-transparent text-slate-900 dark:text-slate-100">
+    <div className="h-screen overflow-hidden bg-transparent text-slate-900 dark:text-slate-900">
       <div className="flex h-screen">
         <Sidebar
           collapsed={sidebarCollapsed}
@@ -28,7 +28,7 @@ export function DashboardLayout() {
             onMenuClick={() => setSidebarOpen(true)}
             user={user}
           />
-          <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-6 lg:px-8">
+          <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6">
             <Outlet />
           </main>
         </div>

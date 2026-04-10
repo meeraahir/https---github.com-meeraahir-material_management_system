@@ -54,6 +54,18 @@ const paymentSchema = z
     }
   });
 
+function getPaymentStatus(row: Payment) {
+  if (row.pending_amount <= 0) {
+    return "Paid";
+  }
+
+  if (row.paid_amount > 0) {
+    return "Partial";
+  }
+
+  return "Pending";
+}
+
 export function PaymentsPage() {
   const { user } = useAuth();
   const references = useReferenceData();
@@ -96,18 +108,6 @@ export function PaymentsPage() {
           sortValue: (row) => row.date || "",
         },
         {
-          key: "periodStart",
-          header: "Period Start",
-          accessor: (row) => row.period_start || "-",
-          sortValue: (row) => row.period_start || "",
-        },
-        {
-          key: "periodEnd",
-          header: "Period End",
-          accessor: (row) => row.period_end || "-",
-          sortValue: (row) => row.period_end || "",
-        },
-        {
           key: "total",
           header: "Total Amount",
           accessor: (row) => row.total_amount,
@@ -135,6 +135,12 @@ export function PaymentsPage() {
           sortValue: (row) => row.period_start || row.period_end || "",
         },
         {
+          key: "status",
+          header: "Status",
+          accessor: (row) => getPaymentStatus(row),
+          sortValue: (row) => getPaymentStatus(row),
+        },
+        {
           key: "attendance",
           header: "Attendance Days",
           accessor: (row) => row.attendance_days ?? "-",
@@ -160,6 +166,7 @@ export function PaymentsPage() {
       fields={[
         {
           kind: "checkbox",
+          description: "When enabled, the backend calculates total wage from attendance for the selected labour, site, and period.",
           label: "Auto calculate total",
           name: "auto_calculate_total",
           wrapperClassName: "md:col-span-2",
@@ -208,6 +215,7 @@ export function PaymentsPage() {
         },
         {
           kind: "number",
+          description: "Disabled while auto calculation is on.",
           label: "Total Amount",
           min: 0,
           name: "total_amount",
@@ -218,6 +226,7 @@ export function PaymentsPage() {
         },
         {
           kind: "number",
+          description: "Enter the amount actually paid now. Pending is calculated automatically.",
           label: "Paid Amount",
           min: 0,
           name: "paid_amount",
@@ -281,6 +290,7 @@ export function PaymentsPage() {
           value: (row) => row.pending_amount,
           highlight: true,
         },
+        { label: "Payment Status", value: (row) => getPaymentStatus(row), highlight: true },
         {
           label: "Calculated Total Amount",
           value: (row) => row.calculated_total_amount,

@@ -3,8 +3,8 @@ import { Outlet } from "react-router-dom";
 export function AuthLayout() {
   return (
     <div className="min-h-screen bg-transparent px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden rounded-[2rem] border border-white/60 bg-white/80 shadow-2xl shadow-slate-900/10 backdrop-blur xl:grid-cols-[1.05fr_0.95fr] dark:border-slate-800 dark:bg-slate-950/80">
-        <section className="hidden flex-col justify-between bg-slate-900 px-10 py-12 text-white xl:flex">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden rounded-[2rem] border border-blue-100 bg-white/86 shadow-2xl shadow-blue-950/10 backdrop-blur xl:grid-cols-[1.05fr_0.95fr] dark:border-blue-100 dark:bg-white/86">
+        <section className="hidden flex-col justify-between bg-gradient-to-br from-blue-700 via-sky-700 to-cyan-600 px-10 py-12 text-white xl:flex">
           <div className="space-y-6">
             <div className="inline-flex w-fit items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
               Material Management ERP

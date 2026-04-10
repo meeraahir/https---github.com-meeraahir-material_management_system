@@ -17,20 +17,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   return (
-    <label className="flex w-full flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-      <span className="flex items-center gap-1 text-sm font-semibold text-slate-800 dark:text-slate-100">
+    <label className="flex w-full flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-700">
+      <span className="flex items-center gap-1 text-sm font-bold text-slate-800 dark:text-slate-800">
         {label}
         {requiredIndicator ? <span className="text-rose-500">*</span> : null}
       </span>
       {description ? (
-        <span className="text-xs font-normal leading-5 text-slate-500 dark:text-slate-400">
+        <span className="text-xs font-normal leading-5 text-slate-500 dark:text-slate-500">
           {description}
         </span>
       ) : null}
       <input
         ref={ref}
         className={clsx(
-          "h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:hover:border-slate-600",
+          "h-11 rounded-2xl border border-blue-100 bg-white px-4 text-sm font-medium text-slate-900 shadow-sm shadow-blue-950/5 outline-none transition placeholder:text-slate-400 hover:border-blue-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-blue-100 dark:bg-white dark:text-slate-900 dark:placeholder:text-slate-400 dark:hover:border-blue-200",
           error &&
             "border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-500/60",
           className,
@@ -39,7 +39,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         {...rest}
       />
       {hint ? (
-        <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+        <span className="text-xs font-normal text-slate-500 dark:text-slate-500">
           {hint}
         </span>
       ) : null}

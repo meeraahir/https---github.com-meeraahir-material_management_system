@@ -419,6 +419,14 @@ export function ReportsPage() {
           </>
         }
         description="Preview backend-supported reports, with a dedicated labour ledger view for worker-specific analysis."
+        search={
+          <Input
+            label="Search"
+            placeholder="Search preview rows"
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+          />
+        }
         title="Reports"
       />
 
@@ -427,8 +435,8 @@ export function ReportsPage() {
       <section
         className={
           filters.module === "vendors" || filters.module === "receivables"
-            ? "grid gap-4 rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75 md:grid-cols-2 xl:grid-cols-6"
-            : "grid gap-4 rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75 md:grid-cols-2 lg:grid-cols-4"
+            ? "grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-2 xl:grid-cols-6"
+            : "grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-2 lg:grid-cols-4"
         }
       >
         <Select
@@ -564,21 +572,21 @@ export function ReportsPage() {
           {filters.labourId && labourReportState.report ? (
             <>
               <section className="grid gap-4 md:grid-cols-3">
-                <article className="rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Labour</p>
-                  <p className="mt-3 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+                <article className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-600">Labour</p>
+                  <p className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
                     {labourReportState.report.summary.labourName}
                   </p>
                 </article>
-                <article className="rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Total Wage</p>
-                  <p className="mt-3 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+                <article className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-600">Total Wage</p>
+                  <p className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
                     {formatCurrency(labourReportState.report.summary.totalAmount)}
                   </p>
                 </article>
-                <article className="rounded-[2rem] border border-slate-200 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Pending Amount</p>
-                  <p className="mt-3 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+                <article className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-600">Pending Amount</p>
+                  <p className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
                     {formatCurrency(labourReportState.report.summary.pendingAmount)}
                   </p>
                 </article>

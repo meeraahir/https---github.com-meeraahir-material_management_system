@@ -60,6 +60,18 @@ function getTotalCostCalculation(row: Receipt) {
   return `${formatNumber(row.quantity_received)} x ${formatNumber(row.cost_per_unit)} + ${formatNumber(row.transport_cost)} = ${formatNumber(row.total_cost)}`;
 }
 
+function getStockStatus(row: Receipt) {
+  if (row.remaining_stock <= 0) {
+    return "Used";
+  }
+
+  if (row.remaining_stock <= row.quantity_received * 0.25) {
+    return "Low";
+  }
+
+  return "Available";
+}
+
 export function MaterialReceiptsPage() {
   const { user } = useAuth();
   const references = useReferenceData();
@@ -82,7 +94,7 @@ export function MaterialReceiptsPage() {
         { key: "costPerUnit", header: "Cost / Unit", accessor: (row) => getCostPerUnitLabel(row), sortValue: (row) => row.cost_per_unit },
         { key: "transport", header: "Transport Cost", accessor: (row) => row.transport_cost, sortValue: (row) => row.transport_cost },
         { key: "cost", header: "Total Cost", accessor: (row) => row.total_cost, sortValue: (row) => row.total_cost },
-        { key: "calculation", header: "Total Calculation", accessor: (row) => getTotalCostCalculation(row), sortValue: (row) => row.total_cost },
+        { key: "status", header: "Stock Status", accessor: (row) => getStockStatus(row), sortValue: (row) => getStockStatus(row) },
       ]}
       createLabel="Add Receipt"
       defaultValues={{
@@ -127,6 +139,7 @@ export function MaterialReceiptsPage() {
         },
         {
           kind: "number",
+          description: "Fresh material received in this entry.",
           label: "Quantity Received",
           min: 0,
           name: "quantity_received",
@@ -135,6 +148,7 @@ export function MaterialReceiptsPage() {
         },
         {
           kind: "number",
+          description: "Material consumed from this receipt. It cannot be greater than received quantity.",
           label: "Quantity Used",
           min: 0,
           name: "quantity_used",
@@ -195,6 +209,7 @@ export function MaterialReceiptsPage() {
         { label: "Invoice Number", value: (row) => row.invoice_number },
         { label: "Receipt Date", value: (row) => row.date_display || row.date },
         { label: "Total Cost", value: (row) => row.total_cost, highlight: true },
+        { label: "Stock Status", value: (row) => getStockStatus(row), highlight: true },
         { label: "Total Calculation", value: (row) => getTotalCostCalculation(row), span: "full" },
         { label: "Notes", value: (row) => row.notes, span: "full" },
       ]}

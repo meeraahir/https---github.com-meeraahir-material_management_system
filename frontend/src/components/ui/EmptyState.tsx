@@ -8,12 +8,12 @@ interface EmptyStateProps {
 
 export function EmptyState({ action, description, title }: EmptyStateProps) {
   return (
-    <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900/60">
+    <div className="rounded-3xl border border-dashed border-blue-200 bg-blue-50/70 px-6 py-12 text-center dark:border-blue-200 dark:bg-blue-50/70">
       <div className="mx-auto max-w-md space-y-3">
-        <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+        <h3 className="text-xl font-black text-slate-900 dark:text-slate-900">
           {title}
         </h3>
-        <p className="text-sm leading-7 text-slate-500 dark:text-slate-400">
+        <p className="text-sm leading-7 text-slate-600 dark:text-slate-600">
           {description}
         </p>
         {action ? <div className="pt-3">{action}</div> : null}
