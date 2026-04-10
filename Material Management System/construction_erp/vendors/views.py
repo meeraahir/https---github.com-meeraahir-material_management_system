@@ -54,6 +54,7 @@ class VendorViewSet(viewsets.ModelViewSet):
                 'credit': 0,
                 'date': purchase.date,
                 '_sort_id': purchase.id,
+                '_sort_priority': 0,
             })
 
         for payment in payments:
@@ -68,9 +69,10 @@ class VendorViewSet(viewsets.ModelViewSet):
                 'credit': payment.amount,
                 'date': payment.date,
                 '_sort_id': payment.id,
+                '_sort_priority': 1,
             })
 
-        entries.sort(key=lambda item: (item['date'], item['_sort_id'], item['entry_type']))
+        entries.sort(key=lambda item: (item['date'], item['_sort_priority'], item['_sort_id']))
         running_balance = 0
         data = []
         for entry in entries:
