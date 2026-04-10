@@ -50,6 +50,7 @@ class PartyViewSet(viewsets.ModelViewSet):
                 'credit': 0,
                 'date': invoice.date,
                 '_sort_id': invoice.id,
+                '_sort_priority': 0,
             })
 
         for receipt in receipts:
@@ -61,9 +62,10 @@ class PartyViewSet(viewsets.ModelViewSet):
                 'credit': receipt.amount,
                 'date': receipt.date,
                 '_sort_id': receipt.id,
+                '_sort_priority': 1,
             })
 
-        entries.sort(key=lambda item: (item['date'], item['_sort_id'], item['entry_type']))
+        entries.sort(key=lambda item: (item['date'], item['_sort_priority'], item['_sort_id']))
         running_balance = 0
         data = []
         for entry in entries:
