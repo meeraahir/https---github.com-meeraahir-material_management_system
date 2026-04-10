@@ -87,6 +87,7 @@ class LabourViewSet(viewsets.ModelViewSet):
                 'credit': 0,
                 'date': wage_entry.date,
                 '_sort_id': wage_entry.id,
+                '_sort_priority': 0,
             })
 
         for payment_entry in payment_entries:
@@ -98,9 +99,10 @@ class LabourViewSet(viewsets.ModelViewSet):
                 'credit': payment_entry.amount,
                 'date': payment_entry.date,
                 '_sort_id': payment_entry.id,
+                '_sort_priority': 1,
             })
 
-        entries.sort(key=lambda item: (item['date'], item['_sort_id'], item['entry_type']))
+        entries.sort(key=lambda item: (item['date'], item['_sort_priority'], item['_sort_id']))
         running_balance = 0
         data = []
         for entry in entries:
