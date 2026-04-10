@@ -83,6 +83,12 @@ export function PaymentsPage() {
         { key: "paid", header: "Paid Amount", accessor: (row) => row.paid_amount, sortValue: (row) => row.paid_amount },
         { key: "pending", header: "Pending", accessor: (row) => row.pending_amount, sortValue: (row) => row.pending_amount },
         {
+          key: "period",
+          header: "Period",
+          accessor: (row) => row.period_start || row.period_end ? `${row.period_start || "-"} to ${row.period_end || "-"}` : "-",
+          sortValue: (row) => row.period_start || row.period_end || "",
+        },
+        {
           key: "attendance",
           header: "Attendance Days",
           accessor: (row) => row.attendance_days ?? "-",
@@ -177,6 +183,28 @@ export function PaymentsPage() {
       searchPlaceholder="Search payments"
       service={paymentsService}
       title="Payments"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        {
+          label: "Labour",
+          value: (row) => row.labour_name || labourNameMap.get(row.labour),
+          highlight: true,
+        },
+        {
+          label: "Site",
+          value: (row) => row.site_name || (row.site ? siteNameMap.get(row.site) : ""),
+          highlight: true,
+        },
+        { label: "Payment Date", value: (row) => row.date },
+        { label: "Period Start", value: (row) => row.period_start },
+        { label: "Period End", value: (row) => row.period_end },
+        { label: "Total Amount", value: (row) => row.total_amount, highlight: true },
+        { label: "Paid Amount", value: (row) => row.paid_amount, highlight: true },
+        { label: "Pending Amount", value: (row) => row.pending_amount, highlight: true },
+        { label: "Calculated Total Amount", value: (row) => row.calculated_total_amount },
+        { label: "Attendance Days", value: (row) => row.attendance_days },
+        { label: "Notes", value: (row) => row.notes, span: "full" },
+      ]}
     />
   );
 }

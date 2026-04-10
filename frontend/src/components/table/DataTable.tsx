@@ -52,6 +52,22 @@ function serializeCellValue(value: ReactNode): string {
   return "";
 }
 
+function getCellTooltip(value: ReactNode): string | undefined {
+  if (typeof value === "number") {
+    return formatNumber(value);
+  }
+
+  if (typeof value === "string") {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? formatDate(value) : value;
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  return undefined;
+}
+
 export function DataTable<T>({
   actions,
   clientPagination = false,
@@ -156,17 +172,17 @@ export function DataTable<T>({
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white/95 to-transparent dark:from-slate-950/90" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white/95 to-transparent dark:from-slate-950/90" />
           <div className="table-scrollbar overflow-x-auto pb-2">
-          <table className="w-max min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+          <table className="w-full table-fixed divide-y divide-slate-200 dark:divide-slate-800">
             <thead>
               <tr className="bg-slate-50/90 dark:bg-slate-900/70">
                 {columns.map((column) => (
                   <th
-                    className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400"
+                    className="w-44 max-w-[11rem] whitespace-nowrap overflow-hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400"
                     key={column.key}
                   >
                     <button
                       className={clsx(
-                        "inline-flex items-center gap-2 whitespace-nowrap",
+                        "inline-flex max-w-full items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap",
                         column.sortValue ? "cursor-pointer" : "cursor-default",
                       )}
                       onClick={() => {
@@ -193,7 +209,7 @@ export function DataTable<T>({
                   </th>
                 ))}
                 {actions?.length ? (
-                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <th className="sticky right-0 z-20 w-56 max-w-[14rem] whitespace-nowrap bg-slate-50/95 px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.9)] dark:bg-slate-900/95 dark:text-slate-400">
                     Actions
                   </th>
                 ) : null}
@@ -205,20 +221,30 @@ export function DataTable<T>({
                   className="transition hover:bg-slate-50 dark:hover:bg-slate-900/60"
                   key={keyExtractor(row, index)}
                 >
-                  {columns.map((column) => (
-                    <td
-                      className={clsx(
-                        "whitespace-nowrap px-4 py-4 text-sm text-slate-700 dark:text-slate-200",
-                        column.className,
-                      )}
-                      key={column.key}
-                    >
-                      {formatCellValue(column.accessor(row))}
-                    </td>
-                  ))}
+                  {columns.map((column) => {
+                    const cellValue = column.accessor(row);
+                    const formattedValue = formatCellValue(cellValue);
+
+                    return (
+                      <td
+                        className={clsx(
+                          "w-44 max-w-[11rem] px-4 py-4 text-sm text-slate-700 dark:text-slate-200",
+                          column.className,
+                        )}
+                        key={column.key}
+                      >
+                        <div
+                          className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                          title={getCellTooltip(cellValue)}
+                        >
+                          {formattedValue}
+                        </div>
+                      </td>
+                    );
+                  })}
                   {actions?.length ? (
-                    <td className="whitespace-nowrap px-4 py-4">
-                      <div className="flex justify-end gap-2">
+                    <td className="sticky right-0 z-10 w-56 max-w-[14rem] whitespace-nowrap bg-white/95 px-4 py-4 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.9)] dark:bg-slate-950/95">
+                      <div className="flex flex-nowrap justify-end gap-2">
                         {actions.map((action) => (
                           <Button
                             key={action.label}

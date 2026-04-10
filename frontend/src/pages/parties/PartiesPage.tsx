@@ -63,6 +63,11 @@ export function PartiesPage() {
       searchPlaceholder="Search parties"
       service={partiesService}
       title="Parties"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        { label: "Party Name", value: (row) => row.name, highlight: true },
+        { label: "Contact", value: (row) => row.contact },
+      ]}
     />
   );
 }

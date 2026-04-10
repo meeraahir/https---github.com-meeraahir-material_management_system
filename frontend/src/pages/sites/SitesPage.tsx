@@ -76,6 +76,12 @@ export function SitesPage() {
       searchPlaceholder="Search by site name or location"
       service={sitesService}
       title="Sites"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        { label: "Site Name", value: (row) => row.name, highlight: true },
+        { label: "Location", value: (row) => row.location },
+        { label: "Description", value: (row) => row.description, span: "full" },
+      ]}
     />
   );
 }

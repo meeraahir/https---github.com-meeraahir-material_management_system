@@ -16,6 +16,13 @@ export interface TableAction<T> {
   variant?: "primary" | "secondary" | "ghost";
 }
 
+export interface DetailField<T> {
+  label: string;
+  value: (row: T) => ReactNode;
+  highlight?: boolean;
+  span?: "full";
+}
+
 export type FormFieldKind =
   | "text"
   | "email"
