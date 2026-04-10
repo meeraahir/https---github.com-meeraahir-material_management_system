@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import type { DefaultValues, FieldValues, Path } from "react-hook-form";
 import type { z } from "zod";
 
@@ -42,18 +42,18 @@ export function EntityFormModal<TFormValues extends FieldValues>({
     onClose();
   };
   const {
+    control,
     formState: { errors, isSubmitting, isValid },
     handleSubmit,
     register,
     reset,
-    watch,
   } = useForm<TFormValues>({
     defaultValues: defaultValues as DefaultValues<TFormValues>,
     mode: "onChange",
     resolver: createZodResolver(schema),
   });
 
-  const watchedValues = watch();
+  const watchedValues = useWatch({ control }) as Partial<TFormValues>;
 
   useEffect(() => {
     if (open) {

@@ -30,11 +30,26 @@ const MaterialsPage = lazy(() =>
 const VendorsPage = lazy(() =>
   import("../pages/vendors/VendorsPage").then((module) => ({ default: module.VendorsPage })),
 );
+const VendorLedgerPage = lazy(() =>
+  import("../pages/vendorLedger/VendorLedgerPage").then((module) => ({
+    default: module.VendorLedgerPage,
+  })),
+);
 const LabourPage = lazy(() =>
   import("../pages/labour/LabourPage").then((module) => ({ default: module.LabourPage })),
 );
+const LabourLedgerPage = lazy(() =>
+  import("../pages/labourLedger/LabourLedgerPage").then((module) => ({
+    default: module.LabourLedgerPage,
+  })),
+);
 const PartiesPage = lazy(() =>
   import("../pages/parties/PartiesPage").then((module) => ({ default: module.PartiesPage })),
+);
+const PartyLedgerPage = lazy(() =>
+  import("../pages/partyLedger/PartyLedgerPage").then((module) => ({
+    default: module.PartyLedgerPage,
+  })),
 );
 const MaterialReceiptsPage = lazy(() =>
   import("../pages/materialReceipts/MaterialReceiptsPage").then((module) => ({
@@ -92,8 +107,11 @@ export function AppRoutes() {
             <Route path="/sites" element={<SitesPage />} />
             <Route path="/materials" element={<MaterialsPage />} />
             <Route path="/vendors" element={<VendorsPage />} />
+            <Route path="/vendor-ledger" element={<VendorLedgerPage />} />
             <Route path="/labour" element={<LabourPage />} />
+            <Route path="/labour-ledger" element={<LabourLedgerPage />} />
             <Route path="/parties" element={<PartiesPage />} />
+            <Route path="/party-ledger" element={<PartyLedgerPage />} />
             <Route path="/material-receipts" element={<MaterialReceiptsPage />} />
             <Route path="/vendor-purchases" element={<VendorPurchasesPage />} />
             <Route path="/vendor-payments" element={<VendorPaymentsPage />} />
