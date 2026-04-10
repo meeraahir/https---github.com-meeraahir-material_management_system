@@ -1,14 +1,37 @@
+from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Sum
 from rest_framework import serializers
 
 from .models import Vendor, VendorTransaction, VendorPayment
+
+
+def _raise_drf_validation_error(exc):
+    if hasattr(exc, 'message_dict'):
+        raise serializers.ValidationError(exc.message_dict)
+    raise serializers.ValidationError({'non_field_errors': exc.messages})
 
 
 class VendorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vendor
         fields = '__all__'
+
+    def create(self, validated_data):
+        try:
+            return Vendor.objects.create(**validated_data)
+        except ValidationError as exc:
+            _raise_drf_validation_error(exc)
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        try:
+            instance.save()
+        except ValidationError as exc:
+            _raise_drf_validation_error(exc)
+
+        return instance
 
 
 class VendorTransactionSerializer(serializers.ModelSerializer):
@@ -82,8 +105,11 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
 
         with transaction.atomic():
             purchase = VendorTransaction(**validated_data)
-            purchase.full_clean()
-            purchase.save()
+            try:
+                purchase.full_clean()
+                purchase.save()
+            except ValidationError as exc:
+                _raise_drf_validation_error(exc)
             self._sync_payment_history(purchase, desired_paid_amount, validated_data.get('date'))
             return purchase
 
@@ -93,92 +119,10 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
         with transaction.atomic():
             for attr, value in validated_data.items():
                 setattr(instance, attr, value)
-            instance.full_clean()
-            instance.save()
+            try:
+                instance.full_clean()
+                instance.save()
+            except ValidationError as exc:
+                _raise_drf_validation_error(exc)
             self._sync_payment_history(instance, desired_paid_amount, validated_data.get('date', instance.date))
-            return instance
-
-
-class VendorPaymentSerializer(serializers.ModelSerializer):
-    purchase_invoice_number = serializers.CharField(source='purchase.invoice_number', read_only=True)
-    purchase_total_amount = serializers.DecimalField(
-        source='purchase.total_amount',
-        max_digits=14,
-        decimal_places=2,
-        read_only=True,
-    )
-    purchase_pending_amount = serializers.SerializerMethodField(read_only=True)
-    vendor = serializers.PrimaryKeyRelatedField(read_only=True)
-    vendor_name = serializers.CharField(source='vendor.name', read_only=True)
-    site = serializers.PrimaryKeyRelatedField(read_only=True)
-    site_name = serializers.CharField(source='site.name', read_only=True)
-
-    class Meta:
-        model = VendorPayment
-        fields = [
-            'id',
-            'purchase',
-            'purchase_invoice_number',
-            'purchase_total_amount',
-            'purchase_pending_amount',
-            'vendor',
-            'vendor_name',
-            'site',
-            'site_name',
-            'amount',
-            'date',
-            'reference_number',
-            'remarks',
-        ]
-
-    def validate(self, attrs):
-        purchase = attrs.get('purchase', getattr(self.instance, 'purchase', None))
-        amount = attrs.get('amount', getattr(self.instance, 'amount', 0))
-
-        errors = {}
-        if purchase is None:
-            errors['purchase'] = 'Purchase must be provided.'
-        if amount <= 0:
-            errors['amount'] = 'Payment amount must be greater than zero.'
-        if purchase is not None:
-            existing_total = purchase.payments.exclude(
-                pk=getattr(self.instance, 'pk', None)
-            ).aggregate(total=Sum('amount'))['total'] or 0
-            if existing_total + amount > purchase.total_amount:
-                errors['amount'] = 'Payment amount cannot exceed the remaining amount for this purchase.'
-
-        if errors:
-            raise serializers.ValidationError(errors)
-
-        return attrs
-
-    def get_purchase_pending_amount(self, obj):
-        return obj.purchase.pending_amount()
-
-    def _apply_purchase_details(self, validated_data):
-        purchase = validated_data['purchase']
-        validated_data['vendor'] = purchase.vendor
-        validated_data['site'] = purchase.site
-        return validated_data
-
-    def create(self, validated_data):
-        with transaction.atomic():
-            payment = VendorPayment(**self._apply_purchase_details(validated_data))
-            payment.full_clean()
-            payment.save()
-            payment.purchase.refresh_paid_amount(save=True)
-            return payment
-
-    def update(self, instance, validated_data):
-        old_purchase = instance.purchase
-        validated_data.setdefault('purchase', instance.purchase)
-
-        with transaction.atomic():
-            self._apply_purchase_details(validated_data)
-            for attr, value in validated_data.items():
-                setattr(instance, attr, value)
-            instance.full_clean()
-            instance.save()
-            old_purchase.refresh_paid_amount(save=True)
-            instance.purchase.refresh_paid_amount(save=True)
             return instance

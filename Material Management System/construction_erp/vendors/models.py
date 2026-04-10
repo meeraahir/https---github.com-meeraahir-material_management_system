@@ -60,6 +60,19 @@ class Vendor(models.Model):
         if not self.address or not self.address.strip():
             errors['address'] = 'Address is required.'
 
+        if self.bank_account_number:
+            self.bank_account_number = self.bank_account_number.strip()
+            duplicate_account = Vendor.objects.filter(
+                bank_account_number=self.bank_account_number
+            )
+            if self.pk:
+                duplicate_account = duplicate_account.exclude(pk=self.pk)
+            if duplicate_account.exists():
+                errors['bank_account_number'] = 'Bank account number must be unique.'
+
+        if self.ifsc_code:
+            self.ifsc_code = self.ifsc_code.strip().upper()
+
         if self.bank_account_number and not self.bank_name:
             errors['bank_name'] = 'Bank name is required when a bank account number is provided.'
         if self.ifsc_code and not self.bank_name:
@@ -104,6 +117,16 @@ class VendorTransaction(models.Model):
 
     def clean(self):
         errors = {}
+
+        if self.invoice_number:
+            self.invoice_number = self.invoice_number.strip()
+            duplicate_invoice = VendorTransaction.objects.filter(
+                invoice_number__iexact=self.invoice_number
+            )
+            if self.pk:
+                duplicate_invoice = duplicate_invoice.exclude(pk=self.pk)
+            if duplicate_invoice.exists():
+                errors['invoice_number'] = 'Invoice number must be unique.'
 
         if self.total_amount < 0:
             errors['total_amount'] = 'Total amount must be zero or positive.'
