@@ -1,5 +1,6 @@
 from io import BytesIO
 
+from django.db import transaction
 from django.db.models import Sum, F, FloatField, Count, Q, Case, When, Value
 from django.db.models.functions import TruncWeek, TruncMonth
 from django.http import HttpResponse
@@ -505,3 +506,49 @@ class LabourPaymentViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['labour', 'site', 'date', 'period_start', 'period_end']
     search_fields = ['labour__name', 'site__name', 'notes']
+
+    def get_queryset(self):
+        if getattr(self, 'action', None) == 'list':
+            self._merge_duplicate_wage_entries()
+
+        return LabourPayment.objects.select_related('labour', 'site').all().order_by('id')
+
+    def _merge_duplicate_wage_entries(self):
+        duplicate_groups = (
+            LabourPayment.objects.values('labour_id', 'site_id', 'period_start', 'period_end')
+            .annotate(entry_count=Count('id'))
+            .filter(entry_count__gt=1)
+        )
+
+        for group in duplicate_groups:
+            with transaction.atomic():
+                entries = list(
+                    LabourPayment.objects.select_for_update()
+                    .filter(
+                        labour_id=group['labour_id'],
+                        site_id=group['site_id'],
+                        period_start=group['period_start'],
+                        period_end=group['period_end'],
+                    )
+                    .order_by('id')
+                )
+
+                if len(entries) <= 1:
+                    continue
+
+                canonical_entry = entries[0]
+                duplicate_entries = entries[1:]
+                combined_paid_amount = sum(entry.payments_total() for entry in entries)
+                canonical_entry.total_amount = max(
+                    [entry.total_amount for entry in entries] + [combined_paid_amount]
+                )
+                canonical_entry.save()
+
+                for duplicate_entry in duplicate_entries:
+                    for payment_entry in duplicate_entry.payment_entries.all():
+                        payment_entry.payment = canonical_entry
+                        payment_entry.site = canonical_entry.site
+                        payment_entry.save()
+                    duplicate_entry.delete()
+
+                canonical_entry.refresh_paid_amount(save=True)

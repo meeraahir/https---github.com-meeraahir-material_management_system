@@ -296,6 +296,9 @@ export interface SelectOption {
 export interface MaterialWiseReportRow {
   material_id: number;
   material_name: string;
+  material_unit?: string;
+  cost_per_unit?: number;
+  transport_cost?: number;
   total_quantity_received: number;
   total_quantity_used: number;
   remaining_stock: number;

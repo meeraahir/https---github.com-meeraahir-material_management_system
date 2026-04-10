@@ -378,6 +378,30 @@ export function ReportsPage() {
   const activeRows = filters.module === "labour" && filters.labourId ? labourRows : rows;
   const columns = buildColumns(activeRows);
 
+  function handleExportCsv() {
+    if (activeRows.length === 0 || columns.length === 0) {
+      showError("No data to export", "Preview a report before exporting CSV.");
+      return;
+    }
+
+    const csvRows = [
+      columns.map((column) => column.header),
+      ...activeRows.map((row) =>
+        columns.map((column) => String(column.accessor(row) ?? "")),
+      ),
+    ];
+    const csvContent = csvRows
+      .map((row) =>
+        row
+          .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+          .join(","),
+      )
+      .join("\n");
+
+    downloadCsv(csvContent, `${filters.module}-report.csv`);
+    showSuccess("Export complete", "The report preview was exported as CSV.");
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -385,6 +409,9 @@ export function ReportsPage() {
           <>
             <Button onClick={() => void handleExport("excel")} type="button" variant="secondary">
               Export Excel
+            </Button>
+            <Button onClick={() => handleExportCsv()} type="button" variant="secondary">
+              Export CSV
             </Button>
             <Button onClick={() => void handleExport("pdf")} type="button">
               Export PDF

@@ -1,4 +1,5 @@
 from io import BytesIO
+from numbers import Number
 
 from django.db.models import Sum, F, FloatField
 from django.http import HttpResponse
@@ -43,13 +44,48 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def _format_export_value(self, key, value):
+        if value is None:
+            return ''
+
+        if key.endswith('_id'):
+            return value
+
+        should_format_number = any(
+            token in key
+            for token in ['amount', 'cost', 'quantity', 'received', 'stock', 'used']
+        )
+        if should_format_number and isinstance(value, Number):
+            formatted_value = f'{value:,.2f}'
+            return formatted_value.rstrip('0').rstrip('.')
+
+        return value
+
+    def _format_export_rows(self, report_data):
+        return [
+            {
+                key: self._format_export_value(key, value)
+                for key, value in row.items()
+            }
+            for row in report_data
+        ]
+
     @action(detail=False, methods=['get'], url_path='reports/material-wise')
     def material_wise_report(self, request):
         data = (
-            self._apply_date_range(MaterialStock.objects.all()).values('material__id', 'material__name')
+            self._apply_date_range(MaterialStock.objects.all()).values(
+                'material__id',
+                'material__name',
+                'material__unit',
+            )
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
                 total_quantity_used=Sum('quantity_used', output_field=FloatField()),
+                material_amount=Sum(
+                    F('quantity_received') * F('cost_per_unit'),
+                    output_field=FloatField(),
+                ),
+                total_transport_cost=Sum('transport_cost', output_field=FloatField()),
                 total_cost=Sum(
                     F('quantity_received') * F('cost_per_unit') + F('transport_cost'),
                     output_field=FloatField(),
@@ -65,6 +101,13 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
             {
                 'material_id': item['material__id'],
                 'material_name': item['material__name'],
+                'material_unit': item['material__unit'],
+                'cost_per_unit': (
+                    (item['material_amount'] or 0) / item['total_quantity_received']
+                    if item['total_quantity_received']
+                    else 0
+                ),
+                'transport_cost': item['total_transport_cost'] or 0,
                 'total_quantity_received': item['total_quantity_received'],
                 'total_quantity_used': item['total_quantity_used'],
                 'remaining_stock': item['remaining_stock'],
@@ -125,10 +168,15 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
     def site_specific_report(self, request, site_id=None):
         data = (
             self._apply_date_range(MaterialStock.objects.filter(site_id=site_id))
-            .values('material__id', 'material__name')
+            .values('material__id', 'material__name', 'material__unit')
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
                 total_quantity_used=Sum('quantity_used', output_field=FloatField()),
+                material_amount=Sum(
+                    F('quantity_received') * F('cost_per_unit'),
+                    output_field=FloatField(),
+                ),
+                total_transport_cost=Sum('transport_cost', output_field=FloatField()),
                 total_cost=Sum(
                     F('quantity_received') * F('cost_per_unit') + F('transport_cost'),
                     output_field=FloatField(),
@@ -144,6 +192,13 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
             {
                 'material_id': item['material__id'],
                 'material_name': item['material__name'],
+                'material_unit': item['material__unit'],
+                'cost_per_unit': (
+                    (item['material_amount'] or 0) / item['total_quantity_received']
+                    if item['total_quantity_received']
+                    else 0
+                ),
+                'transport_cost': item['total_transport_cost'] or 0,
                 'total_quantity_received': item['total_quantity_received'],
                 'total_quantity_used': item['total_quantity_used'],
                 'remaining_stock': item['remaining_stock'],
@@ -176,11 +231,12 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
         workbook = Workbook()
         sheet = workbook.active
         sheet.title = title[:31]
+        export_data = self._format_export_rows(report_data)
 
-        if report_data:
-            headers = list(report_data[0].keys())
+        if export_data:
+            headers = list(export_data[0].keys())
             sheet.append(headers)
-            for row in report_data:
+            for row in export_data:
                 sheet.append([row.get(key, '') for key in headers])
         else:
             sheet.append(['No data available'])
@@ -200,7 +256,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
         return build_pdf_response(
             filename_base=filename_base,
             title=filename_base.replace('_', ' ').title(),
-            rows=report_data,
+            rows=self._format_export_rows(report_data),
             headers=headers,
         )
 

@@ -133,6 +133,11 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
             attrs['period_end'] = normalized_end
         elif 'total_amount' not in attrs and self.instance is None:
             raise serializers.ValidationError({'total_amount': 'Total amount is required when auto calculation is disabled.'})
+        elif self.instance is None:
+            payment_date = payment_date or timezone.localdate()
+            attrs['date'] = payment_date
+            attrs['period_start'] = period_start or payment_date
+            attrs['period_end'] = period_end or period_start or payment_date
 
         errors = {}
         if total_amount < 0:
@@ -180,15 +185,72 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
 
         wage_entry.refresh_paid_amount(save=True)
 
+    def _matching_wage_entries(self, validated_data):
+        site = validated_data.get('site')
+        queryset = LabourPayment.objects.select_for_update().filter(
+            labour=validated_data.get('labour'),
+            period_start=validated_data.get('period_start'),
+            period_end=validated_data.get('period_end'),
+        )
+
+        if site:
+            queryset = queryset.filter(site=site)
+        else:
+            queryset = queryset.filter(site__isnull=True)
+
+        return queryset.order_by('id')
+
+    def _merge_duplicate_wage_entries(self, canonical_entry, duplicate_entries):
+        for duplicate in duplicate_entries:
+            for payment_entry in duplicate.payment_entries.all():
+                payment_entry.payment = canonical_entry
+                payment_entry.site = canonical_entry.site
+                payment_entry.save()
+            duplicate.delete()
+
+        canonical_entry.refresh_paid_amount(save=True)
+        return canonical_entry
+
     def create(self, validated_data):
         validated_data.pop('auto_calculate_total', None)
-        desired_paid_amount = validated_data.get('paid_amount', 0)
+        payment_amount = validated_data.get('paid_amount', 0)
 
         with transaction.atomic():
+            matching_entries = list(self._matching_wage_entries(validated_data))
+
+            if matching_entries:
+                wage_entry = matching_entries[0]
+                self._merge_duplicate_wage_entries(wage_entry, matching_entries[1:])
+
+                total_amount = validated_data.get('total_amount', wage_entry.total_amount)
+                if total_amount < wage_entry.payments_total() + payment_amount:
+                    raise serializers.ValidationError({
+                        'paid_amount': 'Paid amount cannot exceed pending amount for this labour, site, and period.'
+                    })
+
+                wage_entry.total_amount = total_amount
+                wage_entry.date = validated_data.get('date', wage_entry.date)
+                wage_entry.notes = validated_data.get('notes', wage_entry.notes)
+                wage_entry.full_clean()
+                wage_entry.save()
+
+                if payment_amount > 0:
+                    LabourPaymentEntry.objects.create(
+                        payment=wage_entry,
+                        labour=wage_entry.labour,
+                        site=wage_entry.site,
+                        amount=payment_amount,
+                        date=validated_data.get('date') or wage_entry.date,
+                        notes=validated_data.get('notes') or 'Additional labour payment.',
+                    )
+
+                wage_entry.refresh_paid_amount(save=True)
+                return wage_entry
+
             wage_entry = LabourPayment(**validated_data)
             wage_entry.full_clean()
             wage_entry.save()
-            self._sync_payment_history(wage_entry, desired_paid_amount, validated_data.get('date'))
+            self._sync_payment_history(wage_entry, payment_amount, validated_data.get('date'))
             return wage_entry
 
     def update(self, instance, validated_data):
