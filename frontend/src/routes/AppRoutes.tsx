@@ -46,6 +46,11 @@ const VendorPurchasesPage = lazy(() =>
     default: module.VendorPurchasesPage,
   })),
 );
+const VendorPaymentsPage = lazy(() =>
+  import("../pages/vendorPayments/VendorPaymentsPage").then((module) => ({
+    default: module.VendorPaymentsPage,
+  })),
+);
 const AttendancePage = lazy(() =>
   import("../pages/attendance/AttendancePage").then((module) => ({
     default: module.AttendancePage,
@@ -91,6 +96,7 @@ export function AppRoutes() {
             <Route path="/parties" element={<PartiesPage />} />
             <Route path="/material-receipts" element={<MaterialReceiptsPage />} />
             <Route path="/vendor-purchases" element={<VendorPurchasesPage />} />
+            <Route path="/vendor-payments" element={<VendorPaymentsPage />} />
             <Route path="/attendance" element={<AttendancePage />} />
             <Route path="/payments" element={<PaymentsPage />} />
             <Route path="/receivables" element={<ReceivablesPage />} />

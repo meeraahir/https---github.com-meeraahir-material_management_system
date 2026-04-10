@@ -1,12 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import VendorViewSet, VendorTransactionViewSet
+from .views import VendorPaymentViewSet, VendorViewSet, VendorTransactionViewSet
 
 app_name = 'vendors'
 
 router = DefaultRouter()
 router.register(r'vendors', VendorViewSet)
 router.register(r'transactions', VendorTransactionViewSet)
+router.register(r'payments', VendorPaymentViewSet)
 
 urlpatterns = [
     # Clean aliases for frontend integration.
@@ -29,5 +30,7 @@ urlpatterns = [
     path('reports/site/<int:site_id>/pdf/', VendorViewSet.as_view({'get': 'export_site_specific_report_pdf'}), name='vendor-report-site-specific-pdf'),
     path('transactions/', VendorTransactionViewSet.as_view({'get': 'list', 'post': 'create'}), name='vendortransaction-list'),
     path('transactions/<int:pk>/', VendorTransactionViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='vendortransaction-detail'),
+    path('payments/', VendorPaymentViewSet.as_view({'get': 'list', 'post': 'create'}), name='vendorpayment-list'),
+    path('payments/<int:pk>/', VendorPaymentViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='vendorpayment-detail'),
     path('', include(router.urls)),
 ]

@@ -153,6 +153,30 @@ export interface PurchaseFormValues {
   date: string;
 }
 
+export interface VendorPayment {
+  id: number;
+  purchase: number;
+  purchase_invoice_number: string | null;
+  purchase_total_amount: number;
+  purchase_pending_amount: number;
+  vendor: number;
+  vendor_name: string;
+  site: number;
+  site_name: string;
+  amount: number;
+  date: string;
+  reference_number: string | null;
+  remarks: string | null;
+}
+
+export interface VendorPaymentFormValues {
+  purchase: number;
+  amount: number;
+  date: string;
+  reference_number: string;
+  remarks: string;
+}
+
 export interface Attendance {
   id: number;
   labour: number;

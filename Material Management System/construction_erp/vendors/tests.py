@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 from materials.models import Material
 from sites.models import Site
-from .models import Vendor, VendorTransaction
+from .models import Vendor, VendorPayment, VendorTransaction
 from .serializers import VendorTransactionSerializer
 
 
@@ -106,3 +106,47 @@ class VendorModuleTests(TestCase):
         self.assertEqual(len(site_specific.data), 1)
         self.assertEqual(site_specific.data[0]['vendor_name'], self.vendor.name)
         self.assertEqual(site_specific.data[0]['pending_amount'], 600)
+
+    def test_vendor_payment_api_records_payment_and_refreshes_purchase(self):
+        purchase = VendorTransaction.objects.create(
+            vendor=self.vendor,
+            site=self.site,
+            material=self.material,
+            total_amount=1000,
+            paid_amount=0,
+            date=date.today(),
+        )
+
+        response = self.client.post('/api/vendors/payments/', {
+            'purchase': purchase.id,
+            'amount': '250.00',
+            'date': date.today().isoformat(),
+            'reference_number': 'UTR-001',
+            'remarks': 'First partial payment',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        purchase.refresh_from_db()
+        self.assertEqual(purchase.paid_amount, 250)
+        self.assertEqual(VendorPayment.objects.filter(purchase=purchase).count(), 1)
+        self.assertEqual(response.data['vendor'], self.vendor.id)
+        self.assertEqual(response.data['site'], self.site.id)
+
+    def test_vendor_payment_api_rejects_overpayment(self):
+        purchase = VendorTransaction.objects.create(
+            vendor=self.vendor,
+            site=self.site,
+            material=self.material,
+            total_amount=300,
+            paid_amount=0,
+            date=date.today(),
+        )
+
+        response = self.client.post('/api/vendors/payments/', {
+            'purchase': purchase.id,
+            'amount': '350.00',
+            'date': date.today().isoformat(),
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('amount', response.data)

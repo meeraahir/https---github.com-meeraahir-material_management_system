@@ -12,7 +12,7 @@ from openpyxl import Workbook
 
 from sites.permissions import IsAdminOrReadOnly
 from .models import Vendor, VendorTransaction, VendorPayment
-from .serializers import VendorSerializer, VendorTransactionSerializer
+from .serializers import VendorPaymentSerializer, VendorSerializer, VendorTransactionSerializer
 
 
 class VendorViewSet(viewsets.ModelViewSet):
@@ -337,3 +337,19 @@ class VendorTransactionViewSet(viewsets.ModelViewSet):
     search_fields = ['vendor__name', 'site__name', 'material__name']
     ordering_fields = ['date', 'total_amount', 'paid_amount']
     ordering = ['-date']
+
+
+class VendorPaymentViewSet(viewsets.ModelViewSet):
+    queryset = VendorPayment.objects.select_related('purchase', 'vendor', 'site').all().order_by('-date', '-id')
+    serializer_class = VendorPaymentSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['purchase', 'vendor', 'site', 'date']
+    search_fields = ['vendor__name', 'site__name', 'purchase__invoice_number', 'reference_number', 'remarks']
+    ordering_fields = ['date', 'amount']
+    ordering = ['-date']
+
+    def perform_destroy(self, instance):
+        purchase = instance.purchase
+        instance.delete()
+        purchase.refresh_paid_amount(save=True)

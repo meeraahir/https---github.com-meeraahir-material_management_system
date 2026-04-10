@@ -41,6 +41,7 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       { icon: icons.vendors({ className: "h-4 w-4" }), label: "Vendors", to: "/vendors" },
       { icon: icons.purchases({ className: "h-4 w-4" }), label: "Vendor Purchases", to: "/vendor-purchases" },
+      { icon: icons.payments({ className: "h-4 w-4" }), label: "Vendor Payments", to: "/vendor-payments" },
     ],
     label: "Procurement",
     theme: "sky",
@@ -88,6 +89,7 @@ export const navigationItems: NavigationItem[] = [
   { icon: icons.parties({ className: "h-5 w-5" }), label: "Parties", to: "/parties" },
   { icon: icons.receipts({ className: "h-5 w-5" }), label: "Material Receipts", to: "/material-receipts" },
   { icon: icons.purchases({ className: "h-5 w-5" }), label: "Vendor Purchases", to: "/vendor-purchases" },
+  { icon: icons.payments({ className: "h-5 w-5" }), label: "Vendor Payments", to: "/vendor-payments" },
   { icon: icons.attendance({ className: "h-5 w-5" }), label: "Attendance", to: "/attendance" },
   { icon: icons.payments({ className: "h-5 w-5" }), label: "Payments", to: "/payments" },
   { icon: icons.receivables({ className: "h-5 w-5" }), label: "Receivables", to: "/receivables" },
