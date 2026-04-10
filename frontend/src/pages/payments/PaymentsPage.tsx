@@ -77,6 +77,8 @@ export function PaymentsPage() {
           sortValue: (row) => row.site_name || (row.site ? siteNameMap.get(row.site) || row.site : ""),
         },
         { key: "date", header: "Date", accessor: (row) => row.date || "-", sortValue: (row) => row.date || "" },
+        { key: "periodStart", header: "Period Start", accessor: (row) => row.period_start || "-", sortValue: (row) => row.period_start || "" },
+        { key: "periodEnd", header: "Period End", accessor: (row) => row.period_end || "-", sortValue: (row) => row.period_end || "" },
         { key: "total", header: "Total Amount", accessor: (row) => row.total_amount, sortValue: (row) => row.total_amount },
         { key: "paid", header: "Paid Amount", accessor: (row) => row.paid_amount, sortValue: (row) => row.paid_amount },
         { key: "pending", header: "Pending", accessor: (row) => row.pending_amount, sortValue: (row) => row.pending_amount },
