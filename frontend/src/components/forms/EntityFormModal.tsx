@@ -46,11 +46,14 @@ export function EntityFormModal<TFormValues extends FieldValues>({
     handleSubmit,
     register,
     reset,
+    watch,
   } = useForm<TFormValues>({
     defaultValues: defaultValues as DefaultValues<TFormValues>,
     mode: "onChange",
     resolver: createZodResolver(schema),
   });
+
+  const watchedValues = watch();
 
   useEffect(() => {
     if (open) {
@@ -65,7 +68,12 @@ export function EntityFormModal<TFormValues extends FieldValues>({
           <Button onClick={handleClose} type="button" variant="secondary">
             Cancel
           </Button>
-          <Button disabled={!isValid} isLoading={isSubmitting} type="submit" form={formId}>
+          <Button
+            disabled={!isValid}
+            isLoading={isSubmitting}
+            type="submit"
+            form={formId}
+          >
             Save
           </Button>
         </div>
@@ -92,12 +100,25 @@ export function EntityFormModal<TFormValues extends FieldValues>({
             const errorMessage = errors[field.name]?.message;
             const sharedKey = `${field.name}-${field.kind}`;
 
+            const fieldDisabled =
+              typeof field.disabled === "function"
+                ? field.disabled(watchedValues)
+                : (field.disabled ?? false);
+
             if (field.kind === "textarea") {
               return (
-                <div className={field.wrapperClassName ?? "md:col-span-2"} key={sharedKey}>
+                <div
+                  className={field.wrapperClassName ?? "md:col-span-2"}
+                  key={sharedKey}
+                >
                   <Textarea
                     description={field.description}
-                    error={typeof errorMessage === "string" ? errorMessage : undefined}
+                    disabled={fieldDisabled}
+                    error={
+                      typeof errorMessage === "string"
+                        ? errorMessage
+                        : undefined
+                    }
                     label={field.label}
                     placeholder={field.placeholder}
                     requiredIndicator={field.required}
@@ -113,9 +134,15 @@ export function EntityFormModal<TFormValues extends FieldValues>({
                 <div className={field.wrapperClassName} key={sharedKey}>
                   <Select
                     description={field.description}
-                    error={typeof errorMessage === "string" ? errorMessage : undefined}
+                    disabled={fieldDisabled}
+                    error={
+                      typeof errorMessage === "string"
+                        ? errorMessage
+                        : undefined
+                    }
                     label={field.label}
                     options={field.options}
+                    placeholder={field.placeholder}
                     requiredIndicator={field.required}
                     {...register(field.name as Path<TFormValues>, {
                       setValueAs:
@@ -136,6 +163,7 @@ export function EntityFormModal<TFormValues extends FieldValues>({
                 >
                   <input
                     className="h-4 w-4"
+                    disabled={fieldDisabled}
                     type="checkbox"
                     {...register(field.name as Path<TFormValues>)}
                   />
@@ -148,13 +176,30 @@ export function EntityFormModal<TFormValues extends FieldValues>({
               <div className={field.wrapperClassName} key={sharedKey}>
                 <Input
                   description={field.description}
-                  error={typeof errorMessage === "string" ? errorMessage : undefined}
-                  inputMode={field.kind !== "number" ? field.inputMode : undefined}
+                  disabled={fieldDisabled}
+                  error={
+                    typeof errorMessage === "string" ? errorMessage : undefined
+                  }
+                  inputMode={
+                    field.kind !== "number" ? field.inputMode : undefined
+                  }
                   label={field.label}
-                  max={field.kind === "number" || field.kind === "date" ? field.max : undefined}
-                  maxLength={field.kind !== "number" ? field.maxLength : undefined}
-                  min={field.kind === "number" || field.kind === "date" ? field.min : undefined}
-                  minLength={field.kind !== "number" ? field.minLength : undefined}
+                  max={
+                    field.kind === "number" || field.kind === "date"
+                      ? field.max
+                      : undefined
+                  }
+                  maxLength={
+                    field.kind !== "number" ? field.maxLength : undefined
+                  }
+                  min={
+                    field.kind === "number" || field.kind === "date"
+                      ? field.min
+                      : undefined
+                  }
+                  minLength={
+                    field.kind !== "number" ? field.minLength : undefined
+                  }
                   pattern={field.kind !== "date" ? field.pattern : undefined}
                   placeholder={field.placeholder}
                   requiredIndicator={field.required}
@@ -163,9 +208,14 @@ export function EntityFormModal<TFormValues extends FieldValues>({
                   {...register(field.name as Path<TFormValues>, {
                     onChange: field.digitsOnly
                       ? (event) => {
-                          const sanitizedValue = String(event.target.value ?? "")
+                          const sanitizedValue = String(
+                            event.target.value ?? "",
+                          )
                             .replaceAll(/\D/g, "")
-                            .slice(0, field.maxLength ?? Number.MAX_SAFE_INTEGER);
+                            .slice(
+                              0,
+                              field.maxLength ?? Number.MAX_SAFE_INTEGER,
+                            );
                           event.target.value = sanitizedValue;
                         }
                       : undefined,

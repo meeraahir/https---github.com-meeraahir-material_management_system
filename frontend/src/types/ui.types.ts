@@ -39,6 +39,7 @@ export interface FormOption {
 
 interface BaseFieldConfig<TFormValues> {
   description?: string;
+  disabled?: boolean | ((values: Partial<TFormValues>) => boolean);
   label: string;
   name: keyof TFormValues & string;
   placeholder?: string;
@@ -46,10 +47,20 @@ interface BaseFieldConfig<TFormValues> {
   wrapperClassName?: string;
 }
 
-export interface TextFieldConfig<TFormValues> extends BaseFieldConfig<TFormValues> {
+export interface TextFieldConfig<
+  TFormValues,
+> extends BaseFieldConfig<TFormValues> {
   kind: "text" | "email" | "number" | "date";
   digitsOnly?: boolean;
-  inputMode?: "decimal" | "email" | "none" | "numeric" | "search" | "tel" | "text" | "url";
+  inputMode?:
+    | "decimal"
+    | "email"
+    | "none"
+    | "numeric"
+    | "search"
+    | "tel"
+    | "text"
+    | "url";
   max?: number | string;
   maxLength?: number;
   min?: number | string;
@@ -59,20 +70,24 @@ export interface TextFieldConfig<TFormValues> extends BaseFieldConfig<TFormValue
   valueType?: "number" | "string";
 }
 
-export interface SelectFieldConfig<TFormValues> extends BaseFieldConfig<TFormValues> {
+export interface SelectFieldConfig<
+  TFormValues,
+> extends BaseFieldConfig<TFormValues> {
   kind: "select";
   options: FormOption[];
   valueType?: "number" | "string";
 }
 
-export interface TextareaFieldConfig<TFormValues>
-  extends BaseFieldConfig<TFormValues> {
+export interface TextareaFieldConfig<
+  TFormValues,
+> extends BaseFieldConfig<TFormValues> {
   kind: "textarea";
   rows?: number;
 }
 
-export interface CheckboxFieldConfig<TFormValues>
-  extends BaseFieldConfig<TFormValues> {
+export interface CheckboxFieldConfig<
+  TFormValues,
+> extends BaseFieldConfig<TFormValues> {
   kind: "checkbox";
 }
 
