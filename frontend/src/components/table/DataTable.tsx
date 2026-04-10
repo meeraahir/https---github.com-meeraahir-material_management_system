@@ -91,7 +91,9 @@ export function DataTable<T>({
     direction: "asc" | "desc";
   } | null>(null);
 
-  const sortableColumn = columns.find((column) => column.key === sortState?.columnKey);
+  const sortableColumn = columns.find(
+    (column) => column.key === sortState?.columnKey,
+  );
   const filteredRows = data.filter((row) => {
     if (!searchValue.trim()) {
       return true;
@@ -172,97 +174,107 @@ export function DataTable<T>({
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white/95 to-transparent dark:from-slate-950/90" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white/95 to-transparent dark:from-slate-950/90" />
           <div className="table-scrollbar overflow-x-auto pb-2">
-          <table className="w-full table-fixed divide-y divide-slate-200 dark:divide-slate-800">
-            <thead>
-              <tr className="bg-slate-50/90 dark:bg-slate-900/70">
-                {columns.map((column) => (
-                  <th
-                    className="w-44 max-w-[11rem] whitespace-nowrap overflow-hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400"
-                    key={column.key}
-                  >
-                    <button
-                      className={clsx(
-                        "inline-flex max-w-full items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap",
-                        column.sortValue ? "cursor-pointer" : "cursor-default",
-                      )}
-                      onClick={() => {
-                        if (!column.sortValue) {
-                          return;
-                        }
-
-                        setSortState((currentValue) => {
-                          if (!currentValue || currentValue.columnKey !== column.key) {
-                            return { columnKey: column.key, direction: "asc" };
+            <table className="w-full table-fixed divide-y divide-slate-200 dark:divide-slate-800">
+              <thead>
+                <tr className="bg-slate-50/90 dark:bg-slate-900/70">
+                  {columns.map((column) => (
+                    <th
+                      className="w-36 max-w-[9rem] min-w-0 whitespace-normal break-words overflow-hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400"
+                      key={column.key}
+                    >
+                      <button
+                        className={clsx(
+                          "inline-flex max-w-full items-center gap-2 overflow-hidden text-left text-ellipsis whitespace-normal break-words leading-5",
+                          column.sortValue
+                            ? "cursor-pointer"
+                            : "cursor-default",
+                        )}
+                        onClick={() => {
+                          if (!column.sortValue) {
+                            return;
                           }
 
-                          return {
-                            columnKey: column.key,
-                            direction:
-                              currentValue.direction === "asc" ? "desc" : "asc",
-                          };
-                        });
-                      }}
-                      type="button"
-                    >
-                      {column.header}
-                    </button>
-                  </th>
-                ))}
-                {actions?.length ? (
-                  <th className="sticky right-0 z-20 w-56 max-w-[14rem] whitespace-nowrap bg-slate-50/95 px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.9)] dark:bg-slate-900/95 dark:text-slate-400">
-                    Actions
-                  </th>
-                ) : null}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
-              {paginatedRows.map((row, index) => (
-                <tr
-                  className="transition hover:bg-slate-50 dark:hover:bg-slate-900/60"
-                  key={keyExtractor(row, index)}
-                >
-                  {columns.map((column) => {
-                    const cellValue = column.accessor(row);
-                    const formattedValue = formatCellValue(cellValue);
+                          setSortState((currentValue) => {
+                            if (
+                              !currentValue ||
+                              currentValue.columnKey !== column.key
+                            ) {
+                              return {
+                                columnKey: column.key,
+                                direction: "asc",
+                              };
+                            }
 
-                    return (
-                      <td
-                        className={clsx(
-                          "w-44 max-w-[11rem] px-4 py-4 text-sm text-slate-700 dark:text-slate-200",
-                          column.className,
-                        )}
-                        key={column.key}
+                            return {
+                              columnKey: column.key,
+                              direction:
+                                currentValue.direction === "asc"
+                                  ? "desc"
+                                  : "asc",
+                            };
+                          });
+                        }}
+                        type="button"
                       >
-                        <div
-                          className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
-                          title={getCellTooltip(cellValue)}
-                        >
-                          {formattedValue}
-                        </div>
-                      </td>
-                    );
-                  })}
+                        {column.header}
+                      </button>
+                    </th>
+                  ))}
                   {actions?.length ? (
-                    <td className="sticky right-0 z-10 w-56 max-w-[14rem] whitespace-nowrap bg-white/95 px-4 py-4 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.9)] dark:bg-slate-950/95">
-                      <div className="flex flex-nowrap justify-end gap-2">
-                        {actions.map((action) => (
-                          <Button
-                            key={action.label}
-                            onClick={() => action.onClick(row)}
-                            size="sm"
-                            type="button"
-                            variant={action.variant ?? "secondary"}
-                          >
-                            {action.label}
-                          </Button>
-                        ))}
-                      </div>
-                    </td>
+                    <th className="sticky right-0 z-20 w-56 max-w-[14rem] whitespace-nowrap bg-slate-50/95 px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.9)] dark:bg-slate-900/95 dark:text-slate-400">
+                      Actions
+                    </th>
                   ) : null}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
+                {paginatedRows.map((row, index) => (
+                  <tr
+                    className="transition hover:bg-slate-50 dark:hover:bg-slate-900/60"
+                    key={keyExtractor(row, index)}
+                  >
+                    {columns.map((column) => {
+                      const cellValue = column.accessor(row);
+                      const formattedValue = formatCellValue(cellValue);
+
+                      return (
+                        <td
+                          className={clsx(
+                            "w-36 max-w-[9rem] min-w-0 px-4 py-4 text-sm text-slate-700 dark:text-slate-200",
+                            column.className,
+                          )}
+                          key={column.key}
+                        >
+                          <div
+                            className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                            title={getCellTooltip(cellValue)}
+                          >
+                            {formattedValue}
+                          </div>
+                        </td>
+                      );
+                    })}
+                    {actions?.length ? (
+                      <td className="sticky right-0 z-10 w-56 max-w-[14rem] whitespace-nowrap bg-white/95 px-4 py-4 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.9)] dark:bg-slate-950/95">
+                        <div className="flex flex-nowrap justify-end gap-2">
+                          {actions.map((action) => (
+                            <Button
+                              key={action.label}
+                              onClick={() => action.onClick(row)}
+                              size="sm"
+                              type="button"
+                              variant={action.variant ?? "secondary"}
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </td>
+                    ) : null}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
