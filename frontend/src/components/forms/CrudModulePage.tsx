@@ -1,15 +1,17 @@
+import { useState } from "react";
 import type { FieldValues } from "react-hook-form";
 import type { z } from "zod";
 
 import { useCrudModule } from "../../hooks/useCrudModule";
 import type { CrudService } from "../../services/crudService";
 import type { TableColumn } from "../../types/ui.types";
-import type { FormFieldConfig } from "../../types/ui.types";
+import type { DetailField, FormFieldConfig } from "../../types/ui.types";
 import { PageHeader } from "../layout/PageHeader";
 import { ConfirmDialog } from "../modal/ConfirmDialog";
 import { DataTable } from "../table/DataTable";
 import { Button } from "../ui/Button";
 import { FormError } from "../ui/FormError";
+import { EntityDetailsModal } from "./EntityDetailsModal";
 import { EntityFormModal } from "./EntityFormModal";
 
 interface CrudModulePageProps<TEntity, TFormValues extends FieldValues> {
@@ -30,6 +32,7 @@ interface CrudModulePageProps<TEntity, TFormValues extends FieldValues> {
   searchPlaceholder: string;
   service: CrudService<TEntity, TFormValues>;
   title: string;
+  viewFields?: DetailField<TEntity>[];
 }
 
 export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
@@ -50,6 +53,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
   searchPlaceholder,
   service,
   title,
+  viewFields,
 }: CrudModulePageProps<TEntity, TFormValues>) {
   const {
     deleteTarget,
@@ -74,6 +78,24 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
     getId,
     service,
   });
+  const [viewingItem, setViewingItem] = useState<TEntity | null>(null);
+  const rowActions = [
+    ...(viewFields?.length
+      ? [{ label: "View", onClick: setViewingItem, variant: "primary" as const }]
+      : []),
+    ...(canEdit
+      ? [{ label: "Edit", onClick: openEdit, variant: "secondary" as const }]
+      : []),
+    ...(canDelete
+      ? [
+          {
+            label: "Delete",
+            onClick: setDeleteTarget,
+            variant: "ghost" as const,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className="space-y-6">
@@ -93,24 +115,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
       <FormError message={error} />
 
       <DataTable
-        actions={
-          canEdit || canDelete
-            ? [
-                ...(canEdit
-                  ? [{ label: "Edit", onClick: openEdit, variant: "secondary" as const }]
-                  : []),
-                ...(canDelete
-                  ? [
-                      {
-                        label: "Delete",
-                        onClick: setDeleteTarget,
-                        variant: "ghost" as const,
-                      },
-                    ]
-                  : []),
-              ]
-            : undefined
-        }
+        actions={rowActions.length ? rowActions : undefined}
         columns={columns}
         data={items}
         emptyDescription={emptyDescription}
@@ -124,6 +129,13 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
         totalCount={totalCount}
         onPageChange={setPage}
         onSearchChange={setSearchValue}
+      />
+
+      <EntityDetailsModal
+        fields={viewFields ?? []}
+        item={viewingItem}
+        onClose={() => setViewingItem(null)}
+        title={`${title} Details`}
       />
 
       <EntityFormModal

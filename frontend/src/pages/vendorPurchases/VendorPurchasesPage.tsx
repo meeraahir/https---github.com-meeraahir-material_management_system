@@ -39,6 +39,8 @@ export function VendorPurchasesPage() {
       canEdit={permissions.canEdit}
       columns={[
         { key: "vendor", header: "Vendor", accessor: (row) => row.vendor_name, sortValue: (row) => row.vendor_name },
+        { key: "invoice", header: "Invoice", accessor: (row) => row.invoice_number || "-", sortValue: (row) => row.invoice_number || "" },
+        { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
         { key: "site", header: "Site", accessor: (row) => row.site_name, sortValue: (row) => row.site_name },
         { key: "material", header: "Material", accessor: (row) => row.material_name || "-", sortValue: (row) => row.material_name || "" },
         { key: "total", header: "Total", accessor: (row) => row.total_amount, sortValue: (row) => row.total_amount },
@@ -131,6 +133,18 @@ export function VendorPurchasesPage() {
       searchPlaceholder="Search vendor purchases"
       service={vendorPurchasesService}
       title="Vendor Purchases"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        { label: "Vendor", value: (row) => row.vendor_name, highlight: true },
+        { label: "Site", value: (row) => row.site_name, highlight: true },
+        { label: "Material", value: (row) => row.material_name },
+        { label: "Invoice Number", value: (row) => row.invoice_number, highlight: true },
+        { label: "Purchase Date", value: (row) => row.date },
+        { label: "Total Amount", value: (row) => row.total_amount, highlight: true },
+        { label: "Paid Amount", value: (row) => row.paid_amount, highlight: true },
+        { label: "Pending Amount", value: (row) => row.pending_amount, highlight: true },
+        { label: "Description", value: (row) => row.description, span: "full" },
+      ]}
     />
   );
 }

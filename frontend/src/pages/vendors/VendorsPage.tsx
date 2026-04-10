@@ -199,6 +199,21 @@ export function VendorsPage() {
       searchPlaceholder="Search vendors by name or phone"
       service={vendorsService}
       title="Vendors"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        { label: "Vendor Name", value: (row) => row.name, highlight: true },
+        { label: "Phone", value: (row) => row.phone },
+        { label: "Email", value: (row) => row.email },
+        { label: "Address", value: (row) => row.address, span: "full" },
+        { label: "Bank Name", value: (row) => row.bank_name },
+        { label: "Bank Account Number", value: (row) => row.bank_account_number },
+        { label: "IFSC Code", value: (row) => row.ifsc_code },
+        { label: "Tax Identifier", value: (row) => row.tax_identifier },
+        { label: "License Number", value: (row) => row.license_number },
+        { label: "PAN Number", value: (row) => row.pan_number },
+        { label: "Aadhar Number", value: (row) => row.aadhar_number },
+        { label: "Document Details", value: (row) => row.document_details, span: "full" },
+      ]}
     />
   );
 }

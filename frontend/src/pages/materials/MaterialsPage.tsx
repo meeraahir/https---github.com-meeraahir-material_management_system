@@ -64,6 +64,11 @@ export function MaterialsPage() {
       searchPlaceholder="Search materials"
       service={materialsService}
       title="Materials"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        { label: "Material Name", value: (row) => row.name, highlight: true },
+        { label: "Unit", value: (row) => row.unit },
+      ]}
     />
   );
 }

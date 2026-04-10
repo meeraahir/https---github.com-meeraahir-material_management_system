@@ -92,6 +92,21 @@ export function AttendancePage() {
       searchPlaceholder="Search attendance by labour or site"
       service={attendanceService}
       title="Attendance"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        {
+          label: "Labour",
+          value: (row) => row.labour_name || labourNameMap.get(row.labour),
+          highlight: true,
+        },
+        {
+          label: "Site",
+          value: (row) => row.site_name || siteNameMap.get(row.site),
+          highlight: true,
+        },
+        { label: "Date", value: (row) => row.date },
+        { label: "Present", value: (row) => row.present },
+      ]}
     />
   );
 }

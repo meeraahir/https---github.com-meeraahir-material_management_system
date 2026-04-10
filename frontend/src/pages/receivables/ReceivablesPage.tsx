@@ -130,6 +130,28 @@ export function ReceivablesPage() {
       searchPlaceholder="Search receivables"
       service={receivablesService}
       title="Receivables"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        {
+          label: "Party",
+          value: (row) => partyNameMap.get(row.party),
+          highlight: true,
+        },
+        {
+          label: "Site",
+          value: (row) => siteNameMap.get(row.site),
+          highlight: true,
+        },
+        { label: "Amount", value: (row) => row.amount, highlight: true },
+        { label: "Received", value: (row) => row.received },
+        { label: "Invoice Date", value: (row) => row.date },
+        { label: "Current Received Amount", value: (row) => row.current_received_amount },
+        { label: "Pending Amount", value: (row) => row.pending_amount, highlight: true },
+        {
+          label: "Status",
+          value: (row) => ((row.pending_amount ?? row.amount) > 0 ? "Pending" : "Received"),
+        },
+      ]}
     />
   );
 }

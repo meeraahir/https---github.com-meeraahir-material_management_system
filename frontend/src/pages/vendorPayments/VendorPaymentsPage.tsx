@@ -147,6 +147,19 @@ export function VendorPaymentsPage() {
       searchPlaceholder="Search vendor payments"
       service={vendorPaymentsService}
       title="Vendor Payments"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        { label: "Purchase", value: (row) => row.purchase_invoice_number || `Purchase #${row.purchase}`, highlight: true },
+        { label: "Vendor", value: (row) => row.vendor_name, highlight: true },
+        { label: "Site", value: (row) => row.site_name, highlight: true },
+        { label: "Purchase Total Amount", value: (row) => row.purchase_total_amount },
+        { label: "Payment Amount", value: (row) => row.amount, highlight: true },
+        { label: "Payment Date", value: (row) => row.date },
+        { label: "Reference Number", value: (row) => row.reference_number },
+        { label: "Pending After Payment", value: (row) => row.pending_after_payment ?? row.purchase_pending_amount, highlight: true },
+        { label: "Purchase Pending Amount", value: (row) => row.purchase_pending_amount },
+        { label: "Remarks", value: (row) => row.remarks, span: "full" },
+      ]}
     />
   );
 }

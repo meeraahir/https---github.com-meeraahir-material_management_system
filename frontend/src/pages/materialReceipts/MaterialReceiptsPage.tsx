@@ -182,6 +182,22 @@ export function MaterialReceiptsPage() {
       searchPlaceholder="Search receipts by material or site"
       service={materialReceiptsService}
       title="Material Receipts"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        { label: "Site", value: (row) => row.site_name, highlight: true },
+        { label: "Material", value: (row) => row.material_name, highlight: true },
+        { label: "Material Unit", value: (row) => getUnitLabel(row.material_unit) },
+        { label: "Quantity Received", value: (row) => getQuantityLabel(row.quantity_received, row.material_unit), highlight: true },
+        { label: "Quantity Used", value: (row) => getQuantityLabel(row.quantity_used, row.material_unit) },
+        { label: "Remaining Stock", value: (row) => getQuantityLabel(row.remaining_stock, row.material_unit), highlight: true },
+        { label: "Cost Per Unit", value: (row) => getCostPerUnitLabel(row) },
+        { label: "Transport Cost", value: (row) => row.transport_cost },
+        { label: "Invoice Number", value: (row) => row.invoice_number },
+        { label: "Receipt Date", value: (row) => row.date_display || row.date },
+        { label: "Total Cost", value: (row) => row.total_cost, highlight: true },
+        { label: "Total Calculation", value: (row) => getTotalCostCalculation(row), span: "full" },
+        { label: "Notes", value: (row) => row.notes, span: "full" },
+      ]}
     />
   );
 }

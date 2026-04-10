@@ -79,6 +79,12 @@ export function LabourPage() {
       searchPlaceholder="Search labour"
       service={labourService}
       title="Labour"
+      viewFields={[
+        { label: "Record ID", value: (row) => row.id, highlight: true },
+        { label: "Labour Name", value: (row) => row.name, highlight: true },
+        { label: "Phone", value: (row) => row.phone },
+        { label: "Per Day Wage", value: (row) => row.per_day_wage },
+      ]}
     />
   );
 }
