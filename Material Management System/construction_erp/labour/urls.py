@@ -13,6 +13,7 @@ urlpatterns = [
     # Clean aliases for frontend integration.
     path('', LabourViewSet.as_view({'get': 'list', 'post': 'create'}), name='labour-list'),
     path('<int:pk>/', LabourViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='labour-detail'),
+    path('<int:pk>/attendance-monthly-report/', LabourViewSet.as_view({'get': 'attendance_monthly_report_by_labour'}), name='labour-attendance-monthly-report'),
     path('<int:pk>/payment-ledger/', LabourViewSet.as_view({'get': 'payment_ledger'}), name='labour-payment-ledger'),
     path('<int:pk>/payment-ledger/export/', LabourViewSet.as_view({'get': 'export_payment_ledger'}), name='labour-payment-ledger-export'),
     path('<int:pk>/payment-ledger/pdf/', LabourViewSet.as_view({'get': 'export_payment_ledger_pdf'}), name='labour-payment-ledger-pdf'),

@@ -898,9 +898,61 @@ Response:
 }
 ```
 
+### Particular labour monthly attendance report
+
+`GET /labour/{labour_id}/attendance-monthly-report/`
+
+Use this API when admin needs one labour's month-wise present/absent report.
+
+Supports optional:
+
+- `year=YYYY`
+- `month=1-12` (requires `year`)
+- `site=<site_id>`
+- `date_from=YYYY-MM-DD`
+- `date_to=YYYY-MM-DD`
+
+Example:
+
+`GET /labour/1/attendance-monthly-report/?year=2026&month=4`
+
+Response:
+
+```json
+{
+  "labour_id": 1,
+  "labour_name": "Raj Kumar",
+  "per_day_wage": 500.0,
+  "filters": {
+    "year": 2026,
+    "month": 4,
+    "site": null,
+    "date_from": null,
+    "date_to": null
+  },
+  "totals": {
+    "present_days": 5,
+    "absent_days": 1,
+    "total_days": 6,
+    "total_wage": 2500.0
+  },
+  "months": [
+    {
+      "month": "2026-04",
+      "month_start": "2026-04-01",
+      "present_days": 5,
+      "absent_days": 1,
+      "total_days": 6,
+      "total_wage": 2500.0
+    }
+  ]
+}
+```
+
 ### Labour reports
 
 - `GET /labour/reports/wage/`
+- `GET /labour/{labour_id}/attendance-monthly-report/`
 - `GET /labour/reports/attendance-summary/`
 - `GET /labour/reports/attendance-daily/`
 - `GET /labour/reports/attendance-weekly/`
@@ -921,6 +973,42 @@ Example wage report:
     "attendance_count": 6,
     "present_count": 5,
     "total_wage": 2500.0
+  }
+]
+```
+
+### All labour payment summary report
+
+`GET /labour/reports/payment-summary/`
+
+Use this API when admin needs every labour's payment report, including total labour amount, paid amount, and pending amount. For month-wise data, pass that month's start and end dates.
+
+Supports optional:
+
+- `date_from=YYYY-MM-DD`
+- `date_to=YYYY-MM-DD`
+
+Example monthly report:
+
+`GET /labour/reports/payment-summary/?date_from=2026-04-01&date_to=2026-04-30`
+
+Response:
+
+```json
+[
+  {
+    "labour_id": 1,
+    "labour_name": "Raj Kumar",
+    "total_amount": 15000.0,
+    "paid_amount": 10000.0,
+    "pending_amount": 5000.0
+  },
+  {
+    "labour_id": 2,
+    "labour_name": "Amit Kumar",
+    "total_amount": 12000.0,
+    "paid_amount": 12000.0,
+    "pending_amount": 0.0
   }
 ]
 ```
