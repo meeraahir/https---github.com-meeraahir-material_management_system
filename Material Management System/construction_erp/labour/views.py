@@ -1,3 +1,4 @@
+from datetime import date
 from io import BytesIO
 
 from django.db import transaction
@@ -5,7 +6,7 @@ from django.db.models import Sum, F, FloatField, Count, Q, Case, When, Value
 from django.db.models.functions import TruncWeek, TruncMonth
 from django.http import HttpResponse
 from core.pdf_utils import build_pdf_response
-from rest_framework import viewsets, filters
+from rest_framework import status, viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -61,6 +62,130 @@ class LabourViewSet(viewsets.ModelViewSet):
             'absent': absent_count,
             'per_day_wage': labour.per_day_wage,
             'total_wage': total_wage,
+        })
+
+    @action(detail=True, methods=['get'], url_path='attendance-monthly-report')
+    def attendance_monthly_report_by_labour(self, request, pk=None):
+        labour = self.get_object()
+        params = request.query_params
+        errors = {}
+
+        year = None
+        month = None
+        site_id = None
+        date_from = None
+        date_to = None
+
+        if params.get('year'):
+            try:
+                year = int(params.get('year'))
+                if year < 1 or year > 9999:
+                    errors['year'] = 'Year must be between 1 and 9999.'
+            except (TypeError, ValueError):
+                errors['year'] = 'Year must be a valid number.'
+
+        if params.get('month'):
+            try:
+                month = int(params.get('month'))
+                if month < 1 or month > 12:
+                    errors['month'] = 'Month must be between 1 and 12.'
+            except (TypeError, ValueError):
+                errors['month'] = 'Month must be a valid number.'
+
+        if month and not year:
+            errors['year'] = 'Year is required when month is provided.'
+
+        if params.get('site'):
+            try:
+                site_id = int(params.get('site'))
+            except (TypeError, ValueError):
+                errors['site'] = 'Site must be a valid number.'
+
+        if params.get('date_from'):
+            try:
+                date_from = date.fromisoformat(params.get('date_from'))
+            except ValueError:
+                errors['date_from'] = 'Date from must use YYYY-MM-DD format.'
+
+        if params.get('date_to'):
+            try:
+                date_to = date.fromisoformat(params.get('date_to'))
+            except ValueError:
+                errors['date_to'] = 'Date to must use YYYY-MM-DD format.'
+
+        if date_from and date_to and date_from > date_to:
+            errors['date_to'] = 'Date to must be on or after date from.'
+
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        attendance = LabourAttendance.objects.filter(labour=labour)
+        if year:
+            attendance = attendance.filter(date__year=year)
+        if month:
+            attendance = attendance.filter(date__month=month)
+        if site_id:
+            attendance = attendance.filter(site_id=site_id)
+        if date_from:
+            attendance = attendance.filter(date__gte=date_from)
+        if date_to:
+            attendance = attendance.filter(date__lte=date_to)
+
+        data = (
+            attendance.annotate(month_start=TruncMonth('date'))
+            .values('month_start')
+            .annotate(
+                present_days=Count('id', filter=Q(present=True)),
+                total_days=Count('id'),
+            )
+            .order_by('month_start')
+        )
+
+        monthly_rows = []
+        for item in data:
+            present_days = int(item['present_days'] or 0)
+            total_days = int(item['total_days'] or 0)
+            month_start = item['month_start']
+            monthly_rows.append({
+                'month': month_start.strftime('%Y-%m'),
+                'month_start': month_start.date() if hasattr(month_start, 'date') else month_start,
+                'present_days': present_days,
+                'absent_days': total_days - present_days,
+                'total_days': total_days,
+                'total_wage': present_days * labour.per_day_wage,
+            })
+
+        if year and month and not monthly_rows:
+            month_start = date(year, month, 1)
+            monthly_rows.append({
+                'month': month_start.strftime('%Y-%m'),
+                'month_start': month_start,
+                'present_days': 0,
+                'absent_days': 0,
+                'total_days': 0,
+                'total_wage': 0,
+            })
+
+        totals = {
+            'present_days': sum(row['present_days'] for row in monthly_rows),
+            'absent_days': sum(row['absent_days'] for row in monthly_rows),
+            'total_days': sum(row['total_days'] for row in monthly_rows),
+            'total_wage': sum(row['total_wage'] for row in monthly_rows),
+        }
+
+        return Response({
+            'labour_id': labour.id,
+            'labour_name': labour.name,
+            'per_day_wage': labour.per_day_wage,
+            'filters': {
+                'year': year,
+                'month': month,
+                'site': site_id,
+                'date_from': date_from,
+                'date_to': date_to,
+            },
+            'totals': totals,
+            'months': monthly_rows,
         })
 
     @action(detail=True, methods=['get'], url_path='payment-ledger')
