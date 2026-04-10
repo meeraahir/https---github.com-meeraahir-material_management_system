@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { forwardRef, useId, useRef, useState } from "react";
-import type { ChangeEvent, SelectHTMLAttributes } from "react";
+import type { SelectHTMLAttributes } from "react";
 
 import { icons } from "../../assets/icons";
 import { FormError } from "./FormError";
@@ -78,12 +78,16 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             )}
             id={selectId}
             {...rest}
-            value={currentValue}
+            {...(isControlled ? { value: currentValue } : {})}
             onChange={(event) => {
-              if (!isControlled) {
-                setSelectedValue(event.target.value);
-              }
+              setSelectedValue(event.target.value);
               rest.onChange?.(event);
+            }}
+            onFocus={(event) => {
+              if (!isControlled) {
+                setSelectedValue(event.currentTarget.value);
+              }
+              rest.onFocus?.(event);
             }}
           >
             <option value="" disabled>
@@ -110,11 +114,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 }
 
                 if (isControlled) {
-                  const event = new Event("change", { bubbles: true });
                   localRef.current.value = "";
-                  rest.onChange?.(
-                    event as unknown as ChangeEvent<HTMLSelectElement>,
-                  );
+                  localRef.current.dispatchEvent(new Event("change", { bubbles: true }));
                   return;
                 }
 

@@ -67,14 +67,14 @@ export function PaymentsPage() {
         {
           key: "labour",
           header: "Labour",
-          accessor: (row) => labourNameMap.get(row.labour) || row.labour,
-          sortValue: (row) => labourNameMap.get(row.labour) || row.labour,
+          accessor: (row) => row.labour_name || labourNameMap.get(row.labour) || row.labour,
+          sortValue: (row) => row.labour_name || labourNameMap.get(row.labour) || row.labour,
         },
         {
           key: "site",
           header: "Site",
-          accessor: (row) => (row.site ? siteNameMap.get(row.site) || row.site : "-"),
-          sortValue: (row) => (row.site ? siteNameMap.get(row.site) || row.site : ""),
+          accessor: (row) => row.site_name || (row.site ? siteNameMap.get(row.site) || row.site : "-"),
+          sortValue: (row) => row.site_name || (row.site ? siteNameMap.get(row.site) || row.site : ""),
         },
         { key: "date", header: "Date", accessor: (row) => row.date || "-", sortValue: (row) => row.date || "" },
         { key: "total", header: "Total Amount", accessor: (row) => row.total_amount, sortValue: (row) => row.total_amount },
@@ -132,11 +132,6 @@ export function PaymentsPage() {
           label: "Period End",
           name: "period_end",
           description: "Used with attendance-based auto calculation.",
-        },
-        {
-          kind: "checkbox",
-          label: "Auto Calculate Total",
-          name: "auto_calculate_total",
         },
         {
           kind: "number",

@@ -38,14 +38,14 @@ export function AttendancePage() {
         {
           key: "labour",
           header: "Labour",
-          accessor: (row) => labourNameMap.get(row.labour) || row.labour,
-          sortValue: (row) => labourNameMap.get(row.labour) || row.labour,
+          accessor: (row) => row.labour_name || labourNameMap.get(row.labour) || row.labour,
+          sortValue: (row) => row.labour_name || labourNameMap.get(row.labour) || row.labour,
         },
         {
           key: "site",
           header: "Site",
-          accessor: (row) => siteNameMap.get(row.site) || row.site,
-          sortValue: (row) => siteNameMap.get(row.site) || row.site,
+          accessor: (row) => row.site_name || siteNameMap.get(row.site) || row.site,
+          sortValue: (row) => row.site_name || siteNameMap.get(row.site) || row.site,
         },
         { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
         { key: "present", header: "Present", accessor: (row) => (row.present ? "Yes" : "No"), sortValue: (row) => row.present },

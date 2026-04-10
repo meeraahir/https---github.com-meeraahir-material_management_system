@@ -13,9 +13,20 @@ class LabourSerializer(serializers.ModelSerializer):
 
 
 class LabourAttendanceSerializer(serializers.ModelSerializer):
+    labour_name = serializers.CharField(source='labour.name', read_only=True)
+    site_name = serializers.CharField(source='site.name', read_only=True)
+
     class Meta:
         model = LabourAttendance
-        fields = '__all__'
+        fields = [
+            'id',
+            'labour',
+            'labour_name',
+            'site',
+            'site_name',
+            'date',
+            'present',
+        ]
 
     def validate(self, attrs):
         labour = attrs.get('labour', getattr(self.instance, 'labour', None))
@@ -23,19 +34,34 @@ class LabourAttendanceSerializer(serializers.ModelSerializer):
         attendance_date = attrs.get('date', getattr(self.instance, 'date', None))
         present = attrs.get('present', getattr(self.instance, 'present', True))
 
-        attendance = LabourAttendance(
-            labour=labour,
-            site=site,
-            date=attendance_date,
-            present=present,
-        )
         if self.instance:
-            attendance.pk = self.instance.pk
+            attendance = self.instance
+            original_values = {
+                'labour': attendance.labour,
+                'site': attendance.site,
+                'date': attendance.date,
+                'present': attendance.present,
+            }
+            attendance.labour = labour
+            attendance.site = site
+            attendance.date = attendance_date
+            attendance.present = present
+        else:
+            attendance = LabourAttendance(
+                labour=labour,
+                site=site,
+                date=attendance_date,
+                present=present,
+            )
 
         try:
             attendance.full_clean()
         except ValidationError as exc:
             raise serializers.ValidationError(exc.message_dict)
+        finally:
+            if self.instance:
+                for attr, value in original_values.items():
+                    setattr(attendance, attr, value)
 
         return attrs
 
@@ -44,6 +70,8 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
     pending_amount = serializers.SerializerMethodField(read_only=True)
     calculated_total_amount = serializers.SerializerMethodField(read_only=True)
     attendance_days = serializers.SerializerMethodField(read_only=True)
+    labour_name = serializers.CharField(source='labour.name', read_only=True)
+    site_name = serializers.SerializerMethodField(read_only=True)
     auto_calculate_total = serializers.BooleanField(write_only=True, required=False, default=False)
     total_amount = serializers.DecimalField(max_digits=14, decimal_places=2, required=False)
 
@@ -52,7 +80,9 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'labour',
+            'labour_name',
             'site',
+            'site_name',
             'total_amount',
             'paid_amount',
             'pending_amount',
@@ -125,6 +155,9 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
 
     def get_attendance_days(self, obj):
         return obj.attendance_days()
+
+    def get_site_name(self, obj):
+        return obj.site.name if obj.site else None
 
     def _sync_payment_history(self, wage_entry, desired_paid_amount, payment_date):
         current_paid_amount = wage_entry.payments_total()

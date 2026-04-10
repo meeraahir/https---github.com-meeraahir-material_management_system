@@ -180,7 +180,9 @@ export interface VendorPaymentFormValues {
 export interface Attendance {
   id: number;
   labour: number;
+  labour_name: string;
   site: number;
+  site_name: string;
   date: string;
   present: boolean;
 }
@@ -195,7 +197,9 @@ export interface AttendanceFormValues {
 export interface Payment {
   id: number;
   labour: number;
+  labour_name?: string;
   site?: number;
+  site_name?: string | null;
   total_amount: number;
   paid_amount: number;
   pending_amount: number;
