@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import serializers
 
+from sites.models import Site
 from .models import Vendor, VendorTransaction, VendorPayment
 
 
@@ -125,4 +126,86 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
             except ValidationError as exc:
                 _raise_drf_validation_error(exc)
             self._sync_payment_history(instance, desired_paid_amount, validated_data.get('date', instance.date))
+            return instance
+
+
+class VendorPaymentSerializer(serializers.ModelSerializer):
+    vendor = serializers.PrimaryKeyRelatedField(queryset=Vendor.objects.all(), required=False)
+    site = serializers.PrimaryKeyRelatedField(queryset=Site.objects.all(), required=False)
+    vendor_name = serializers.CharField(source='vendor.name', read_only=True)
+    site_name = serializers.CharField(source='site.name', read_only=True)
+    purchase_invoice_number = serializers.CharField(source='purchase.invoice_number', read_only=True)
+
+    class Meta:
+        model = VendorPayment
+        fields = [
+            'id',
+            'purchase',
+            'purchase_invoice_number',
+            'vendor',
+            'vendor_name',
+            'site',
+            'site_name',
+            'amount',
+            'date',
+            'reference_number',
+            'remarks',
+        ]
+
+    def validate(self, attrs):
+        purchase = attrs.get('purchase', getattr(self.instance, 'purchase', None))
+        vendor = attrs.get('vendor', getattr(self.instance, 'vendor', None))
+        site = attrs.get('site', getattr(self.instance, 'site', None))
+        amount = attrs.get('amount', getattr(self.instance, 'amount', None))
+
+        errors = {}
+        if purchase:
+            if vendor and vendor.pk != purchase.vendor_id:
+                errors['vendor'] = 'Payment vendor must match the purchase vendor.'
+            if site and site.pk != purchase.site_id:
+                errors['site'] = 'Payment site must match the purchase site.'
+
+            attrs['vendor'] = purchase.vendor
+            attrs['site'] = purchase.site
+
+        if amount is not None and amount <= 0:
+            errors['amount'] = 'Payment amount must be greater than zero.'
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs
+
+    def _refresh_purchases(self, *purchases):
+        refreshed = set()
+        for purchase in purchases:
+            if purchase and purchase.pk not in refreshed:
+                purchase.refresh_paid_amount(save=True)
+                refreshed.add(purchase.pk)
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            payment = VendorPayment(**validated_data)
+            try:
+                payment.full_clean()
+                payment.save()
+            except ValidationError as exc:
+                _raise_drf_validation_error(exc)
+
+            self._refresh_purchases(payment.purchase)
+            return payment
+
+    def update(self, instance, validated_data):
+        old_purchase = instance.purchase
+
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            try:
+                instance.full_clean()
+                instance.save()
+            except ValidationError as exc:
+                _raise_drf_validation_error(exc)
+
+            self._refresh_purchases(old_purchase, instance.purchase)
             return instance
