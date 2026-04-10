@@ -27,7 +27,8 @@ const paymentSchema = z
     if (!value.auto_calculate_total && value.total_amount <= 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Total amount must be greater than zero when auto calculation is off.",
+        message:
+          "Total amount must be greater than zero when auto calculation is off.",
         path: ["total_amount"],
       });
     }
@@ -40,7 +41,11 @@ const paymentSchema = z
       });
     }
 
-    if (value.period_start && value.period_end && value.period_end < value.period_start) {
+    if (
+      value.period_start &&
+      value.period_end &&
+      value.period_end < value.period_start
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Period end must be on or after period start.",
@@ -56,7 +61,9 @@ export function PaymentsPage() {
   const labourNameMap = new Map(
     references.labour.map((labour) => [labour.id, labour.name]),
   );
-  const siteNameMap = new Map(references.sites.map((site) => [site.id, site.name]));
+  const siteNameMap = new Map(
+    references.sites.map((site) => [site.id, site.name]),
+  );
 
   return (
     <CrudModulePage<Payment, PaymentFormValues>
@@ -67,25 +74,64 @@ export function PaymentsPage() {
         {
           key: "labour",
           header: "Labour",
-          accessor: (row) => row.labour_name || labourNameMap.get(row.labour) || row.labour,
-          sortValue: (row) => row.labour_name || labourNameMap.get(row.labour) || row.labour,
+          accessor: (row) =>
+            row.labour_name || labourNameMap.get(row.labour) || row.labour,
+          sortValue: (row) =>
+            row.labour_name || labourNameMap.get(row.labour) || row.labour,
         },
         {
           key: "site",
           header: "Site",
-          accessor: (row) => row.site_name || (row.site ? siteNameMap.get(row.site) || row.site : "-"),
-          sortValue: (row) => row.site_name || (row.site ? siteNameMap.get(row.site) || row.site : ""),
+          accessor: (row) =>
+            row.site_name ||
+            (row.site ? siteNameMap.get(row.site) || row.site : "-"),
+          sortValue: (row) =>
+            row.site_name ||
+            (row.site ? siteNameMap.get(row.site) || row.site : ""),
         },
-        { key: "date", header: "Date", accessor: (row) => row.date || "-", sortValue: (row) => row.date || "" },
-        { key: "periodStart", header: "Period Start", accessor: (row) => row.period_start || "-", sortValue: (row) => row.period_start || "" },
-        { key: "periodEnd", header: "Period End", accessor: (row) => row.period_end || "-", sortValue: (row) => row.period_end || "" },
-        { key: "total", header: "Total Amount", accessor: (row) => row.total_amount, sortValue: (row) => row.total_amount },
-        { key: "paid", header: "Paid Amount", accessor: (row) => row.paid_amount, sortValue: (row) => row.paid_amount },
-        { key: "pending", header: "Pending", accessor: (row) => row.pending_amount, sortValue: (row) => row.pending_amount },
+        {
+          key: "date",
+          header: "Date",
+          accessor: (row) => row.date || "-",
+          sortValue: (row) => row.date || "",
+        },
+        {
+          key: "periodStart",
+          header: "Period Start",
+          accessor: (row) => row.period_start || "-",
+          sortValue: (row) => row.period_start || "",
+        },
+        {
+          key: "periodEnd",
+          header: "Period End",
+          accessor: (row) => row.period_end || "-",
+          sortValue: (row) => row.period_end || "",
+        },
+        {
+          key: "total",
+          header: "Total Amount",
+          accessor: (row) => row.total_amount,
+          sortValue: (row) => row.total_amount,
+        },
+        {
+          key: "paid",
+          header: "Paid Amount",
+          accessor: (row) => row.paid_amount,
+          sortValue: (row) => row.paid_amount,
+        },
+        {
+          key: "pending",
+          header: "Pending",
+          accessor: (row) => row.pending_amount,
+          sortValue: (row) => row.pending_amount,
+        },
         {
           key: "period",
           header: "Period",
-          accessor: (row) => row.period_start || row.period_end ? `${row.period_start || "-"} to ${row.period_end || "-"}` : "-",
+          accessor: (row) =>
+            row.period_start || row.period_end
+              ? `${row.period_start || "-"} to ${row.period_end || "-"}`
+              : "-",
           sortValue: (row) => row.period_start || row.period_end || "",
         },
         {
@@ -113,42 +159,62 @@ export function PaymentsPage() {
       externalError={references.error}
       fields={[
         {
+          kind: "checkbox",
+          label: "Auto calculate total",
+          name: "auto_calculate_total",
+          wrapperClassName: "md:col-span-2",
+        },
+        {
           kind: "select",
           label: "Labour",
           name: "labour",
-          options: references.labour.map((labour) => ({ label: labour.name, value: labour.id })),
+          options: references.labour.map((labour) => ({
+            label: labour.name,
+            value: labour.id,
+          })),
           required: true,
           valueType: "number",
+          wrapperClassName: "md:col-span-1",
         },
         {
           kind: "select",
           label: "Site",
           name: "site",
-          options: references.sites.map((site) => ({ label: site.name, value: site.id })),
-          description: "Optional. Leave blank to record a non-site-specific payment.",
+          options: references.sites.map((site) => ({
+            label: site.name,
+            value: site.id,
+          })),
           valueType: "number",
+          wrapperClassName: "md:col-span-1",
         },
-        { kind: "date", label: "Payment Date", name: "date", required: true },
+        {
+          kind: "date",
+          label: "Payment Date",
+          name: "date",
+          required: true,
+          wrapperClassName: "md:col-span-1",
+        },
         {
           kind: "date",
           label: "Period Start",
           name: "period_start",
-          description: "Used with attendance-based auto calculation.",
+          wrapperClassName: "md:col-span-1",
         },
         {
           kind: "date",
           label: "Period End",
           name: "period_end",
-          description: "Used with attendance-based auto calculation.",
+          wrapperClassName: "md:col-span-1",
         },
         {
           kind: "number",
           label: "Total Amount",
-          description: "Fill this manually only when auto calculation is off.",
           min: 0,
           name: "total_amount",
           required: true,
           valueType: "number",
+          wrapperClassName: "md:col-span-1",
+          disabled: (values) => Boolean(values.auto_calculate_total),
         },
         {
           kind: "number",
@@ -157,6 +223,7 @@ export function PaymentsPage() {
           name: "paid_amount",
           required: true,
           valueType: "number",
+          wrapperClassName: "md:col-span-1",
         },
         {
           kind: "textarea",
@@ -192,16 +259,32 @@ export function PaymentsPage() {
         },
         {
           label: "Site",
-          value: (row) => row.site_name || (row.site ? siteNameMap.get(row.site) : ""),
+          value: (row) =>
+            row.site_name || (row.site ? siteNameMap.get(row.site) : ""),
           highlight: true,
         },
         { label: "Payment Date", value: (row) => row.date },
         { label: "Period Start", value: (row) => row.period_start },
         { label: "Period End", value: (row) => row.period_end },
-        { label: "Total Amount", value: (row) => row.total_amount, highlight: true },
-        { label: "Paid Amount", value: (row) => row.paid_amount, highlight: true },
-        { label: "Pending Amount", value: (row) => row.pending_amount, highlight: true },
-        { label: "Calculated Total Amount", value: (row) => row.calculated_total_amount },
+        {
+          label: "Total Amount",
+          value: (row) => row.total_amount,
+          highlight: true,
+        },
+        {
+          label: "Paid Amount",
+          value: (row) => row.paid_amount,
+          highlight: true,
+        },
+        {
+          label: "Pending Amount",
+          value: (row) => row.pending_amount,
+          highlight: true,
+        },
+        {
+          label: "Calculated Total Amount",
+          value: (row) => row.calculated_total_amount,
+        },
         { label: "Attendance Days", value: (row) => row.attendance_days },
         { label: "Notes", value: (row) => row.notes, span: "full" },
       ]}
