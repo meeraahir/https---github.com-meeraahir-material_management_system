@@ -275,6 +275,7 @@ class LabourViewSet(viewsets.ModelViewSet):
                 attendance_count=Count('labourattendance', filter=attendance_filter),
             )
             .values('id', 'name', 'phone', 'per_day_wage', 'attendance_count', 'present_count')
+            .order_by('id')
         )
         report = []
         for item in data:

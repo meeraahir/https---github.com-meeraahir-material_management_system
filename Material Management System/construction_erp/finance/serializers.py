@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework import serializers
 
+from .utils import apply_receipt_style_entry
 from .models import Party, Transaction, ClientReceipt
 
 
@@ -102,6 +103,20 @@ class TransactionSerializer(serializers.ModelSerializer):
         should_mark_received = validated_data.get('received', False)
 
         with transaction.atomic():
+            if (
+                desired_received_amount is not None
+                and desired_received_amount > 0
+                and desired_received_amount == validated_data.get('amount')
+            ):
+                receipt_invoice = apply_receipt_style_entry(
+                    validated_data['party'],
+                    validated_data['site'],
+                    desired_received_amount,
+                    validated_data.get('date'),
+                )
+                if receipt_invoice is not None:
+                    return receipt_invoice
+
             invoice = Transaction(**validated_data)
             invoice.full_clean()
             invoice.save()

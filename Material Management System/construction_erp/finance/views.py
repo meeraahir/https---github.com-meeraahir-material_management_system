@@ -13,6 +13,7 @@ from openpyxl import Workbook
 from sites.permissions import IsAdminOrReadOnly
 from .models import Party, Transaction, ClientReceipt
 from .serializers import PartySerializer, TransactionSerializer
+from .utils import normalize_receipt_style_invoices
 
 
 class PartyViewSet(viewsets.ModelViewSet):
@@ -29,6 +30,7 @@ class PartyViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='ledger')
     def ledger(self, request, pk=None):
         party = self.get_object()
+        normalize_receipt_style_invoices(party=party)
         invoices = Transaction.objects.filter(party=party).select_related('site')
         receipts = ClientReceipt.objects.filter(party=party).select_related('site', 'invoice')
         date_from, date_to = self._date_range()
@@ -275,6 +277,10 @@ class TransactionViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['party', 'site', 'received', 'date']
     search_fields = ['party__name', 'site__name']
+
+    def get_queryset(self):
+        normalize_receipt_style_invoices()
+        return super().get_queryset()
 
     @action(detail=True, methods=['post'], url_path='receive-payment')
     def receive_payment(self, request, pk=None):

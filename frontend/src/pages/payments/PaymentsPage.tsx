@@ -5,6 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { paymentsService } from "../../services/paymentsService";
 import type { Payment, PaymentFormValues } from "../../types/erp.types";
+import { formatDate } from "../../utils/format";
 import { getCrudPermissions } from "../../utils/permissions";
 
 const paymentSchema = z
@@ -104,7 +105,7 @@ export function PaymentsPage() {
         {
           key: "date",
           header: "Date",
-          accessor: (row) => row.date || "-",
+          accessor: (row) => formatDate(row.date),
           sortValue: (row) => row.date || "",
         },
         {
@@ -130,7 +131,7 @@ export function PaymentsPage() {
           header: "Period",
           accessor: (row) =>
             row.period_start || row.period_end
-              ? `${row.period_start || "-"} to ${row.period_end || "-"}`
+              ? `${formatDate(row.period_start)} to ${formatDate(row.period_end)}`
               : "-",
           sortValue: (row) => row.period_start || row.period_end || "",
         },
@@ -272,9 +273,9 @@ export function PaymentsPage() {
             row.site_name || (row.site ? siteNameMap.get(row.site) : ""),
           highlight: true,
         },
-        { label: "Payment Date", value: (row) => row.date },
-        { label: "Period Start", value: (row) => row.period_start },
-        { label: "Period End", value: (row) => row.period_end },
+        { label: "Payment Date", value: (row) => formatDate(row.date) },
+        { label: "Period Start", value: (row) => formatDate(row.period_start) },
+        { label: "Period End", value: (row) => formatDate(row.period_end) },
         {
           label: "Total Amount",
           value: (row) => row.total_amount,
