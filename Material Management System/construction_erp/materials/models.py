@@ -17,6 +17,7 @@ class Material(models.Model):
         ('meter', 'Meter'),
         ('litre', 'Litre'),
         ('piece', 'Piece'),
+        ('other', 'Other'),
     ]
 
     name = models.CharField(max_length=255, unique=True)
@@ -36,9 +37,73 @@ class Material(models.Model):
             raise ValidationError({'name': 'Material name must not be blank.'})
 
 
+class MaterialVariant(models.Model):
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, related_name='variants')
+    label = models.CharField(max_length=100)
+    size_mm = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    unit_weight = models.DecimalField(max_digits=14, decimal_places=3, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['material__name', 'size_mm', 'label']
+        constraints = [
+            models.UniqueConstraint(fields=['material', 'size_mm'], name='unique_material_variant_size'),
+        ]
+
+    def __str__(self):
+        return f'{self.material.name} - {self.label}'
+
+    def clean(self):
+        errors = {}
+
+        if not self.label or not self.label.strip():
+            errors['label'] = 'Variant label must not be blank.'
+
+        if self.size_mm is not None and self.size_mm <= 0:
+            errors['size_mm'] = 'Size in mm must be greater than zero.'
+
+        if self.unit_weight is not None and self.unit_weight <= 0:
+            errors['unit_weight'] = 'Unit weight must be greater than zero.'
+
+        if errors:
+            raise ValidationError(errors)
+
+
+class MaterialVariantPrice(models.Model):
+    variant = models.ForeignKey(MaterialVariant, on_delete=models.CASCADE, related_name='daily_prices')
+    date = models.DateField(default=timezone.now)
+    price_per_unit = models.DecimalField(max_digits=14, decimal_places=2)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-date', 'variant__material__name', 'variant__size_mm', 'variant__label']
+        constraints = [
+            models.UniqueConstraint(fields=['variant', 'date'], name='unique_variant_price_per_day'),
+        ]
+
+    def __str__(self):
+        return f'{self.variant} @ {self.price_per_unit} on {self.date}'
+
+    def clean(self):
+        errors = {}
+
+        if self.price_per_unit < 0:
+            errors['price_per_unit'] = 'Price per unit must be zero or positive.'
+
+        if errors:
+            raise ValidationError(errors)
+
+
 class MaterialStock(models.Model):
     site = models.ForeignKey(Site, on_delete=models.CASCADE)
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    material_variant = models.ForeignKey(
+        MaterialVariant,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='stock_entries',
+    )
 
     quantity_received = models.DecimalField(max_digits=14, decimal_places=3, default=Decimal('0'))
     quantity_used = models.DecimalField(max_digits=14, decimal_places=3, default=Decimal('0'))
@@ -56,8 +121,16 @@ class MaterialStock(models.Model):
     def remaining_stock(self):
         return self.quantity_received - self.quantity_used
 
+    def _matching_stock_queryset(self):
+        queryset = MaterialStock.objects.filter(material=self.material)
+        if self.material_variant_id:
+            queryset = queryset.filter(material_variant_id=self.material_variant_id)
+        else:
+            queryset = queryset.filter(material_variant__isnull=True)
+        return queryset
+
     def _site_totals_before(self):
-        queryset = MaterialStock.objects.filter(site=self.site, material=self.material)
+        queryset = self._matching_stock_queryset().filter(site=self.site)
         if self.pk:
             queryset = queryset.exclude(pk=self.pk)
 
@@ -68,7 +141,7 @@ class MaterialStock(models.Model):
         return totals['total_received'] or 0, totals['total_used'] or 0
 
     def _material_totals_before(self):
-        queryset = MaterialStock.objects.filter(material=self.material)
+        queryset = self._matching_stock_queryset()
         if self.pk:
             queryset = queryset.exclude(pk=self.pk)
 
@@ -96,6 +169,9 @@ class MaterialStock(models.Model):
 
         if self.transport_cost < 0:
             errors['transport_cost'] = 'Transport cost must be zero or positive.'
+
+        if self.material_variant_id and self.material_variant.material_id != self.material_id:
+            errors['material_variant'] = 'Selected material variant must belong to the selected material.'
 
         if self.site and self.material:
             site_received_before, site_used_before = self._site_totals_before()

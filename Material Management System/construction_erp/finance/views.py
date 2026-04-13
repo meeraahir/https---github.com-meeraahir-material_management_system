@@ -11,8 +11,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from openpyxl import Workbook
 
 from sites.permissions import IsAdminOrReadOnly
-from .models import Party, Transaction, ClientReceipt
-from .serializers import PartySerializer, TransactionSerializer
+from .models import ClientReceipt, MiscellaneousExpense, Party, Transaction
+from .serializers import MiscellaneousExpenseSerializer, PartySerializer, TransactionSerializer
 from .utils import normalize_receipt_style_invoices
 
 
@@ -276,7 +276,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['party', 'site', 'received', 'date']
-    search_fields = ['party__name', 'site__name']
+    search_fields = ['party__name', 'site__name', 'phase_name', 'description']
 
     def get_queryset(self):
         normalize_receipt_style_invoices()
@@ -297,6 +297,10 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 site=invoice.site,
                 amount=amount,
                 date=request.data.get('date') or invoice.date,
+                payment_mode=request.data.get('payment_mode') or 'cash',
+                sender_name=request.data.get('sender_name'),
+                receiver_name=request.data.get('receiver_name'),
+                cheque_number=request.data.get('cheque_number'),
                 reference_number=request.data.get('reference_number'),
                 notes=request.data.get('notes'),
             )
@@ -309,3 +313,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
         payload = serializer.data
         payload['receipt_id'] = receipt.id
         return Response(payload)
+
+
+class MiscellaneousExpenseViewSet(viewsets.ModelViewSet):
+    queryset = MiscellaneousExpense.objects.select_related('site', 'labour').all().order_by('-date', '-id')
+    serializer_class = MiscellaneousExpenseSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['site', 'labour', 'date', 'payment_mode']
+    search_fields = ['title', 'paid_to_name', 'notes', 'site__name', 'labour__name']

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Labour, LabourAttendance, LabourPayment, LabourPaymentEntry
+from .models import CasualLabourEntry, Labour, LabourAttendance, LabourPayment, LabourPaymentEntry
 
 
 @admin.register(Labour)
@@ -27,3 +27,10 @@ class LabourPaymentEntryAdmin(admin.ModelAdmin):
     list_display = ('id', 'payment', 'labour', 'site', 'amount', 'date')
     list_filter = ('site', 'date')
     search_fields = ('labour__name', 'payment__id')
+
+
+@admin.register(CasualLabourEntry)
+class CasualLabourEntryAdmin(admin.ModelAdmin):
+    list_display = ('id', 'labour_name', 'labour_type', 'site', 'date', 'paid_amount')
+    list_filter = ('site', 'date', 'labour_type')
+    search_fields = ('labour_name', 'labour_type', 'site__name')

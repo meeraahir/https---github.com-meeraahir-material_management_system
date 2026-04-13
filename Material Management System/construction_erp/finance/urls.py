@@ -1,12 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PartyViewSet, TransactionViewSet
+from .views import MiscellaneousExpenseViewSet, PartyViewSet, TransactionViewSet
 
 app_name = 'finance'
 
 router = DefaultRouter()
 router.register(r'parties', PartyViewSet)
 router.register(r'transactions', TransactionViewSet)
+router.register(r'miscellaneous-expenses', MiscellaneousExpenseViewSet)
 
 urlpatterns = [
     path('', PartyViewSet.as_view({'get': 'list', 'post': 'create'}), name='party-list'),
@@ -26,5 +27,7 @@ urlpatterns = [
     path('transactions/', TransactionViewSet.as_view({'get': 'list', 'post': 'create'}), name='transaction-list'),
     path('transactions/<int:pk>/', TransactionViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='transaction-detail'),
     path('transactions/<int:pk>/receive-payment/', TransactionViewSet.as_view({'post': 'receive_payment'}), name='transaction-receive-payment'),
+    path('miscellaneous-expenses/', MiscellaneousExpenseViewSet.as_view({'get': 'list', 'post': 'create'}), name='miscellaneous-expense-list'),
+    path('miscellaneous-expenses/<int:pk>/', MiscellaneousExpenseViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='miscellaneous-expense-detail'),
     path('', include(router.urls)),
 ]

@@ -1093,6 +1093,8 @@ Response:
       "party": 1,
       "site": 1,
       "amount": 50000.0,
+      "phase_name": "Plaster Work",
+      "description": "Second floor wall plaster pending bill",
       "received": false,
       "date": "2026-04-09",
       "current_received_amount": 20000.0,
@@ -1113,6 +1115,8 @@ Request:
   "party": 1,
   "site": 1,
   "amount": 50000,
+  "phase_name": "Plaster Work",
+  "description": "Second floor wall plaster pending bill",
   "received": false,
   "date": "2026-04-09"
 }
@@ -1125,6 +1129,8 @@ Optional direct received amount during create/update:
   "party": 1,
   "site": 1,
   "amount": 50000,
+  "phase_name": "Plaster Work",
+  "description": "Second floor wall plaster pending bill",
   "received_amount": 20000,
   "date": "2026-04-09"
 }
@@ -1153,6 +1159,8 @@ Response:
   "party": 1,
   "site": 1,
   "amount": 50000.0,
+  "phase_name": "Plaster Work",
+  "description": "Second floor wall plaster pending bill",
   "received": false,
   "date": "2026-04-09",
   "current_received_amount": 25000.0,
@@ -1307,6 +1315,93 @@ Response:
 - `GET /core/dashboard/chart/`
 - `GET /core/dashboard/export/`
 - `GET /core/dashboard/export/pdf/`
+
+### Owner dashboard
+
+`GET /core/dashboard/owner/`
+
+Supports optional:
+
+- `date=YYYY-MM-DD`
+
+Use this API for owner summary cards like:
+
+- total sites
+- active sites
+- payment pending from clients
+- payment pending to vendors
+- payment pending to employees
+- total cash received
+- total cash outflow
+- available cash balance
+- negative cash balance notification
+
+Response:
+
+```json
+{
+  "user_id": 1,
+  "user_name": "Admin User",
+  "title": "Owner Dashboard",
+  "site_activity_date": "2026-04-13",
+  "summary": {
+    "total_sites": 2,
+    "active_sites": 1,
+    "inactive_sites": 1,
+    "payment_pending_from_clients": 800.0,
+    "payment_pending_to_vendors": 480.0,
+    "payment_pending_to_employees": 150.0,
+    "total_cash_received": 600.0,
+    "cash_paid_to_vendors": 200.0,
+    "cash_paid_to_employees": 100.0,
+    "cash_paid_to_casual_labour": 50.0,
+    "cash_paid_for_miscellaneous_expenses": 25.0,
+    "total_cash_outflow": 375.0,
+    "cash_available": 225.0,
+    "has_negative_cash_balance": false
+  },
+  "notifications": [],
+  "site_overview": [
+    {
+      "site_id": 1,
+      "site_name": "Alpha Site",
+      "location": "Noida",
+      "is_active": true,
+      "payment_pending_from_clients": 400.0,
+      "payment_pending_to_vendors": 300.0,
+      "payment_pending_to_employees": 150.0
+    },
+    {
+      "site_id": 2,
+      "site_name": "Beta Site",
+      "location": "Delhi",
+      "is_active": false,
+      "payment_pending_from_clients": 400.0,
+      "payment_pending_to_vendors": 180.0,
+      "payment_pending_to_employees": 0.0
+    }
+  ]
+}
+```
+
+Negative cash example:
+
+```json
+{
+  "summary": {
+    "cash_available": -175.0,
+    "has_negative_cash_balance": true
+  },
+  "notifications": [
+    {
+      "type": "negative_cash_balance",
+      "severity": "high",
+      "message": "Your cash balance is -175.00.",
+      "cash_available": -175.0
+    }
+  ]
+}
+```
 
 ## Suggested Frontend Service Map
 

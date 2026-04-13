@@ -346,8 +346,17 @@ class VendorPaymentViewSet(viewsets.ModelViewSet):
     serializer_class = VendorPaymentSerializer
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['purchase', 'vendor', 'site', 'date']
-    search_fields = ['vendor__name', 'site__name', 'purchase__invoice_number', 'reference_number', 'remarks']
+    filterset_fields = ['purchase', 'vendor', 'site', 'date', 'payment_mode']
+    search_fields = [
+        'vendor__name',
+        'site__name',
+        'purchase__invoice_number',
+        'sender_name',
+        'receiver_name',
+        'cheque_number',
+        'reference_number',
+        'remarks',
+    ]
     ordering_fields = ['date', 'amount']
     ordering = ['-date']
 

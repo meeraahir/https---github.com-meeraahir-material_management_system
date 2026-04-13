@@ -3,6 +3,7 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from rest_framework import serializers
 
+from core.payment_details import PAYMENT_MODE_CASH, validate_payment_details
 from sites.models import Site
 from .models import Vendor, VendorTransaction, VendorPayment
 
@@ -41,6 +42,15 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
     vendor_name = serializers.CharField(source='vendor.name', read_only=True)
     site_name = serializers.CharField(source='site.name', read_only=True)
     material_name = serializers.CharField(source='material.name', read_only=True)
+    payment_mode = serializers.ChoiceField(
+        choices=VendorPayment._meta.get_field('payment_mode').choices,
+        write_only=True,
+        required=False,
+        default=PAYMENT_MODE_CASH,
+    )
+    sender_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    receiver_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    cheque_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = VendorTransaction
@@ -56,6 +66,10 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
             'description',
             'total_amount',
             'paid_amount',
+            'payment_mode',
+            'sender_name',
+            'receiver_name',
+            'cheque_number',
             'date',
             'pending_amount',
         ]
@@ -63,6 +77,8 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         total_amount = attrs.get('total_amount', getattr(self.instance, 'total_amount', 0))
         paid_amount = attrs.get('paid_amount', getattr(self.instance, 'paid_amount', 0))
+        payment_mode = attrs.get('payment_mode', PAYMENT_MODE_CASH)
+        vendor = attrs.get('vendor', getattr(self.instance, 'vendor', None))
 
         errors = {}
         if total_amount < 0:
@@ -72,6 +88,19 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
         if paid_amount > total_amount:
             errors['paid_amount'] = 'Paid amount cannot exceed total amount.'
 
+        payment_details = validate_payment_details(
+            payment_mode=payment_mode,
+            sender_name=attrs.get('sender_name'),
+            receiver_name=attrs.get('receiver_name'),
+            cheque_number=attrs.get('cheque_number'),
+            default_receiver_name=vendor.name if vendor else None,
+        )
+        attrs['sender_name'] = payment_details['sender_name']
+        attrs['receiver_name'] = payment_details['receiver_name']
+        attrs['cheque_number'] = payment_details['cheque_number']
+        if payment_details['errors'] and paid_amount > 0:
+            errors.update(payment_details['errors'])
+
         if errors:
             raise serializers.ValidationError(errors)
 
@@ -80,7 +109,16 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
     def get_pending_amount(self, obj):
         return obj.pending_amount()
 
-    def _sync_payment_history(self, purchase, desired_paid_amount, payment_date):
+    def _sync_payment_history(
+        self,
+        purchase,
+        desired_paid_amount,
+        payment_date,
+        payment_mode,
+        sender_name,
+        receiver_name,
+        cheque_number,
+    ):
         current_paid_amount = purchase.payments_total()
 
         if desired_paid_amount < current_paid_amount:
@@ -96,6 +134,10 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
                 site=purchase.site,
                 amount=delta,
                 date=payment_date or purchase.date,
+                payment_mode=payment_mode,
+                sender_name=sender_name,
+                receiver_name=receiver_name,
+                cheque_number=cheque_number,
                 reference_number=purchase.invoice_number,
                 remarks='Auto-created from vendor purchase update.',
             )
@@ -104,6 +146,10 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         desired_paid_amount = validated_data.get('paid_amount', 0)
+        payment_mode = validated_data.pop('payment_mode', PAYMENT_MODE_CASH)
+        sender_name = validated_data.pop('sender_name', None)
+        receiver_name = validated_data.pop('receiver_name', None)
+        cheque_number = validated_data.pop('cheque_number', None)
 
         with transaction.atomic():
             purchase = VendorTransaction(**validated_data)
@@ -112,11 +158,23 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
                 purchase.save()
             except ValidationError as exc:
                 _raise_drf_validation_error(exc)
-            self._sync_payment_history(purchase, desired_paid_amount, validated_data.get('date'))
+            self._sync_payment_history(
+                purchase,
+                desired_paid_amount,
+                validated_data.get('date'),
+                payment_mode,
+                sender_name,
+                receiver_name,
+                cheque_number,
+            )
             return purchase
 
     def update(self, instance, validated_data):
         desired_paid_amount = validated_data.get('paid_amount', instance.paid_amount)
+        payment_mode = validated_data.pop('payment_mode', PAYMENT_MODE_CASH)
+        sender_name = validated_data.pop('sender_name', None)
+        receiver_name = validated_data.pop('receiver_name', None)
+        cheque_number = validated_data.pop('cheque_number', None)
 
         with transaction.atomic():
             for attr, value in validated_data.items():
@@ -126,7 +184,15 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
                 instance.save()
             except ValidationError as exc:
                 _raise_drf_validation_error(exc)
-            self._sync_payment_history(instance, desired_paid_amount, validated_data.get('date', instance.date))
+            self._sync_payment_history(
+                instance,
+                desired_paid_amount,
+                validated_data.get('date', instance.date),
+                payment_mode,
+                sender_name,
+                receiver_name,
+                cheque_number,
+            )
             return instance
 
 
@@ -155,6 +221,10 @@ class VendorPaymentSerializer(serializers.ModelSerializer):
             'site_name',
             'amount',
             'date',
+            'payment_mode',
+            'sender_name',
+            'receiver_name',
+            'cheque_number',
             'reference_number',
             'remarks',
         ]
@@ -164,6 +234,7 @@ class VendorPaymentSerializer(serializers.ModelSerializer):
         vendor = attrs.get('vendor', getattr(self.instance, 'vendor', None))
         site = attrs.get('site', getattr(self.instance, 'site', None))
         amount = attrs.get('amount', getattr(self.instance, 'amount', None))
+        payment_mode = attrs.get('payment_mode', getattr(self.instance, 'payment_mode', PAYMENT_MODE_CASH))
 
         errors = {}
         if purchase:
@@ -177,6 +248,18 @@ class VendorPaymentSerializer(serializers.ModelSerializer):
 
         if amount is not None and amount <= 0:
             errors['amount'] = 'Payment amount must be greater than zero.'
+
+        payment_details = validate_payment_details(
+            payment_mode=payment_mode,
+            sender_name=attrs.get('sender_name', getattr(self.instance, 'sender_name', None)),
+            receiver_name=attrs.get('receiver_name', getattr(self.instance, 'receiver_name', None)),
+            cheque_number=attrs.get('cheque_number', getattr(self.instance, 'cheque_number', None)),
+            default_receiver_name=(purchase.vendor.name if purchase else None),
+        )
+        attrs['sender_name'] = payment_details['sender_name']
+        attrs['receiver_name'] = payment_details['receiver_name']
+        attrs['cheque_number'] = payment_details['cheque_number']
+        errors.update(payment_details['errors'])
 
         if errors:
             raise serializers.ValidationError(errors)

@@ -17,6 +17,25 @@ class VendorTransactionAdmin(admin.ModelAdmin):
 
 @admin.register(VendorPayment)
 class VendorPaymentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'purchase', 'vendor', 'site', 'amount', 'date')
-    list_filter = ('vendor', 'site', 'date')
-    search_fields = ('vendor__name', 'site__name', 'reference_number', 'purchase__invoice_number')
+    list_display = (
+        'id',
+        'purchase',
+        'vendor',
+        'site',
+        'amount',
+        'payment_mode',
+        'sender_name',
+        'receiver_name',
+        'cheque_number',
+        'date',
+    )
+    list_filter = ('vendor', 'site', 'payment_mode', 'date')
+    search_fields = (
+        'vendor__name',
+        'site__name',
+        'sender_name',
+        'receiver_name',
+        'cheque_number',
+        'reference_number',
+        'purchase__invoice_number',
+    )
