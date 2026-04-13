@@ -295,7 +295,7 @@ export function PartyLedgerPage() {
           },
         ]}
         description="View party receivables invoice-wise with received amount and pending balance. Use View for movement details."
-        emptyDescription="Select a party and load the ledger to view receivable-wise balance."
+        emptyDescription="Select a party to view receivable-wise balance."
         entityLabel="Party"
         entityOptions={references.parties.map((party) => ({
           label: `${party.name} (${party.contact})`,
@@ -324,8 +324,11 @@ export function PartyLedgerPage() {
             },
           };
         }}
+        autoLoadOnSelect
         referenceError={references.error}
         searchPlaceholder="Search party ledger"
+        showLoadButton={false}
+        showSearch={false}
         title="Party Ledger"
       />
       <MovementDetailsModal

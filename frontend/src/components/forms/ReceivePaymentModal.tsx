@@ -92,8 +92,8 @@ export function ReceivePaymentModal({
       footer={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-5 text-slate-600 dark:text-slate-600">
-            Pending amount {formatCurrency(pendingAmount)} hai. Save par receivable
-            balance update ho jayega.
+            Pending amount is {formatCurrency(pendingAmount)}. Saving will update
+            the receivable balance.
           </p>
           <div className="flex justify-end gap-3">
             <Button onClick={handleClose} type="button" variant="secondary">
@@ -214,8 +214,8 @@ export function ReceivePaymentModal({
             {...register("reference_number")}
           />
           <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm leading-6 text-amber-800 dark:border-amber-200 dark:bg-amber-50/80 dark:text-amber-800">
-            Invoice ke against partial ya full payment receive kar sakte ho. Amount
-            pending se zyada nahi hona chahiye.
+            You can record a partial or full payment for this invoice. The amount
+            cannot be greater than the pending balance.
           </div>
           <div className="md:col-span-2">
             <Textarea

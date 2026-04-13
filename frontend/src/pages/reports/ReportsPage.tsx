@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { ChartCard } from "../../components/charts/ChartCard";
 import { LabourLedgerChart } from "../../components/charts/DashboardCharts";
 import { useToast } from "../../components/feedback/useToast";
-import { LabourFilter } from "../../components/forms/LabourFilter";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { DataTable } from "../../components/common/DataTable";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
@@ -404,11 +403,7 @@ export function ReportsPage() {
 
       <section
         className={
-          filters.module === "vendors" || filters.module === "receivables"
-            ? "grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-2 xl:grid-cols-6"
-            : filters.module === "labour"
-              ? "grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-1"
-            : "grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-2 lg:grid-cols-4"
+          "grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
         }
       >
         <Select
@@ -428,142 +423,125 @@ export function ReportsPage() {
               }))
           }
         />
+        {filters.module === "labour" ? (
+          <Select
+            label="Labour"
+            options={references.labour.map((labour) => ({
+              label: `${labour.name} (#${labour.id})`,
+              value: labour.id,
+            }))}
+            requiredIndicator
+            value={filters.labourId ?? ""}
+            onChange={(event) =>
+              setFilters((currentValue) => ({
+                ...currentValue,
+                labourId: event.target.value ? Number(event.target.value) : undefined,
+              }))
+            }
+          />
+        ) : null}
         {filters.module === "receivables" ? (
-          <>
-            <Select
-              description="Select a party to preview and export that receivable ledger."
-              label="Party"
-              options={partyOptions}
-              value={filters.partyId ?? ""}
-              onChange={(event) =>
-                setFilters((currentValue) => ({
-                  ...currentValue,
-                  partyId: event.target.value ? Number(event.target.value) : undefined,
-                }))
-              }
-            />
-          </>
+          <Select
+            label="Party"
+            options={partyOptions}
+            value={filters.partyId ?? ""}
+            onChange={(event) =>
+              setFilters((currentValue) => ({
+                ...currentValue,
+                partyId: event.target.value ? Number(event.target.value) : undefined,
+              }))
+            }
+          />
         ) : null}
         {filters.module === "vendors" ? (
-          <>
-            <Select
-              description="Select a vendor to preview and export that vendor ledger."
-              label="Vendor"
-              options={vendorOptions}
-              value={filters.vendorId ?? ""}
-              onChange={(event) =>
-                setFilters((currentValue) => ({
-                  ...currentValue,
-                  vendorId: event.target.value ? Number(event.target.value) : undefined,
-                }))
-              }
-            />
-          </>
+          <Select
+            label="Vendor"
+            options={vendorOptions}
+            value={filters.vendorId ?? ""}
+            onChange={(event) =>
+              setFilters((currentValue) => ({
+                ...currentValue,
+                vendorId: event.target.value ? Number(event.target.value) : undefined,
+              }))
+            }
+          />
         ) : null}
-        {filters.module !== "labour" ? (
-          <>
-            <Input
-              label="Date From"
-              type="date"
-              value={filters.dateFrom}
-              onChange={(event) =>
-                setFilters((currentValue) => ({
-                  ...currentValue,
-                  dateFrom: event.target.value,
-                }))
-              }
-            />
-            <Input
-              label="Date To"
-              type="date"
-              value={filters.dateTo}
-              onChange={(event) =>
-                setFilters((currentValue) => ({
-                  ...currentValue,
-                  dateTo: event.target.value,
-                }))
-              }
-            />
-            <div className="flex items-end">
-              <Button
-                className="w-full"
-                isLoading={isLoading}
-                onClick={() => void handlePreview()}
-                type="button"
-              >
-                Preview Report
-              </Button>
-            </div>
-          </>
-        ) : null}
+        <Input
+          label="Date From"
+          type="date"
+          value={filters.dateFrom}
+          onChange={(event) =>
+            setFilters((currentValue) => ({
+              ...currentValue,
+              dateFrom: event.target.value,
+            }))
+          }
+        />
+        <Input
+          label="Date To"
+          type="date"
+          value={filters.dateTo}
+          onChange={(event) =>
+            setFilters((currentValue) => ({
+              ...currentValue,
+              dateTo: event.target.value,
+            }))
+          }
+        />
+        <div className="flex items-end xl:justify-end">
+          <Button
+            className="w-full xl:w-auto"
+            isLoading={isLoading || labourReportState.isLoading}
+            onClick={() => void handlePreview()}
+            type="button"
+          >
+            Preview Report
+          </Button>
+        </div>
       </section>
 
-      {filters.module === "labour" ? (
+      {filters.module === "labour" && filters.labourId && labourReportState.report ? (
         <>
-          <LabourFilter
-            dateFrom={filters.dateFrom}
-            dateTo={filters.dateTo}
-            isLoading={labourReportState.isLoading || references.isLoading}
-            labourId={filters.labourId}
-            labourRecords={references.labour}
-            onDateFromChange={(value) =>
-              setFilters((currentValue) => ({ ...currentValue, dateFrom: value }))
-            }
-            onDateToChange={(value) =>
-              setFilters((currentValue) => ({ ...currentValue, dateTo: value }))
-            }
-            onLabourIdChange={(value) =>
-              setFilters((currentValue) => ({ ...currentValue, labourId: value }))
-            }
-            onSubmit={() => {
-              void handlePreview();
-            }}
-          />
+          <section className="grid gap-4 md:grid-cols-3">
+            <article className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95">
+              <p className="text-sm font-semibold text-slate-600 dark:text-slate-600">Labour</p>
+              <p className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
+                {labourReportState.report.summary.labourName}
+              </p>
+            </article>
+            <article className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95">
+              <p className="text-sm font-semibold text-slate-600 dark:text-slate-600">Total Wage</p>
+              <p className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
+                {formatCurrency(labourReportState.report.summary.totalAmount)}
+              </p>
+            </article>
+            <article className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95">
+              <p className="text-sm font-semibold text-slate-600 dark:text-slate-600">Pending Amount</p>
+              <p className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
+                {formatCurrency(labourReportState.report.summary.pendingAmount)}
+              </p>
+            </article>
+          </section>
 
-          {filters.labourId && labourReportState.report ? (
-            <>
-              <section className="grid gap-4 md:grid-cols-3">
-                <article className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95">
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-600">Labour</p>
-                  <p className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
-                    {labourReportState.report.summary.labourName}
-                  </p>
-                </article>
-                <article className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95">
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-600">Total Wage</p>
-                  <p className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
-                    {formatCurrency(labourReportState.report.summary.totalAmount)}
-                  </p>
-                </article>
-                <article className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95">
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-600">Pending Amount</p>
-                  <p className="mt-3 text-2xl font-black text-slate-950 dark:text-slate-950">
-                    {formatCurrency(labourReportState.report.summary.pendingAmount)}
-                  </p>
-                </article>
-              </section>
+          <div className="flex justify-end">
+            <Button
+              isLoading={isExportingLabour}
+              onClick={() => void handleLabourCsvExport()}
+              type="button"
+              variant="secondary"
+            >
+              Export Selected Labour CSV
+            </Button>
+          </div>
 
-              <div className="flex justify-end">
-                <Button
-                  isLoading={isExportingLabour}
-                  onClick={() => void handleLabourCsvExport()}
-                  type="button"
-                  variant="secondary"
-                >
-                  Export Selected Labour CSV
-                </Button>
-              </div>
-
-              <ChartCard
-                description="Wage debit and payment credit movement for the selected labour record."
-                isEmpty={labourChartData.length === 0}
-                isLoading={labourReportState.isLoading}
-                title="Labour Payment Trend"
-              >
-                <LabourLedgerChart data={labourChartData} />
-              </ChartCard>
-            </>
-          ) : null}
+          <ChartCard
+            description="Wage debit and payment credit movement for the selected labour record."
+            isEmpty={labourChartData.length === 0}
+            isLoading={labourReportState.isLoading}
+            title="Labour Payment Trend"
+          >
+            <LabourLedgerChart data={labourChartData} />
+          </ChartCard>
         </>
       ) : null}
 
