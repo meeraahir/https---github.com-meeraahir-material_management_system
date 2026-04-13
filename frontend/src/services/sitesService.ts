@@ -235,3 +235,16 @@ export const siteDashboardService = {
     }
   },
 };
+
+export const siteLabourReportsService = {
+  async getLabourSummary(siteId: number, filters?: DateRangeFilters) {
+    const response = await apiClient.get<unknown>(`/labour/reports/site/${siteId}/`, {
+      params: {
+        date_from: filters?.dateFrom || undefined,
+        date_to: filters?.dateTo || undefined,
+      },
+    });
+
+    return normalizeLabourSummary(response.data);
+  },
+};

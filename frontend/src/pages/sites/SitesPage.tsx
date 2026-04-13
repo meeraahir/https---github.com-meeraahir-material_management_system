@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { useNavigate } from "react-router-dom";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
@@ -6,20 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { sitesService } from "../../services/sitesService";
 import type { Site, SiteFormValues } from "../../types/erp.types";
 import { getCrudPermissions } from "../../utils/permissions";
-
-const siteSchema = z.object({
-  description: z.string().max(300, "Description must be 300 characters or fewer."),
-  location: z
-    .string()
-    .trim()
-    .min(2, "Location must be at least 2 characters.")
-    .max(120, "Location must be 120 characters or fewer."),
-  name: z
-    .string()
-    .trim()
-    .min(2, "Site name must be at least 2 characters.")
-    .max(100, "Site name must be 100 characters or fewer."),
-});
+import { siteDefaultValues, siteFormFields, siteSchema } from "./siteFormConfig";
 
 export function SitesPage() {
   const { user } = useAuth();
@@ -37,37 +23,11 @@ export function SitesPage() {
         { key: "description", header: "Description", accessor: (row) => row.description || "-" },
       ]}
       createLabel="Add Site"
-      defaultValues={{ description: "", location: "", name: "" }}
+      defaultValues={siteDefaultValues}
       description="Manage all construction sites linked to operational records."
       emptyDescription="No sites have been created yet."
       emptyTitle="No sites found"
-      fields={[
-        {
-          kind: "text",
-          label: "Site Name",
-          maxLength: 100,
-          minLength: 2,
-          name: "name",
-          placeholder: "Enter site name",
-          required: true,
-        },
-        {
-          kind: "text",
-          label: "Location",
-          maxLength: 120,
-          minLength: 2,
-          name: "location",
-          placeholder: "Enter location",
-          required: true,
-        },
-        {
-          kind: "textarea",
-          label: "Description",
-          name: "description",
-          placeholder: "Optional notes about this site",
-          rows: 5,
-        },
-      ]}
+      fields={siteFormFields}
       getEditValues={(entity) => ({
         description: entity.description,
         location: entity.location,

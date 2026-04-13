@@ -12,6 +12,7 @@ import { Loader } from "../ui/Loader";
 interface DataTableProps<T> {
   actions?: TableAction<T>[];
   actionsDisplay?: "icon" | "text";
+  compact?: boolean;
   clientPagination?: boolean;
   columns: TableColumn<T>[];
   data: T[];
@@ -149,6 +150,7 @@ function getActionVariantClass(label: string) {
 export function DataTable<T>({
   actions,
   actionsDisplay = "text",
+  compact = false,
   clientPagination = false,
   columns,
   data,
@@ -218,6 +220,12 @@ export function DataTable<T>({
     ? rows.slice((page - 1) * pageSize, page * pageSize)
     : rows;
   const showHeader = Boolean(headerTitle || headerActions);
+  const headerCellClassName = compact
+    ? "min-w-24 max-w-[8.75rem] px-3 py-2.5 text-[0.76rem]"
+    : "min-w-36 max-w-[13rem] px-4 py-3.5 text-[0.86rem]";
+  const bodyCellClassName = compact
+    ? "min-w-24 max-w-[8.75rem] px-3 py-2.5 text-[0.88rem]"
+    : "min-w-36 max-w-[13rem] px-4 py-3 text-[0.95rem]";
 
   return (
     <section className="erp-shell-panel overflow-hidden rounded-3xl border bg-white/94 shadow-lg dark:bg-white/94">
@@ -291,7 +299,8 @@ export function DataTable<T>({
                         <button
                           aria-label={action.ariaLabel ?? action.label}
                           className={clsx(
-                            "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 transition hover:border-teal-600/40 hover:bg-[#c5d8df] disabled:cursor-not-allowed disabled:opacity-60",
+                            "inline-flex items-center justify-center border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 transition hover:border-teal-600/40 hover:bg-[#c5d8df] disabled:cursor-not-allowed disabled:opacity-60",
+                            compact ? "h-8 w-8 rounded-lg" : "h-9 w-9 rounded-xl",
                             getActionVariantClass(action.label),
                           )}
                           disabled={action.disabled?.(row) ?? false}
@@ -330,18 +339,24 @@ export function DataTable<T>({
               <thead>
                 <tr className="erp-table-head bg-gradient-to-r from-blue-50 via-sky-50 to-cyan-50 dark:from-blue-50 dark:via-sky-50 dark:to-cyan-50">
                   {columns.map((column) => (
+                    (() => {
+                      const isRightAligned = /(amount|balance|cost|paid|pending|payment|receivable|wage|total|quantity|stock|used|received)/i.test(
+                        `${column.key} ${column.header}`,
+                      );
+
+                      return (
                     <th
                       className={clsx(
-                        "min-w-36 max-w-[13rem] whitespace-nowrap px-4 py-3.5 text-[0.86rem] font-black uppercase tracking-[0.12em] text-slate-800 dark:text-slate-800",
-                        /(amount|balance|cost|paid|pending|payment|receivable|wage|total|quantity|stock|used|received)/i.test(`${column.key} ${column.header}`)
-                          ? "text-right"
-                          : "text-left",
+                        "whitespace-nowrap font-black uppercase tracking-[0.12em] text-slate-800 dark:text-slate-800",
+                        headerCellClassName,
+                        isRightAligned ? "text-right" : "text-left",
                       )}
                       key={column.key}
                     >
                       <button
                         className={clsx(
-                          "inline-flex max-w-full items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap leading-5",
+                          "inline-flex w-full items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap leading-5",
+                          isRightAligned ? "justify-end text-right" : "justify-start text-left",
                           column.sortValue
                             ? "cursor-pointer"
                             : "cursor-default",
@@ -376,11 +391,14 @@ export function DataTable<T>({
                         {column.header}
                       </button>
                     </th>
+                      );
+                    })()
                   ))}
                   {actions?.length ? (
                     <th className={clsx(
-                      "sticky right-0 z-20 whitespace-nowrap bg-[#a8c7cf]/95 px-4 py-3.5 text-right text-[0.86rem] font-black uppercase tracking-[0.12em] text-slate-800 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-[#a8c7cf]/95 dark:text-slate-800",
-                      actionsDisplay === "icon" ? "w-28" : "w-44",
+                      "sticky right-0 z-20 whitespace-nowrap bg-[#a8c7cf]/95 text-right font-black uppercase tracking-[0.12em] text-slate-800 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-[#a8c7cf]/95 dark:text-slate-800",
+                      compact ? "px-3 py-2.5 text-[0.76rem]" : "px-4 py-3.5 text-[0.86rem]",
+                      actionsDisplay === "icon" ? (compact ? "w-24" : "w-28") : "w-44",
                     )}>
                       Actions
                     </th>
@@ -407,7 +425,8 @@ export function DataTable<T>({
                       return (
                         <td
                           className={clsx(
-                            "min-w-36 max-w-[13rem] px-4 py-3 text-[0.95rem] font-semibold text-slate-800 dark:text-slate-800",
+                            "font-semibold text-slate-800 dark:text-slate-800",
+                            bodyCellClassName,
                             isNumericColumn(column, cellValue) &&
                               "text-right tabular-nums",
                             column.className,
@@ -425,8 +444,9 @@ export function DataTable<T>({
                     })}
                     {actions?.length ? (
                       <td className={clsx(
-                        "sticky right-0 z-10 whitespace-nowrap bg-white/96 px-4 py-3 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-white/96",
-                        actionsDisplay === "icon" ? "w-28" : "w-44",
+                        "sticky right-0 z-10 whitespace-nowrap bg-white/96 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-white/96",
+                        compact ? "px-3 py-2.5" : "px-4 py-3",
+                        actionsDisplay === "icon" ? (compact ? "w-24" : "w-28") : "w-44",
                       )}>
                         <div className="flex flex-nowrap justify-end gap-2">
                           {actions.map((action) => (
@@ -434,7 +454,8 @@ export function DataTable<T>({
                               <button
                                 aria-label={action.ariaLabel ?? action.label}
                                 className={clsx(
-                                  "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 transition hover:border-teal-600/40 hover:bg-[#c5d8df] disabled:cursor-not-allowed disabled:opacity-60",
+                                  "inline-flex items-center justify-center border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 transition hover:border-teal-600/40 hover:bg-[#c5d8df] disabled:cursor-not-allowed disabled:opacity-60",
+                                  compact ? "h-8 w-8 rounded-lg" : "h-9 w-9 rounded-xl",
                                   getActionVariantClass(action.label),
                                 )}
                                 disabled={action.disabled?.(row) ?? false}

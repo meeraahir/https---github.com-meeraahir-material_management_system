@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ChartCard } from "../../components/charts/ChartCard";
 import {
@@ -10,16 +10,26 @@ import {
 import { useToast } from "../../components/feedback/useToast";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { Skeleton } from "../../components/common/Skeleton";
+import { EntityFormModal } from "../../components/forms/EntityFormModal";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { StatCard } from "../../components/layout/StatCard";
 import { dashboardService } from "../../services/dashboardService";
+import { sitesService } from "../../services/sitesService";
 import type {
   DashboardStats,
   MaterialWiseReportRow,
+  SiteFormValues,
   SiteWiseMaterialReportRow,
 } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
 import { formatCurrency, formatNumber } from "../../utils/format";
+import { Button } from "../../components/ui/Button";
+import {
+  siteDefaultValues,
+  siteFormFields,
+  siteSchema,
+} from "../sites/siteFormConfig";
+import { DashboardLabourAttendanceModal } from "./DashboardLabourAttendanceModal";
 
 function getSiteLabel(row: SiteWiseMaterialReportRow) {
   return row.site_name || row.name || "Unknown Site";
@@ -38,40 +48,42 @@ function getSiteMetric(row: SiteWiseMaterialReportRow, keys: string[]) {
 }
 
 export function DashboardPage() {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [materialReport, setMaterialReport] = useState<MaterialWiseReportRow[]>([]);
   const [siteReport, setSiteReport] = useState<SiteWiseMaterialReportRow[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+
+  const loadDashboard = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const [statsResponse, materialUsageResponse, siteDistributionResponse] =
+        await Promise.all([
+          dashboardService.getStats(),
+          dashboardService.getMaterialUsageReport(),
+          dashboardService.getSiteDistributionReport(),
+        ]);
+
+      setStats(statsResponse);
+      setMaterialReport(materialUsageResponse);
+      setSiteReport(siteDistributionResponse);
+    } catch (loadError) {
+      const message = getErrorMessage(loadError);
+      setError(message);
+      showError("Unable to load dashboard", message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showError]);
 
   useEffect(() => {
-    async function loadDashboard() {
-      try {
-        setIsLoading(true);
-        setError("");
-
-        const [statsResponse, materialUsageResponse, siteDistributionResponse] =
-          await Promise.all([
-            dashboardService.getStats(),
-            dashboardService.getMaterialUsageReport(),
-            dashboardService.getSiteDistributionReport(),
-          ]);
-
-        setStats(statsResponse);
-        setMaterialReport(materialUsageResponse);
-        setSiteReport(siteDistributionResponse);
-      } catch (loadError) {
-        const message = getErrorMessage(loadError);
-        setError(message);
-        showError("Unable to load dashboard", message);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
     void loadDashboard();
-  }, [showError]);
+  }, [loadDashboard]);
 
   const materialUsageChartData = useMemo(
     () =>
@@ -165,9 +177,33 @@ export function DashboardPage() {
     },
   ];
 
+  async function handleSiteCreate(values: SiteFormValues) {
+    await sitesService.create(values);
+    showSuccess("Site created", "New site has been added successfully.");
+    setIsSiteModalOpen(false);
+    await loadDashboard();
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader description="" title="Dashboard" />
+      <PageHeader
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setIsSiteModalOpen(true)} type="button">
+              Add Site
+            </Button>
+            <Button
+              onClick={() => setIsAttendanceModalOpen(true)}
+              type="button"
+              variant="secondary"
+            >
+              Labour Attendance
+            </Button>
+          </div>
+        }
+        description="Track key activity and handle common daily actions directly from the dashboard."
+        title="Dashboard"
+      />
 
       <ErrorMessage message={error} />
 
@@ -239,6 +275,26 @@ export function DashboardPage() {
           <StockComparisonChart data={stockComparisonChartData} />
         </ChartCard>
       </section>
+
+      <EntityFormModal<SiteFormValues>
+        defaultValues={siteDefaultValues}
+        description="Create a new site from the dashboard."
+        fields={siteFormFields}
+        onClose={() => {
+          setIsSiteModalOpen(false);
+        }}
+        onSubmit={handleSiteCreate}
+        open={isSiteModalOpen}
+        schema={siteSchema}
+        title="Create Site"
+      />
+
+      <DashboardLabourAttendanceModal
+        onClose={() => {
+          setIsAttendanceModalOpen(false);
+        }}
+        open={isAttendanceModalOpen}
+      />
     </div>
   );
 }
