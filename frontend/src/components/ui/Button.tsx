@@ -13,16 +13,16 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-teal-700 to-cyan-700 text-white shadow-lg shadow-teal-900/18 hover:from-teal-800 hover:to-cyan-800 focus-visible:ring-teal-600",
+    "bg-[#111111] text-white shadow-sm hover:bg-[#1F1F1F] focus-visible:ring-[#FF6B4A]",
   secondary:
-    "border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 hover:border-teal-600/40 hover:bg-[#c5d8df] focus-visible:ring-teal-600 dark:border-[#8fb0bd]/70 dark:bg-[#cfe0e6] dark:text-slate-800 dark:hover:bg-[#c5d8df]",
+    "border border-[#E5E7EB] bg-[#F3F4F6] text-[#374151] shadow-sm hover:border-[#D1D5DB] hover:bg-[#EDEFF2] focus-visible:ring-[#FF6B4A]",
   ghost:
-    "bg-transparent text-slate-700 hover:bg-[#c5d8df] hover:text-teal-800 focus-visible:ring-teal-600 dark:text-slate-700 dark:hover:bg-[#c5d8df] dark:hover:text-teal-800",
+    "bg-transparent text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111111] focus-visible:ring-[#FF6B4A]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-9 px-3 text-sm",
-  md: "h-11 px-4 text-sm",
+  sm: "h-9 px-3.5 text-sm",
+  md: "h-11 px-4.5 text-sm",
   lg: "h-12 px-5 text-base",
 };
 
@@ -39,7 +39,7 @@ export function Button({
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-white",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60",
         variantClasses[variant],
         sizeClasses[size],
         className,

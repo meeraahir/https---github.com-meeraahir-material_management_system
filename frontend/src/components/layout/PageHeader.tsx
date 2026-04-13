@@ -14,14 +14,14 @@ export function PageHeader({
   title,
 }: PageHeaderProps) {
   return (
-    <div className="erp-shell-panel rounded-2xl border bg-gradient-to-r from-white via-blue-50/55 to-cyan-50/45 p-4 shadow-md dark:from-white dark:via-blue-50/55 dark:to-cyan-50/45">
-      <div className="flex flex-col gap-4">
+    <div className="erp-shell-panel rounded-3xl border bg-white p-5 sm:p-6">
+      <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-slate-950">
+            <h1 className="text-2xl font-semibold tracking-tight text-[#111111] sm:text-[1.9rem]">
               {title}
             </h1>
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-600">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6B7280]">
               {description}
             </p>
           </div>

@@ -21,12 +21,12 @@ export function ChartCard({
   title,
 }: ChartCardProps) {
   return (
-    <article className="overflow-hidden rounded-[2rem] border border-blue-100/90 bg-white/95 shadow-lg shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/95 dark:shadow-blue-950/5">
-      <div className="h-1 bg-gradient-to-r from-blue-500/80 via-cyan-400/80 to-emerald-400/80" />
-      <div className="p-5">
+    <article className="overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(17,24,39,0.06)]">
+      <div className="h-1 bg-gradient-to-r from-[#FF6B4A] via-[#FF8F75] to-[#FFD1C5]" />
+      <div className="p-5 sm:p-6">
       <div className="space-y-1">
-        <h2 className="text-xl font-black text-slate-950 dark:text-slate-950">{title}</h2>
-        <p className="text-sm leading-6 text-slate-600 dark:text-slate-600">{description}</p>
+        <h2 className="text-xl font-semibold text-[#111111]">{title}</h2>
+        <p className="text-sm leading-6 text-[#6B7280]">{description}</p>
       </div>
 
       <div className="mt-5 h-[320px]">

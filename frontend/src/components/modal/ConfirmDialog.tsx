@@ -37,7 +37,7 @@ export function ConfirmDialog({
       size="md"
       title={title}
     >
-      <p className="text-sm leading-7 text-slate-600 dark:text-slate-600">
+      <p className="text-sm leading-7 text-[#6B7280]">
         {description}
       </p>
     </Modal>

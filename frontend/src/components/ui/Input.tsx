@@ -17,28 +17,32 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   const isNumericInput = rest.type === "number";
+  const isDateInput = rest.type === "date";
   const { onKeyDown, onWheel, ...inputProps } = rest;
+  const today = `${new Date().getFullYear()}-${`${new Date().getMonth() + 1}`.padStart(2, "0")}-${`${new Date().getDate()}`.padStart(2, "0")}`;
+  const effectiveMax = isDateInput && !rest.max ? today : rest.max;
 
   return (
-    <label className="flex w-full flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-700">
-      <span className="flex items-center gap-1 text-sm font-bold text-slate-800 dark:text-slate-800">
+    <label className="flex w-full flex-col gap-2 text-sm font-medium text-[#374151]">
+      <span className="flex items-center gap-1 text-sm font-semibold text-[#111111]">
         {label}
         {requiredIndicator ? <span className="text-rose-500">*</span> : null}
       </span>
       {description ? (
-        <span className="text-xs font-normal leading-5 text-slate-500 dark:text-slate-500">
+        <span className="text-xs font-normal leading-5 text-[#6B7280]">
           {description}
         </span>
       ) : null}
       <input
         ref={ref}
         className={clsx(
-          "h-11 rounded-2xl border border-blue-100 bg-white px-4 text-sm font-medium text-slate-900 shadow-sm shadow-blue-950/5 outline-none transition placeholder:text-slate-400 hover:border-blue-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-blue-100 dark:bg-white dark:text-slate-900 dark:placeholder:text-slate-400 dark:hover:border-blue-200",
+          "h-11 rounded-xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#111111] shadow-sm outline-none transition duration-200 placeholder:text-[#9CA3AF] hover:border-[#D1D5DB] focus:border-[#FF6B4A] focus:ring-4 focus:ring-[#FF6B4A]/10",
           error &&
-            "border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-500/60",
+            "border-rose-300 focus:border-rose-500 focus:ring-rose-500/10",
           className,
         )}
         id={id}
+        max={effectiveMax}
         {...inputProps}
         onKeyDown={(event) => {
           if (
@@ -60,7 +64,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         }}
       />
       {hint ? (
-        <span className="text-xs font-normal text-slate-500 dark:text-slate-500">
+        <span className="text-xs font-normal text-[#6B7280]">
           {hint}
         </span>
       ) : null}

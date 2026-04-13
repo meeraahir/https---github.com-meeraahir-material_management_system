@@ -139,37 +139,37 @@ export function DashboardPage() {
 
   const summaryCards = [
     {
-      accent: "from-blue-600/20 to-cyan-500/5",
+      accent: "from-[#FF6B4A]/18 to-[#FF6B4A]/0",
       helper: "Projects tracked across the ERP",
       label: "Total Sites",
       value: formatNumber(stats?.total_sites),
     },
     {
-      accent: "from-teal-600/20 to-emerald-500/5",
+      accent: "from-[#111111]/10 to-[#111111]/0",
       helper: "Active material masters",
       label: "Total Materials",
       value: formatNumber(stats?.total_materials),
     },
     {
-      accent: "from-amber-500/25 to-orange-500/5",
+      accent: "from-[#FFD8CD] to-[#FFFFFF]",
       helper: "Outstanding client collections",
       label: "Pending Receivables",
       value: formatCurrency(stats?.pending_receivables),
     },
     {
-      accent: "from-rose-500/20 to-pink-500/5",
+      accent: "from-[#FFEAE4] to-[#FFFFFF]",
       helper: "Vendor balances still due",
       label: "Pending Vendor Amounts",
       value: formatCurrency(stats?.pending_vendor_amounts),
     },
     {
-      accent: "from-indigo-500/20 to-sky-500/5",
+      accent: "from-[#F3F4F6] to-[#FFFFFF]",
       helper: "Current workforce on record",
       label: "Total Labour",
       value: formatNumber(stats?.total_labour),
     },
     {
-      accent: "from-slate-500/20 to-slate-400/5",
+      accent: "from-[#FAFAFA] to-[#FFFFFF]",
       helper: "Total stock volume available",
       label: "Material Stock",
       value: formatNumber(stats?.total_material_stock),
@@ -204,7 +204,7 @@ export function DashboardPage() {
         {isLoading
           ? Array.from({ length: 6 }).map((_, index) => (
               <div
-                className="rounded-[2rem] border border-blue-100 bg-white/95 p-4 shadow-sm dark:border-blue-100 dark:bg-white/95"
+                className="rounded-3xl border border-[#E5E7EB] bg-white p-5 shadow-sm"
                 key={index}
               >
                 <Skeleton className="h-4 w-24" />
@@ -214,12 +214,12 @@ export function DashboardPage() {
             ))
           : summaryCards.map((card) => (
               <div
-                className={`rounded-[2rem] border border-blue-100 bg-gradient-to-br ${card.accent} p-1 shadow-md shadow-blue-950/5 dark:border-blue-100`}
+                className={`rounded-3xl border border-[#E5E7EB] bg-gradient-to-br ${card.accent} p-1 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md`}
                 key={card.label}
               >
-                <div className="rounded-[1.7rem] bg-white/95 px-4 py-3.5 dark:bg-white/95">
+                <div className="rounded-[1.35rem] bg-white px-4 py-4">
                   <StatCard label={card.label} value={card.value} />
-                  <p className="mt-2 text-[0.82rem] font-medium leading-5 text-slate-600 dark:text-slate-600">
+                  <p className="mt-2 text-[0.82rem] font-medium leading-5 text-[#6B7280]">
                     {card.helper}
                   </p>
                 </div>

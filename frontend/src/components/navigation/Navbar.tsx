@@ -14,11 +14,11 @@ export function Navbar({ onLogout, onMenuClick, user }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="app-topbar sticky top-0 z-20 border-b border-[#8fb0bd]/70 bg-[#c5d8df]/88 px-5 py-3 shadow-sm shadow-teal-950/10 backdrop-blur-xl dark:border-[#8fb0bd]/70 dark:bg-[#c5d8df]/88">
+    <header className="app-topbar sticky top-0 z-20 border-b border-[#E5E7EB] bg-white/95 px-5 py-4 shadow-sm backdrop-blur-xl">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <button
-            className="rounded-xl p-2 text-slate-500 transition hover:bg-blue-50 hover:text-blue-700 lg:hidden"
+            className="rounded-xl p-2 text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#111111] lg:hidden"
             onClick={onMenuClick}
             type="button"
           >
@@ -29,30 +29,30 @@ export function Navbar({ onLogout, onMenuClick, user }: NavbarProps) {
 
         <div className="relative">
           <button
-            className="app-user-menu flex items-center gap-3 rounded-2xl border border-[#8fb0bd]/60 bg-[#d4e2e7]/85 px-3 py-2 text-left shadow-sm shadow-teal-950/10 transition hover:border-teal-600/30 hover:shadow-md dark:border-[#8fb0bd]/60 dark:bg-[#d4e2e7]/85"
+            className="app-user-menu flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white px-3 py-2 text-left shadow-sm transition hover:border-[#D1D5DB] hover:shadow-md"
             onClick={() => setMenuOpen((currentValue) => !currentValue)}
             type="button"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#111111] text-sm font-semibold text-white">
               {(user?.username?.slice(0, 1) || "U").toUpperCase()}
             </div>
             <div>
-              <p className="app-user-name text-sm font-semibold text-slate-900 dark:text-slate-900">
+              <p className="app-user-name text-sm font-semibold text-[#111111]">
                 {user?.username ?? "User"}
               </p>
-              <p className="app-user-email text-xs text-slate-500 dark:text-slate-500">
+              <p className="app-user-email text-xs text-[#6B7280]">
                 {user?.email ?? "Signed in"}
               </p>
             </div>
           </button>
 
           {menuOpen ? (
-            <div className="absolute right-0 mt-3 w-56 rounded-2xl border border-blue-100 bg-white p-2 shadow-xl shadow-blue-950/10 dark:border-blue-100 dark:bg-white">
-              <div className="rounded-xl px-3 py-2 text-sm text-slate-500 dark:text-slate-500">
+            <div className="absolute right-0 mt-3 w-56 rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-xl">
+              <div className="rounded-xl px-3 py-2 text-sm text-[#6B7280]">
                 Profile dropdown
               </div>
               <button
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 dark:text-slate-700 dark:hover:bg-blue-50"
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#374151] transition hover:bg-[#F3F4F6] hover:text-[#111111]"
                 onClick={onLogout}
                 type="button"
               >

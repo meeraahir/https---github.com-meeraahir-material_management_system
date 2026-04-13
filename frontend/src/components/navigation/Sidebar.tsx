@@ -17,39 +17,39 @@ interface SidebarProps {
 
 const groupThemeClasses = {
   amber: {
-    accent: "bg-amber-500",
-    icon: "bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700",
+    accent: "bg-[#FF6B4A]",
+    icon: "bg-[#FFF1EC] text-[#FF6B4A] dark:bg-[#FFF1EC] dark:text-[#FF6B4A]",
     panel:
-      "border-amber-200/80 bg-amber-50/80 hover:border-amber-300/80 dark:border-amber-200/80 dark:bg-amber-50/80",
-    subtle: "text-amber-700/80 dark:text-amber-700/80",
+      "border-[#E5E7EB] bg-[#FAFAFA] hover:border-[#D1D5DB] dark:border-[#E5E7EB] dark:bg-[#FAFAFA]",
+    subtle: "text-[#6B7280] dark:text-[#6B7280]",
   },
   emerald: {
-    accent: "bg-emerald-500",
-    icon: "bg-emerald-100 text-emerald-700 dark:bg-emerald-100 dark:text-emerald-700",
+    accent: "bg-[#FF6B4A]",
+    icon: "bg-[#FFF1EC] text-[#FF6B4A] dark:bg-[#FFF1EC] dark:text-[#FF6B4A]",
     panel:
-      "border-emerald-200/80 bg-emerald-50/80 hover:border-emerald-300/80 dark:border-emerald-200/80 dark:bg-emerald-50/80",
-    subtle: "text-emerald-700/80 dark:text-emerald-700/80",
+      "border-[#E5E7EB] bg-[#FAFAFA] hover:border-[#D1D5DB] dark:border-[#E5E7EB] dark:bg-[#FAFAFA]",
+    subtle: "text-[#6B7280] dark:text-[#6B7280]",
   },
   rose: {
-    accent: "bg-rose-500",
-    icon: "bg-rose-100 text-rose-700 dark:bg-rose-100 dark:text-rose-700",
+    accent: "bg-[#FF6B4A]",
+    icon: "bg-[#FFF1EC] text-[#FF6B4A] dark:bg-[#FFF1EC] dark:text-[#FF6B4A]",
     panel:
-      "border-rose-200/80 bg-rose-50/80 hover:border-rose-300/80 dark:border-rose-200/80 dark:bg-rose-50/80",
-    subtle: "text-rose-700/80 dark:text-rose-700/80",
+      "border-[#E5E7EB] bg-[#FAFAFA] hover:border-[#D1D5DB] dark:border-[#E5E7EB] dark:bg-[#FAFAFA]",
+    subtle: "text-[#6B7280] dark:text-[#6B7280]",
   },
   sky: {
-    accent: "bg-sky-500",
-    icon: "bg-sky-100 text-sky-700 dark:bg-sky-100 dark:text-sky-700",
+    accent: "bg-[#FF6B4A]",
+    icon: "bg-[#FFF1EC] text-[#FF6B4A] dark:bg-[#FFF1EC] dark:text-[#FF6B4A]",
     panel:
-      "border-sky-200/80 bg-sky-50/80 hover:border-sky-300/80 dark:border-sky-200/80 dark:bg-sky-50/80",
-    subtle: "text-sky-700/80 dark:text-sky-700/80",
+      "border-[#E5E7EB] bg-[#FAFAFA] hover:border-[#D1D5DB] dark:border-[#E5E7EB] dark:bg-[#FAFAFA]",
+    subtle: "text-[#6B7280] dark:text-[#6B7280]",
   },
   slate: {
-    accent: "bg-slate-500",
-    icon: "bg-slate-200 text-slate-700 dark:bg-slate-200 dark:text-slate-700",
+    accent: "bg-[#FF6B4A]",
+    icon: "bg-[#FFF1EC] text-[#FF6B4A] dark:bg-[#FFF1EC] dark:text-[#FF6B4A]",
     panel:
-      "border-slate-200/80 bg-slate-50/80 hover:border-slate-300 dark:border-slate-200/80 dark:bg-slate-50/80",
-    subtle: "text-slate-600 dark:text-slate-600",
+      "border-[#E5E7EB] bg-[#FAFAFA] hover:border-[#D1D5DB] dark:border-[#E5E7EB] dark:bg-[#FAFAFA]",
+    subtle: "text-[#6B7280] dark:text-[#6B7280]",
   },
 } as const;
 
@@ -98,25 +98,25 @@ export function Sidebar({
       />
       <aside
         className={clsx(
-          "app-sidebar fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col overflow-hidden border-r border-teal-900/25 bg-[linear-gradient(180deg,#102f3d_0%,#143847_48%,#0f2a36_100%)] px-3 py-4 shadow-2xl shadow-teal-950/20 backdrop-blur-xl transition dark:border-teal-900/25 dark:bg-[linear-gradient(180deg,#102f3d_0%,#143847_48%,#0f2a36_100%)] lg:translate-x-0 lg:shadow-none",
+          "app-sidebar fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col overflow-hidden border-r border-[#E5E7EB] bg-white px-3 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition duration-300 lg:translate-x-0",
           collapsed ? "lg:w-[5.5rem]" : "lg:w-[17rem]",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div
           className={clsx(
-            "rounded-[1.75rem] border border-teal-200/15 bg-white/8 px-3 py-3 shadow-lg shadow-teal-950/20 backdrop-blur dark:border-teal-200/15 dark:bg-white/8",
+            "rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm",
             collapsed ? "lg:px-2.5" : "lg:px-3.5",
           )}
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-blue-600 to-sky-500 text-white shadow-lg shadow-blue-600/20">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#111111] text-white shadow-sm">
                 {icons.materials({ className: "h-5 w-5" })}
               </div>
               <div className={clsx("min-w-0", collapsed && "lg:hidden")}>
                 <h1
-                  className="app-sidebar-brand-title truncate bg-gradient-to-r from-white via-cyan-100 to-teal-200 bg-clip-text text-lg font-black tracking-tight text-transparent dark:from-white dark:via-cyan-100 dark:to-teal-200"
+                  className="app-sidebar-brand-title truncate text-lg font-semibold tracking-tight text-[#111111]"
                   title="Material Management"
                 >
                   Material Management
@@ -124,7 +124,7 @@ export function Sidebar({
               </div>
             </div>
             <button
-              className="rounded-xl p-2 text-cyan-100/80 transition hover:bg-white/12 hover:text-white dark:hover:bg-white/12 dark:hover:text-white"
+              className="rounded-xl p-2 text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#111111]"
               onClick={onToggleCollapse}
               type="button"
             >
@@ -140,7 +140,7 @@ export function Sidebar({
             <div className="space-y-2">
               <p
                 className={clsx(
-                  "px-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-100/55",
+                  "px-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#9CA3AF]",
                   "sidebar-section-label",
                   collapsed && "lg:hidden",
                 )}
@@ -153,11 +153,11 @@ export function Sidebar({
                     key={item.to}
                     className={({ isActive }) =>
                       clsx(
-                        "group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition duration-200",
+                        "group relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition duration-200",
                         "sidebar-link",
                         isActive
-                          ? "sidebar-link-active bg-linear-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-950/25"
-                          : "text-teal-50 hover:bg-white/10 hover:text-white dark:text-teal-50 dark:hover:bg-white/10",
+                          ? "sidebar-link-active bg-[#111111] text-white shadow-sm"
+                          : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#111111]",
                         collapsed && "justify-center lg:px-0",
                       )
                     }
@@ -167,15 +167,15 @@ export function Sidebar({
                   >
                     <span
                       className={clsx(
-                        "absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-teal-300 opacity-0 transition",
-                        location.pathname.startsWith(item.to) && "opacity-100 bg-teal-300",
+                        "absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#FF6B4A] opacity-0 transition",
+                        location.pathname.startsWith(item.to) && "opacity-100 bg-[#FF6B4A]",
                         collapsed && "lg:left-1",
                       )}
                     />
                     <span className="shrink-0">{item.icon}</span>
                     <span className={clsx(collapsed && "lg:hidden")}>{item.label}</span>
                     {collapsed ? (
-                      <span className="pointer-events-none absolute left-full top-1/2 z-20 ml-3 hidden -translate-y-1/2 rounded-xl bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-white opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 dark:bg-white dark:text-slate-950 lg:block">
+                      <span className="pointer-events-none absolute left-full top-1/2 z-20 ml-3 hidden -translate-y-1/2 rounded-xl bg-[#111111] px-2.5 py-1.5 text-xs font-semibold text-white opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 lg:block">
                         {item.label}
                       </span>
                     ) : null}
@@ -187,7 +187,7 @@ export function Sidebar({
             <div className="space-y-2.5">
               <p
                 className={clsx(
-                  "px-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-100/55",
+                  "px-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#9CA3AF]",
                   "sidebar-section-label",
                   collapsed && "lg:hidden",
                 )}
@@ -210,8 +210,8 @@ export function Sidebar({
                         "group relative rounded-2xl border p-1.5 transition duration-200",
                         "sidebar-group-panel",
                         isActive
-                          ? `sidebar-group-panel-active ${themeClasses.panel} shadow-sm shadow-blue-950/5`
-                          : "border-white/8 bg-white/5 hover:border-cyan-200/20 hover:bg-white/9 dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/9",
+                          ? `sidebar-group-panel-active ${themeClasses.panel} shadow-sm`
+                          : "border-transparent bg-white hover:border-[#E5E7EB] hover:bg-[#FAFAFA]",
                       )}
                       key={group.id}
                     >
@@ -224,11 +224,11 @@ export function Sidebar({
                       />
                       <button
                         className={clsx(
-                          "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold transition duration-200",
+                          "flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-semibold transition duration-200",
                           "sidebar-group-button",
                           isActive
-                            ? "sidebar-group-active bg-[#d7e7ea] text-slate-950 shadow-sm dark:bg-[#d7e7ea] dark:text-slate-950"
-                            : "text-teal-50 hover:bg-white/10 hover:text-white dark:text-teal-50 dark:hover:bg-white/10",
+                            ? "sidebar-group-active bg-[#F3F4F6] text-[#111111] shadow-sm"
+                            : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#111111]",
                           collapsed && "justify-center lg:px-0",
                         )}
                         onClick={() => toggleGroup(group.id)}
@@ -255,7 +255,7 @@ export function Sidebar({
                         </span>
                         <span
                           className={clsx(
-                            "text-slate-400 transition duration-300 ease-out",
+                            "text-[#9CA3AF] transition duration-300 ease-out",
                             isExpanded && "rotate-90",
                             collapsed && "lg:hidden",
                           )}
@@ -264,7 +264,7 @@ export function Sidebar({
                         </span>
                       </button>
                       {collapsed ? (
-                        <span className="pointer-events-none absolute left-full top-1/2 z-20 ml-3 hidden -translate-y-1/2 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 dark:bg-white dark:text-slate-950 lg:block">
+                        <span className="pointer-events-none absolute left-full top-1/2 z-20 ml-3 hidden -translate-y-1/2 rounded-xl bg-[#111111] px-3 py-2 text-xs font-semibold text-white opacity-0 shadow-lg transition duration-200 group-hover:opacity-100 lg:block">
                           {group.label}
                         </span>
                       ) : null}
@@ -292,11 +292,11 @@ export function Sidebar({
                               key={item.to}
                               className={({ isActive: isItemActive }) =>
                                 clsx(
-                                  "group/item flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition duration-200",
+                                  "group/item flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition duration-200",
                                   "sidebar-child-link",
                                   isItemActive
-                                    ? "sidebar-child-link-active bg-linear-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-950/25"
-                                    : "text-teal-50 hover:bg-white/10 hover:text-white dark:text-teal-50 dark:hover:bg-white/10 dark:hover:text-white",
+                                    ? "sidebar-child-link-active bg-[#111111] text-white shadow-sm"
+                                    : "text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111111]",
                                 )
                               }
                               onClick={onClose}

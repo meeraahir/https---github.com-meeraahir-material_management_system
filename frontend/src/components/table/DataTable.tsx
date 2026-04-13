@@ -54,15 +54,15 @@ function getStatusTone(value: string) {
   const normalizedValue = value.trim().toLowerCase();
 
   if (["paid", "received", "yes", "present", "available"].includes(normalizedValue)) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-200 dark:bg-emerald-50 dark:text-emerald-700";
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
-  if (["partial", "low", "in progress"].includes(normalizedValue)) {
-    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-200 dark:bg-amber-50 dark:text-amber-700";
+  if (["active", "partial", "low", "in progress"].includes(normalizedValue)) {
+    return "border-[#FFD8CD] bg-[#FFF1EC] text-[#C2410C]";
   }
 
-  if (["pending", "no", "absent", "used"].includes(normalizedValue)) {
-    return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-200 dark:bg-rose-50 dark:text-rose-700";
+  if (["inactive", "pending", "no", "absent", "used"].includes(normalizedValue)) {
+    return "border-rose-200 bg-rose-50 text-rose-700";
   }
 
   return "";
@@ -75,7 +75,7 @@ function shouldRenderStatusBadge(column: ColumnMeta, value: ReactNode) {
 
   return Boolean(
     getStatusTone(value) &&
-      /(status|present|attendance|received)/i.test(`${column.key} ${column.header}`),
+      /(status|present|attendance|received|active|inactive)/i.test(`${column.key} ${column.header}`),
   );
 }
 
@@ -138,11 +138,11 @@ function getCellTooltip(value: ReactNode): string | undefined {
 
 function getActionVariantClass(label: string) {
   if (/delete|remove/i.test(label)) {
-    return "border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-200 dark:text-rose-700 dark:hover:bg-rose-50";
+    return "border-rose-200 text-rose-700 hover:bg-rose-50";
   }
 
   if (/view/i.test(label)) {
-    return "table-action-view !border-teal-700 !bg-teal-700 !text-white shadow-teal-900/15 hover:!border-teal-800 hover:!bg-teal-800 dark:!border-teal-700 dark:!bg-teal-700 dark:!text-white dark:hover:!bg-teal-800";
+    return "table-action-view !border-[#111111] !bg-[#111111] !text-white hover:!border-[#1F1F1F] hover:!bg-[#1F1F1F]";
   }
 
   return "";
@@ -231,12 +231,12 @@ export function DataTable<T>({
     : "min-w-36 max-w-[13rem] px-4 py-3 text-[0.95rem]";
 
   return (
-    <section className="erp-shell-panel overflow-hidden rounded-3xl border bg-white/94 shadow-lg dark:bg-white/94">
+    <section className="erp-shell-panel overflow-hidden rounded-3xl border bg-white">
       {showHeader ? (
-        <div className="flex items-center justify-between gap-3 border-b border-blue-100 px-4 py-3 dark:border-blue-100">
+        <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-5 py-4">
           <div className="min-w-0">
             {headerTitle ? (
-              <h3 className="text-base font-bold text-slate-950 dark:text-slate-950">
+              <h3 className="text-base font-semibold text-[#111111]">
                 {headerTitle}
               </h3>
             ) : null}
@@ -260,8 +260,8 @@ export function DataTable<T>({
             {paginatedRows.map((row, index) => (
               <article
                 className={clsx(
-                  "rounded-2xl border border-blue-100 bg-white p-4 shadow-sm shadow-blue-950/5 dark:border-blue-100 dark:bg-white",
-                  isRowInteractive && "cursor-pointer hover:border-blue-200",
+                  "rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm transition duration-200",
+                  isRowInteractive && "cursor-pointer hover:border-[#D1D5DB] hover:shadow-md",
                 )}
                 key={keyExtractor(row, index)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
@@ -277,15 +277,15 @@ export function DataTable<T>({
 
                     return (
                       <div
-                        className="flex items-start justify-between gap-4 border-b border-blue-50 pb-2 last:border-b-0 last:pb-0 dark:border-blue-50"
+                        className="flex items-start justify-between gap-4 border-b border-[#F3F4F6] pb-2 last:border-b-0 last:pb-0"
                         key={column.key}
                       >
-                        <dt className="max-w-[45%] text-[0.8rem] font-bold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-600">
+                        <dt className="max-w-[45%] text-[0.8rem] font-semibold uppercase tracking-[0.12em] text-[#6B7280]">
                           {column.header}
                         </dt>
                         <dd
                           className={clsx(
-                            "min-w-0 flex-1 text-right text-sm font-semibold text-slate-900 dark:text-slate-900",
+                            "min-w-0 flex-1 text-right text-sm font-medium text-[#111111]",
                             isNumericColumn(column, cellValue) &&
                               "tabular-nums",
                           )}
@@ -306,7 +306,7 @@ export function DataTable<T>({
                         <button
                           aria-label={action.ariaLabel ?? action.label}
                           className={clsx(
-                            "inline-flex items-center justify-center border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 transition hover:border-teal-600/40 hover:bg-[#c5d8df] disabled:cursor-not-allowed disabled:opacity-60",
+                            "inline-flex items-center justify-center border border-[#E5E7EB] bg-[#F3F4F6] text-[#374151] shadow-sm transition hover:border-[#D1D5DB] hover:bg-[#EDEFF2] disabled:cursor-not-allowed disabled:opacity-60",
                             compact ? "h-8 w-8 rounded-lg" : "h-9 w-9 rounded-xl",
                             getActionVariantClass(action.label),
                           )}
@@ -345,12 +345,12 @@ export function DataTable<T>({
           </div>
 
           <div className="hidden md:block">
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white/95 to-transparent dark:from-white/95" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white/95 to-transparent dark:from-white/95" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white to-transparent" />
           <div className="table-scrollbar overflow-x-auto pb-2">
-            <table className="min-w-full table-auto divide-y divide-blue-100 dark:divide-blue-100">
+            <table className="min-w-full table-auto divide-y divide-[#E5E7EB]">
               <thead>
-                <tr className="erp-table-head bg-gradient-to-r from-blue-50 via-sky-50 to-cyan-50 dark:from-blue-50 dark:via-sky-50 dark:to-cyan-50">
+                <tr className="erp-table-head bg-[#F9FAFB]">
                   {columns.map((column) => (
                     (() => {
                       const isRightAligned = /(amount|balance|cost|paid|pending|payment|receivable|wage|total|quantity|stock|used|received)/i.test(
@@ -360,7 +360,7 @@ export function DataTable<T>({
                       return (
                     <th
                       className={clsx(
-                        "whitespace-nowrap font-black uppercase tracking-[0.12em] text-slate-800 dark:text-slate-800",
+                        "whitespace-nowrap font-semibold uppercase tracking-[0.12em] text-[#6B7280]",
                         headerCellClassName,
                         isRightAligned ? "text-right" : "text-left",
                       )}
@@ -409,7 +409,7 @@ export function DataTable<T>({
                   ))}
                   {actions?.length ? (
                     <th className={clsx(
-                      "sticky right-0 z-20 whitespace-nowrap bg-[#a8c7cf]/95 text-right font-black uppercase tracking-[0.12em] text-slate-800 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-[#a8c7cf]/95 dark:text-slate-800",
+                        "sticky right-0 z-20 whitespace-nowrap bg-[#F9FAFB] text-right font-semibold uppercase tracking-[0.12em] text-[#6B7280] shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.15)]",
                       compact ? "px-3 py-2.5 text-[0.76rem]" : "px-4 py-3.5 text-[0.86rem]",
                       actionsDisplay === "icon" ? (compact ? "w-24" : "w-28") : "w-44",
                     )}>
@@ -418,11 +418,11 @@ export function DataTable<T>({
                   ) : null}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-blue-50 dark:divide-blue-50">
+              <tbody className="divide-y divide-[#F3F4F6]">
                 {paginatedRows.map((row, index) => (
                   <tr
                     className={clsx(
-                      "transition hover:bg-blue-50/70 dark:hover:bg-blue-50/70",
+                      "transition duration-200 hover:bg-[#FAFAFA]",
                       isRowInteractive && "cursor-pointer",
                     )}
                     key={keyExtractor(row, index)}
@@ -439,7 +439,7 @@ export function DataTable<T>({
                       return (
                         <td
                           className={clsx(
-                            "font-semibold text-slate-800 dark:text-slate-800",
+                            "font-medium text-[#111111]",
                             bodyCellClassName,
                             isNumericColumn(column, cellValue) &&
                               "text-right tabular-nums",
@@ -458,7 +458,7 @@ export function DataTable<T>({
                     })}
                     {actions?.length ? (
                       <td className={clsx(
-                        "sticky right-0 z-10 whitespace-nowrap bg-white/96 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-white/96",
+                        "sticky right-0 z-10 whitespace-nowrap bg-white shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.15)]",
                         compact ? "px-3 py-2.5" : "px-4 py-3",
                         actionsDisplay === "icon" ? (compact ? "w-24" : "w-28") : "w-44",
                       )}>
@@ -468,7 +468,7 @@ export function DataTable<T>({
                               <button
                                 aria-label={action.ariaLabel ?? action.label}
                                 className={clsx(
-                                  "inline-flex items-center justify-center border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 transition hover:border-teal-600/40 hover:bg-[#c5d8df] disabled:cursor-not-allowed disabled:opacity-60",
+                                  "inline-flex items-center justify-center border border-[#E5E7EB] bg-[#F3F4F6] text-[#374151] shadow-sm transition hover:border-[#D1D5DB] hover:bg-[#EDEFF2] disabled:cursor-not-allowed disabled:opacity-60",
                                   compact ? "h-8 w-8 rounded-lg" : "h-9 w-9 rounded-xl",
                                   getActionVariantClass(action.label),
                                 )}
@@ -513,7 +513,7 @@ export function DataTable<T>({
       )}
 
       {!hidePagination ? (
-        <div className="flex flex-col gap-3 border-t border-blue-100 bg-blue-50/35 px-5 py-3 text-sm font-medium text-slate-600 dark:border-blue-100 dark:bg-blue-50/35 dark:text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-[#E5E7EB] bg-[#F9FAFB] px-5 py-4 text-sm font-medium text-[#6B7280] sm:flex-row sm:items-center sm:justify-between">
           <span>
             Page {formatNumber(page)} of {formatNumber(totalPages)}
           </span>

@@ -16,7 +16,7 @@ import {
 
 import { formatCurrency, formatNumber } from "../../utils/format";
 
-const palette = ["#2563eb", "#0f766e", "#d97706", "#dc2626", "#7c3aed", "#0891b2"];
+const palette = ["#FF6B4A", "#FF8F75", "#FFC3B5", "#F59E0B", "#F97316", "#FDBA74"];
 const RADIAN = Math.PI / 180;
 
 function getNumericValue(
@@ -190,7 +190,7 @@ export function MaterialUsageBarChart({
   return (
     <ResponsiveContainer height="100%" width="100%">
       <BarChart data={data} margin={{ bottom: 18, left: 12, right: 24, top: 8 }}>
-        <CartesianGrid stroke="#cbd5e1" strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid stroke="#F3F4F6" strokeDasharray="4 4" vertical={false} />
         <XAxis
           axisLine={false}
           dataKey="material"
@@ -207,9 +207,12 @@ export function MaterialUsageBarChart({
           tickMargin={8}
           width={76}
         />
-        <Tooltip formatter={(value) => formatNumber(getNumericValue(value))} />
+        <Tooltip
+          contentStyle={{ border: "1px solid #E5E7EB", borderRadius: "12px", boxShadow: "0 8px 24px rgba(17,24,39,0.08)" }}
+          formatter={(value) => formatNumber(getNumericValue(value))}
+        />
         <Legend formatter={renderLegendLabel} />
-        <Bar dataKey="used" fill="#2563eb" name="Used Quantity" radius={[12, 12, 0, 0]} />
+        <Bar dataKey="used" fill="#FF6B4A" name="Used Quantity" radius={[12, 12, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -223,7 +226,7 @@ export function CostTrackingLineChart({
   return (
     <ResponsiveContainer height="100%" width="100%">
       <LineChart data={data} margin={{ bottom: 18, left: 18, right: 24, top: 8 }}>
-        <CartesianGrid stroke="#cbd5e1" strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid stroke="#F3F4F6" strokeDasharray="4 4" vertical={false} />
         <XAxis
           axisLine={false}
           dataKey="label"
@@ -240,13 +243,16 @@ export function CostTrackingLineChart({
           tickMargin={8}
           width={112}
         />
-        <Tooltip formatter={(value) => formatCurrency(getNumericValue(value))} />
+        <Tooltip
+          contentStyle={{ border: "1px solid #E5E7EB", borderRadius: "12px", boxShadow: "0 8px 24px rgba(17,24,39,0.08)" }}
+          formatter={(value) => formatCurrency(getNumericValue(value))}
+        />
         <Legend formatter={renderLegendLabel} />
         <Line
           dataKey="cost"
-          dot={{ fill: "#0f766e", r: 4 }}
+          dot={{ fill: "#FF6B4A", r: 4, stroke: "#FFFFFF", strokeWidth: 2 }}
           name="Cost"
-          stroke="#0f766e"
+          stroke="#FF6B4A"
           strokeWidth={3}
           type="monotone"
         />
@@ -263,7 +269,10 @@ export function SiteDistributionPieChart({
   return (
     <ResponsiveContainer height="100%" width="100%">
       <PieChart>
-        <Tooltip formatter={(value, _name, item) => [formatNumber(getNumericValue(value)), item.payload.site]} />
+        <Tooltip
+          contentStyle={{ border: "1px solid #E5E7EB", borderRadius: "12px", boxShadow: "0 8px 24px rgba(17,24,39,0.08)" }}
+          formatter={(value, _name, item) => [formatNumber(getNumericValue(value)), item.payload.site]}
+        />
         <Pie
           cx="50%"
           cy="50%"
@@ -293,7 +302,10 @@ export function StockComparisonChart({
   return (
     <ResponsiveContainer height="100%" width="100%">
       <PieChart>
-        <Tooltip formatter={(value, name) => [formatNumber(getNumericValue(value)), String(name)]} />
+        <Tooltip
+          contentStyle={{ border: "1px solid #E5E7EB", borderRadius: "12px", boxShadow: "0 8px 24px rgba(17,24,39,0.08)" }}
+          formatter={(value, name) => [formatNumber(getNumericValue(value)), String(name)]}
+        />
         <Pie
           cx="50%"
           cy="50%"
@@ -322,7 +334,7 @@ export function LabourLedgerChart({
   return (
     <ResponsiveContainer height="100%" width="100%">
       <BarChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
-        <CartesianGrid stroke="#cbd5e1" strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid stroke="#F3F4F6" strokeDasharray="4 4" vertical={false} />
         <XAxis
           axisLine={false}
           dataKey="date"
@@ -332,10 +344,13 @@ export function LabourLedgerChart({
           tickLine={false}
         />
         <YAxis tickFormatter={(value) => formatCurrency(value)} tickLine={false} axisLine={false} />
-        <Tooltip formatter={(value) => formatCurrency(getNumericValue(value))} />
+        <Tooltip
+          contentStyle={{ border: "1px solid #E5E7EB", borderRadius: "12px", boxShadow: "0 8px 24px rgba(17,24,39,0.08)" }}
+          formatter={(value) => formatCurrency(getNumericValue(value))}
+        />
         <Legend formatter={renderLegendLabel} />
-        <Bar dataKey="debit" fill="#d97706" name="Wage Debit" radius={[10, 10, 0, 0]} />
-        <Bar dataKey="credit" fill="#2563eb" name="Payment Credit" radius={[10, 10, 0, 0]} />
+        <Bar dataKey="debit" fill="#FF8F75" name="Wage Debit" radius={[10, 10, 0, 0]} />
+        <Bar dataKey="credit" fill="#FF6B4A" name="Payment Credit" radius={[10, 10, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

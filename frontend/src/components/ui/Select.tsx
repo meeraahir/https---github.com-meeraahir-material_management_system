@@ -57,13 +57,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const placeholderText = String(placeholder ?? "Select an option");
 
     return (
-      <label className="flex w-full flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-700">
-        <span className="flex items-center gap-1 text-sm font-bold text-slate-800 dark:text-slate-800">
+      <label className="flex w-full flex-col gap-2 text-sm font-medium text-[#374151]">
+        <span className="flex items-center gap-1 text-sm font-semibold text-[#111111]">
           {label}
           {requiredIndicator ? <span className="text-rose-500">*</span> : null}
         </span>
         {description ? (
-          <span className="text-xs font-normal leading-5 text-slate-500 dark:text-slate-500">
+          <span className="text-xs font-normal leading-5 text-[#6B7280]">
             {description}
           </span>
         ) : null}
@@ -71,9 +71,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           <select
             ref={assignRef}
             className={clsx(
-              "h-11 min-w-0 w-full appearance-none rounded-2xl border border-blue-100 bg-white px-4 pr-12 text-sm font-medium text-slate-900 shadow-sm shadow-blue-950/5 outline-none transition duration-200 hover:border-blue-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-blue-100 dark:bg-white dark:text-slate-900 dark:hover:border-blue-200 truncate",
+              "h-11 min-w-0 w-full appearance-none rounded-xl border border-[#E5E7EB] bg-white px-4 pr-12 text-sm font-medium text-[#111111] shadow-sm outline-none transition duration-200 hover:border-[#D1D5DB] focus:border-[#FF6B4A] focus:ring-4 focus:ring-[#FF6B4A]/10 truncate",
               error &&
-                "border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-500/60",
+                "border-rose-300 focus:border-rose-500 focus:ring-rose-500/10",
               className,
             )}
             id={selectId}
@@ -102,12 +102,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#9CA3AF]">
             {icons.chevronRight({ className: "h-4 w-4 rotate-90" })}
           </div>
           {clearable && hasValue && !rest.disabled ? (
             <button
-            className="absolute inset-y-0 right-9 my-auto inline-flex h-7 items-center rounded-full bg-blue-50 px-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:bg-blue-50 dark:text-blue-700 dark:hover:bg-blue-100"
+            className="absolute inset-y-0 right-9 my-auto inline-flex h-7 items-center rounded-full bg-[#FFF1EC] px-2 text-xs font-semibold text-[#FF6B4A] transition hover:bg-[#FFE4DB]"
               onClick={() => {
                 if (!localRef.current) {
                   return;
