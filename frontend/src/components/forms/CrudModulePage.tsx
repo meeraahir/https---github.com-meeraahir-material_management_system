@@ -3,6 +3,7 @@ import type { FieldValues } from "react-hook-form";
 import type { UseFormSetValue } from "react-hook-form";
 import type { z } from "zod";
 
+import { icons } from "../../assets/icons";
 import { useCrudModule } from "../../hooks/useCrudModule";
 import type { CrudService } from "../../services/crudService";
 import type { TableColumn } from "../../types/ui.types";
@@ -32,14 +33,17 @@ interface CrudModulePageProps<TEntity, TFormValues extends FieldValues> {
   fields: FormFieldConfig<TFormValues>[];
   getEditValues: (entity: TEntity) => TFormValues;
   getId: (entity: TEntity) => number;
+  onRowDoubleClick?: (entity: TEntity) => void;
   onFormValuesChange?: (context: {
     setValue: UseFormSetValue<TFormValues>;
     values: Partial<TFormValues>;
   }) => void | Promise<void>;
   refreshKey?: number;
+  rowActionsDisplay?: "icon" | "text";
   schema: z.ZodType<TFormValues>;
   searchPlaceholder: string;
   service: CrudService<TEntity, TFormValues>;
+  showViewAction?: boolean;
   title: string;
   viewFields?: DetailField<TEntity>[];
 }
@@ -59,11 +63,14 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
   fields,
   getEditValues,
   getId,
+  onRowDoubleClick,
   onFormValuesChange,
   refreshKey,
+  rowActionsDisplay = "text",
   schema,
   searchPlaceholder,
   service,
+  showViewAction = true,
   title,
   viewFields,
 }: CrudModulePageProps<TEntity, TFormValues>) {
@@ -93,16 +100,24 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
   });
   const [viewingItem, setViewingItem] = useState<TEntity | null>(null);
   const rowActions = [
-    ...(viewFields?.length
+    ...(showViewAction && viewFields?.length
       ? [{ label: "View", onClick: setViewingItem, variant: "primary" as const }]
       : []),
     ...(extraActions ?? []),
     ...(canEdit
-      ? [{ label: "Edit", onClick: openEdit, variant: "secondary" as const }]
+      ? [{
+          ariaLabel: "Edit",
+          icon: icons.pencil({ className: "h-4 w-4" }),
+          label: "Edit",
+          onClick: openEdit,
+          variant: "secondary" as const,
+        }]
       : []),
     ...(canDelete
       ? [
           {
+            ariaLabel: "Delete",
+            icon: icons.trash({ className: "h-4 w-4" }),
             label: "Delete",
             onClick: setDeleteTarget,
             variant: "ghost" as const,
@@ -138,12 +153,14 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
 
       <DataTable
         actions={rowActions.length ? rowActions : undefined}
+        actionsDisplay={rowActionsDisplay}
         columns={columns}
         data={items}
         emptyDescription={emptyDescription}
         emptyTitle={emptyTitle}
         isLoading={isLoading}
         keyExtractor={getId}
+        onRowDoubleClick={onRowDoubleClick}
         page={page}
         searchPlaceholder={searchPlaceholder}
         searchValue={searchValue}

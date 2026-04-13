@@ -77,6 +77,7 @@ export function PaymentsPage() {
   const references = useReferenceData();
   const permissions = getCrudPermissions(user);
   const calculationRequestRef = useRef(0);
+  const lastCalculationKeyRef = useRef("");
   const labourNameMap = new Map(
     references.labour.map((labour) => [labour.id, labour.name]),
   );
@@ -104,17 +105,18 @@ export function PaymentsPage() {
       const periodEnd = values.period_end || "";
       const siteId = Number(values.site) || 0;
       const currentTotal = Number(values.total_amount) || 0;
-
-      setValue("auto_calculate_total", true, {
-        shouldDirty: false,
-        shouldTouch: false,
-        shouldValidate: false,
-      });
+      const calculationKey = `${labourId}|${siteId}|${periodStart}|${periodEnd}`;
 
       if (!labourId || !periodStart || !periodEnd || periodEnd < periodStart) {
+        if (lastCalculationKeyRef.current === calculationKey && currentTotal === 0) {
+          return;
+        }
+
+        lastCalculationKeyRef.current = calculationKey;
+
         if (currentTotal !== 0) {
           setValue("total_amount", 0, {
-            shouldDirty: true,
+            shouldDirty: false,
             shouldTouch: false,
             shouldValidate: true,
           });
@@ -122,6 +124,12 @@ export function PaymentsPage() {
 
         return;
       }
+
+      if (lastCalculationKeyRef.current === calculationKey) {
+        return;
+      }
+
+      lastCalculationKeyRef.current = calculationKey;
 
       const requestId = ++calculationRequestRef.current;
 
@@ -147,7 +155,7 @@ export function PaymentsPage() {
 
         if (currentTotal !== totalAmount) {
           setValue("total_amount", totalAmount, {
-            shouldDirty: true,
+            shouldDirty: false,
             shouldTouch: false,
             shouldValidate: true,
           });
@@ -159,7 +167,7 @@ export function PaymentsPage() {
 
         if (currentTotal !== 0) {
           setValue("total_amount", 0, {
-            shouldDirty: true,
+            shouldDirty: false,
             shouldTouch: false,
             shouldValidate: true,
           });
@@ -300,13 +308,14 @@ export function PaymentsPage() {
         },
         {
           kind: "number",
+          description: "Auto-filled from selected labour attendance and period.",
           label: "Total Amount",
           min: 0,
           name: "total_amount",
           required: true,
+          readOnly: true,
           valueType: "number",
           wrapperClassName: "md:col-span-1",
-          disabled: true,
         },
         {
           kind: "number",

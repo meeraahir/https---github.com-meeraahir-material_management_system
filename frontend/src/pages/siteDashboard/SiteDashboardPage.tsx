@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { z } from "zod";
 
 import { useToast } from "../../components/feedback/useToast";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
+import { EntityFormModal } from "../../components/forms/EntityFormModal";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { StatCard } from "../../components/layout/StatCard";
 import { DataTable } from "../../components/table/DataTable";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { icons } from "../../assets/icons";
+import { useReferenceData } from "../../hooks/useReferenceData";
+import { attendanceService } from "../../services/attendanceService";
+import { receivablesService } from "../../services/receivablesService";
 import { siteDashboardService } from "../../services/sitesService";
+import { vendorPurchasesService } from "../../services/vendorPurchasesService";
 import type {
+  AttendanceFormValues,
+  PurchaseFormValues,
+  ReceivableFormValues,
   SiteDashboardData,
   SiteDashboardFinanceSummary,
   SiteDashboardLabourSummary,
@@ -18,21 +28,97 @@ import type {
 } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
 import { formatCurrency } from "../../utils/format";
+import { SiteMaterialReceiptModal } from "./SiteDashboardEntryModals";
+
+const siteDashboardToday = new Date().toISOString().slice(0, 10);
+
+const purchaseSchema = z
+  .object({
+    date: z.string().min(1, "Date is required."),
+    description: z.string().max(300, "Description must be 300 characters or fewer."),
+    invoice_number: z.string().max(60, "Invoice number must be 60 characters or fewer."),
+    material: z.number().min(0, "Material is invalid."),
+    paid_amount: z.number().min(0, "Paid amount must be zero or more."),
+    site: z.number().min(1, "Site is required."),
+    total_amount: z.number().gt(0, "Total amount must be greater than zero."),
+    vendor: z.number().min(1, "Vendor is required."),
+  })
+  .refine((value) => value.paid_amount <= value.total_amount, {
+    message: "Paid amount cannot exceed total amount.",
+    path: ["paid_amount"],
+  });
+
+const receivableSchema = z
+  .object({
+    amount: z.number().gt(0, "Amount must be greater than zero."),
+    date: z.string().min(1, "Invoice date is required."),
+    party: z.number().min(1, "Party is required."),
+    received_amount: z.number().min(0, "Received amount must be zero or more.").optional(),
+    site: z.number().min(1, "Site is required."),
+  })
+  .superRefine((value, context) => {
+    if ((value.received_amount ?? 0) > value.amount) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Received amount cannot exceed invoice amount.",
+        path: ["received_amount"],
+      });
+    }
+  });
+
+const attendanceSchema = z.object({
+  date: z
+    .string()
+    .min(1, "Date is required.")
+    .refine((value) => value <= siteDashboardToday, "Future dates are not allowed."),
+  labour: z.number().min(1, "Labour is required."),
+  present: z.boolean(),
+  site: z.number().min(1, "Site is required."),
+});
+
+function AddSectionButton({
+  ariaLabel,
+  onClick,
+}: {
+  ariaLabel: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      aria-label={ariaLabel}
+      className="h-9 w-9 rounded-xl px-0"
+      onClick={onClick}
+      size="sm"
+      title={ariaLabel}
+      type="button"
+      variant="secondary"
+    >
+      {icons.plus({ className: "h-4 w-4" })}
+    </Button>
+  );
+}
 
 export function SiteDashboardPage() {
   const { siteId } = useParams();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
+  const references = useReferenceData();
   const parsedSiteId = Number(siteId);
   const [data, setData] = useState<SiteDashboardData | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [error, setError] = useState("");
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState<"" | "excel" | "pdf">("");
   const [isLoading, setIsLoading] = useState(true);
-  const [financePage, setFinancePage] = useState(1);
-  const [labourPage, setLabourPage] = useState(1);
-  const [materialPage, setMaterialPage] = useState(1);
-  const [vendorPage, setVendorPage] = useState(1);
+  const [isMaterialReceiptModalOpen, setIsMaterialReceiptModalOpen] = useState(false);
+  const [isReceivableModalOpen, setIsReceivableModalOpen] = useState(false);
+  const [isVendorPurchaseModalOpen, setIsVendorPurchaseModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [materials, setMaterials] = useState(references.materials);
+
+  useEffect(() => {
+    setMaterials(references.materials);
+  }, [references.materials]);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -60,7 +146,7 @@ export function SiteDashboardPage() {
     }
 
     void loadDashboard();
-  }, [dateFrom, dateTo, parsedSiteId, showError]);
+  }, [dateFrom, dateTo, parsedSiteId, refreshKey, showError]);
 
   const totals = useMemo(() => {
     if (!data) {
@@ -102,6 +188,10 @@ export function SiteDashboardPage() {
   const vendorSummary = data?.vendor_summary ?? [];
   const labourSummary = data?.labour_summary ?? [];
   const financeSummary = data?.finance_summary ?? [];
+  const siteOption = useMemo(
+    () => [{ label: site.name, value: site.id }],
+    [site.id, site.name],
+  );
 
   async function handleExport(format: "excel" | "pdf") {
     if (!parsedSiteId) {
@@ -119,6 +209,20 @@ export function SiteDashboardPage() {
     } finally {
       setIsExporting("");
     }
+  }
+
+  function refreshDashboardData() {
+    setRefreshKey((currentValue) => currentValue + 1);
+  }
+
+  function addMaterialOption(material: (typeof materials)[number]) {
+    setMaterials((currentValue) => {
+      if (currentValue.some((item) => item.id === material.id)) {
+        return currentValue;
+      }
+
+      return [...currentValue, material];
+    });
   }
 
   return (
@@ -143,7 +247,7 @@ export function SiteDashboardPage() {
             </Button>
           </>
         }
-        description="Site-wise material, vendor, labour, and finance snapshot."
+        description="Review site activity and add new entries from one workspace."
         search={
           <div className="grid gap-3 md:grid-cols-2">
             <Input
@@ -160,10 +264,10 @@ export function SiteDashboardPage() {
             />
           </div>
         }
-        title="Site Dashboard"
+        title={`Site Dashboard${site.name ? ` - ${site.name}` : ""}`}
       />
 
-      <ErrorMessage message={error} />
+      <ErrorMessage message={references.error || error} />
 
       {data ? (
         <>
@@ -212,9 +316,8 @@ export function SiteDashboardPage() {
             </div>
           </section>
 
-          <section className="grid gap-5 xl:grid-cols-2">
+          <div className="space-y-5">
             <DataTable<SiteDashboardMaterialSummary>
-              clientPagination
               columns={[
                 {
                   key: "material",
@@ -250,17 +353,24 @@ export function SiteDashboardPage() {
               data={materialSummary}
               emptyDescription="No material summary is available for this site."
               emptyTitle="No Materials"
+              headerActions={
+                <AddSectionButton
+                  ariaLabel="Add Material Receipt"
+                  onClick={() => setIsMaterialReceiptModalOpen(true)}
+                />
+              }
+              headerTitle="Materials"
+              hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.material__id}
-              page={materialPage}
+              page={1}
               searchValue=""
               totalCount={materialSummary.length}
-              onPageChange={setMaterialPage}
+              onPageChange={() => undefined}
               onSearchChange={() => undefined}
             />
 
             <DataTable<SiteDashboardVendorSummary>
-              clientPagination
               columns={[
                 {
                   key: "vendor",
@@ -290,17 +400,71 @@ export function SiteDashboardPage() {
               data={vendorSummary}
               emptyDescription="No vendor purchase data is available for this site."
               emptyTitle="No Vendors"
+              headerActions={
+                <AddSectionButton
+                  ariaLabel="Add Vendor Entry"
+                  onClick={() => setIsVendorPurchaseModalOpen(true)}
+                />
+              }
+              headerTitle="Vendors"
+              hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.vendor_id}
-              page={vendorPage}
+              page={1}
               searchValue=""
               totalCount={vendorSummary.length}
-              onPageChange={setVendorPage}
+              onPageChange={() => undefined}
+              onSearchChange={() => undefined}
+            />
+
+            <DataTable<SiteDashboardFinanceSummary>
+              columns={[
+                {
+                  key: "party",
+                  header: "Party",
+                  accessor: (row) => row.party__name,
+                  sortValue: (row) => row.party__name,
+                },
+                {
+                  key: "total",
+                  header: "Total Amount",
+                  accessor: (row) => row.total_amount,
+                  sortValue: (row) => row.total_amount,
+                },
+                {
+                  key: "received",
+                  header: "Received Amount",
+                  accessor: (row) => row.received_amount,
+                  sortValue: (row) => row.received_amount,
+                },
+                {
+                  key: "pending",
+                  header: "Pending Amount",
+                  accessor: (row) => row.pending_amount,
+                  sortValue: (row) => row.pending_amount,
+                },
+              ]}
+              data={financeSummary}
+              emptyDescription="No finance summary is available for this site."
+              emptyTitle="No Finance Data"
+              headerActions={
+                <AddSectionButton
+                  ariaLabel="Add Party Entry"
+                  onClick={() => setIsReceivableModalOpen(true)}
+                />
+              }
+              headerTitle="Parties / Finance"
+              hidePagination
+              isLoading={isLoading}
+              keyExtractor={(row) => row.party__id}
+              page={1}
+              searchValue=""
+              totalCount={financeSummary.length}
+              onPageChange={() => undefined}
               onSearchChange={() => undefined}
             />
 
             <DataTable<SiteDashboardLabourSummary>
-              clientPagination
               columns={[
                 {
                   key: "labour",
@@ -336,61 +500,236 @@ export function SiteDashboardPage() {
               data={labourSummary}
               emptyDescription="No labour summary is available for this site."
               emptyTitle="No Labour"
+              headerActions={
+                <AddSectionButton
+                  ariaLabel="Add Labour Entry"
+                  onClick={() => setIsAttendanceModalOpen(true)}
+                />
+              }
+              headerTitle="Labour"
+              hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.labour_id}
-              page={labourPage}
+              page={1}
               searchValue=""
               totalCount={labourSummary.length}
-              onPageChange={setLabourPage}
+              onPageChange={() => undefined}
               onSearchChange={() => undefined}
             />
-
-            <DataTable<SiteDashboardFinanceSummary>
-              clientPagination
-              columns={[
-                {
-                  key: "party",
-                  header: "Party",
-                  accessor: (row) => row.party__name,
-                  sortValue: (row) => row.party__name,
-                },
-                {
-                  key: "total",
-                  header: "Total Amount",
-                  accessor: (row) => row.total_amount,
-                  sortValue: (row) => row.total_amount,
-                },
-                {
-                  key: "received",
-                  header: "Received Amount",
-                  accessor: (row) => row.received_amount,
-                  sortValue: (row) => row.received_amount,
-                },
-                {
-                  key: "pending",
-                  header: "Pending Amount",
-                  accessor: (row) => row.pending_amount,
-                  sortValue: (row) => row.pending_amount,
-                },
-              ]}
-              data={financeSummary}
-              emptyDescription="No finance summary is available for this site."
-              emptyTitle="No Finance Data"
-              isLoading={isLoading}
-              keyExtractor={(row) => row.party__id}
-              page={financePage}
-              searchValue=""
-              totalCount={financeSummary.length}
-              onPageChange={setFinancePage}
-              onSearchChange={() => undefined}
-            />
-          </section>
+          </div>
         </>
       ) : (
         <section className="rounded-[2rem] border border-blue-100 bg-white/95 p-6 text-sm font-medium text-slate-600 shadow-md shadow-blue-950/5 dark:border-blue-100 dark:bg-white/95">
           {isLoading ? "Loading site dashboard..." : "Select a valid site to load dashboard data."}
         </section>
       )}
+
+      <SiteMaterialReceiptModal
+        materials={materials}
+        onClose={() => setIsMaterialReceiptModalOpen(false)}
+        onMaterialAdded={addMaterialOption}
+        onSaved={refreshDashboardData}
+        open={isMaterialReceiptModalOpen}
+        siteId={site.id}
+        siteName={site.name}
+      />
+
+      <EntityFormModal<PurchaseFormValues>
+        defaultValues={{
+          date: siteDashboardToday,
+          description: "",
+          invoice_number: "",
+          material: 0,
+          paid_amount: 0,
+          site: site.id,
+          total_amount: 0,
+          vendor: 0,
+        }}
+        description="Create or update vendor purchases."
+        fields={[
+          {
+            kind: "select",
+            label: "Vendor",
+            name: "vendor",
+            options: references.vendors.map((vendor) => ({
+              label: vendor.name,
+              value: vendor.id,
+            })),
+            required: true,
+            valueType: "number",
+          },
+          {
+            clearable: false,
+            kind: "select",
+            label: "Site",
+            name: "site",
+            options: siteOption,
+            required: true,
+            valueType: "number",
+          },
+          {
+            kind: "select",
+            label: "Material",
+            name: "material",
+            options: materials.map((material) => ({
+              label: material.name,
+              value: material.id,
+            })),
+            valueType: "number",
+          },
+          { kind: "date", label: "Date", name: "date", required: true },
+          {
+            kind: "text",
+            label: "Invoice Number",
+            maxLength: 60,
+            name: "invoice_number",
+            placeholder: "Invoice reference",
+          },
+          {
+            kind: "textarea",
+            label: "Description",
+            name: "description",
+            placeholder: "Purchase notes",
+            rows: 4,
+          },
+          {
+            kind: "number",
+            label: "Total Amount",
+            min: 0,
+            name: "total_amount",
+            required: true,
+            valueType: "number",
+          },
+          {
+            kind: "number",
+            label: "Initial Paid Amount",
+            min: 0,
+            name: "paid_amount",
+            required: true,
+            valueType: "number",
+          },
+        ]}
+        onClose={() => setIsVendorPurchaseModalOpen(false)}
+        onSubmit={async (values) => {
+          await vendorPurchasesService.create(values);
+          setIsVendorPurchaseModalOpen(false);
+          refreshDashboardData();
+          showSuccess("Vendor entry added", "Vendor purchase has been created for this site.");
+        }}
+        open={isVendorPurchaseModalOpen}
+        schema={purchaseSchema}
+        title="Add Vendor Entry"
+      />
+
+      <EntityFormModal<ReceivableFormValues>
+        defaultValues={{
+          amount: 0,
+          date: siteDashboardToday,
+          party: 0,
+          received_amount: 0,
+          site: site.id,
+        }}
+        description="Create or update receivables."
+        fields={[
+          {
+            kind: "select",
+            label: "Party",
+            name: "party",
+            options: references.parties.map((party) => ({
+              label: party.name,
+              value: party.id,
+            })),
+            required: true,
+            valueType: "number",
+          },
+          {
+            clearable: false,
+            kind: "select",
+            label: "Site",
+            name: "site",
+            options: siteOption,
+            required: true,
+            valueType: "number",
+          },
+          {
+            kind: "number",
+            label: "Amount",
+            min: 0,
+            name: "amount",
+            required: true,
+            valueType: "number",
+          },
+          { kind: "date", label: "Invoice Date", name: "date", required: true },
+          {
+            kind: "number",
+            label: "Received Amount",
+            min: 0,
+            name: "received_amount",
+            required: true,
+            valueType: "number",
+          },
+        ]}
+        onClose={() => setIsReceivableModalOpen(false)}
+        onSubmit={async (values) => {
+          await receivablesService.create(values);
+          setIsReceivableModalOpen(false);
+          refreshDashboardData();
+          showSuccess("Party entry added", "Receivable has been created for this site.");
+        }}
+        open={isReceivableModalOpen}
+        schema={receivableSchema}
+        title="Add Party Entry"
+      />
+
+      <EntityFormModal<AttendanceFormValues>
+        defaultValues={{
+          date: siteDashboardToday,
+          labour: 0,
+          present: true,
+          site: site.id,
+        }}
+        description="Create or update labour attendance."
+        fields={[
+          {
+            kind: "select",
+            label: "Labour",
+            name: "labour",
+            options: references.labour.map((labour) => ({
+              label: labour.name,
+              value: labour.id,
+            })),
+            required: true,
+            valueType: "number",
+          },
+          {
+            clearable: false,
+            kind: "select",
+            label: "Site",
+            name: "site",
+            options: siteOption,
+            required: true,
+            valueType: "number",
+          },
+          {
+            kind: "date",
+            label: "Date",
+            max: siteDashboardToday,
+            name: "date",
+            required: true,
+          },
+          { kind: "checkbox", label: "Present", name: "present" },
+        ]}
+        onClose={() => setIsAttendanceModalOpen(false)}
+        onSubmit={async (values) => {
+          await attendanceService.create(values);
+          setIsAttendanceModalOpen(false);
+          refreshDashboardData();
+          showSuccess("Labour entry added", "Attendance record has been created for this site.");
+        }}
+        open={isAttendanceModalOpen}
+        schema={attendanceSchema}
+        title="Add Labour Entry"
+      />
     </div>
   );
 }

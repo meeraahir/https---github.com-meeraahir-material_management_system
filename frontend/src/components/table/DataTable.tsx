@@ -2,6 +2,7 @@ import clsx from "clsx";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { icons } from "../../assets/icons";
 import type { TableAction, TableColumn } from "../../types/ui.types";
 import { formatCurrency, formatDate, formatNumber } from "../../utils/format";
 import { Button } from "../ui/Button";
@@ -10,13 +11,18 @@ import { Loader } from "../ui/Loader";
 
 interface DataTableProps<T> {
   actions?: TableAction<T>[];
+  actionsDisplay?: "icon" | "text";
   clientPagination?: boolean;
   columns: TableColumn<T>[];
   data: T[];
   emptyDescription: string;
   emptyTitle: string;
+  headerActions?: ReactNode;
+  headerTitle?: string;
+  hidePagination?: boolean;
   isLoading?: boolean;
   keyExtractor: (row: T, index: number) => number | string;
+  onRowDoubleClick?: (row: T) => void;
   page: number;
   pageSize?: number;
   searchPlaceholder?: string;
@@ -142,13 +148,18 @@ function getActionVariantClass(label: string) {
 
 export function DataTable<T>({
   actions,
+  actionsDisplay = "text",
   clientPagination = false,
   columns,
   data,
   emptyDescription,
   emptyTitle,
+  headerActions,
+  headerTitle,
+  hidePagination = false,
   isLoading = false,
   keyExtractor,
+  onRowDoubleClick,
   page,
   pageSize = 10,
   searchValue,
@@ -206,9 +217,24 @@ export function DataTable<T>({
   const paginatedRows = clientPagination
     ? rows.slice((page - 1) * pageSize, page * pageSize)
     : rows;
+  const showHeader = Boolean(headerTitle || headerActions);
 
   return (
     <section className="erp-shell-panel overflow-hidden rounded-3xl border bg-white/94 shadow-lg dark:bg-white/94">
+      {showHeader ? (
+        <div className="flex items-center justify-between gap-3 border-b border-blue-100 px-4 py-3 dark:border-blue-100">
+          <div className="min-w-0">
+            {headerTitle ? (
+              <h3 className="text-base font-bold text-slate-950 dark:text-slate-950">
+                {headerTitle}
+              </h3>
+            ) : null}
+          </div>
+          {headerActions ? (
+            <div className="flex items-center gap-2">{headerActions}</div>
+          ) : null}
+        </div>
+      ) : null}
       {isLoading ? (
         <div className="px-5 py-16">
           <Loader label="Loading records..." />
@@ -224,6 +250,7 @@ export function DataTable<T>({
               <article
                 className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm shadow-blue-950/5 dark:border-blue-100 dark:bg-white"
                 key={keyExtractor(row, index)}
+                onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
               >
                 <dl className="grid gap-3">
                   {columns.map((column) => {
@@ -260,17 +287,34 @@ export function DataTable<T>({
                 {actions?.length ? (
                   <div className="mt-4 flex flex-wrap justify-end gap-2">
                     {actions.map((action) => (
-                      <Button
-                        className={getActionVariantClass(action.label)}
-                        disabled={action.disabled?.(row) ?? false}
-                        key={action.label}
-                        onClick={() => action.onClick(row)}
-                        size="sm"
-                        type="button"
-                        variant={action.variant ?? "secondary"}
-                      >
-                        {action.label}
-                      </Button>
+                      actionsDisplay === "icon" ? (
+                        <button
+                          aria-label={action.ariaLabel ?? action.label}
+                          className={clsx(
+                            "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 transition hover:border-teal-600/40 hover:bg-[#c5d8df] disabled:cursor-not-allowed disabled:opacity-60",
+                            getActionVariantClass(action.label),
+                          )}
+                          disabled={action.disabled?.(row) ?? false}
+                          key={action.ariaLabel ?? action.label}
+                          onClick={() => action.onClick(row)}
+                          title={action.ariaLabel ?? action.label}
+                          type="button"
+                        >
+                          {action.icon ?? icons.chevronRight({ className: "h-4 w-4" })}
+                        </button>
+                      ) : (
+                        <Button
+                          className={getActionVariantClass(action.label)}
+                          disabled={action.disabled?.(row) ?? false}
+                          key={action.label}
+                          onClick={() => action.onClick(row)}
+                          size="sm"
+                          type="button"
+                          variant={action.variant ?? "secondary"}
+                        >
+                          {action.label}
+                        </Button>
+                      )
                     ))}
                   </div>
                 ) : null}
@@ -334,7 +378,10 @@ export function DataTable<T>({
                     </th>
                   ))}
                   {actions?.length ? (
-                    <th className="sticky right-0 z-20 w-44 whitespace-nowrap bg-[#a8c7cf]/95 px-4 py-3.5 text-right text-[0.86rem] font-black uppercase tracking-[0.12em] text-slate-800 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-[#a8c7cf]/95 dark:text-slate-800">
+                    <th className={clsx(
+                      "sticky right-0 z-20 whitespace-nowrap bg-[#a8c7cf]/95 px-4 py-3.5 text-right text-[0.86rem] font-black uppercase tracking-[0.12em] text-slate-800 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-[#a8c7cf]/95 dark:text-slate-800",
+                      actionsDisplay === "icon" ? "w-28" : "w-44",
+                    )}>
                       Actions
                     </th>
                   ) : null}
@@ -343,8 +390,12 @@ export function DataTable<T>({
               <tbody className="divide-y divide-blue-50 dark:divide-blue-50">
                 {paginatedRows.map((row, index) => (
                   <tr
-                    className="transition hover:bg-blue-50/70 dark:hover:bg-blue-50/70"
+                    className={clsx(
+                      "transition hover:bg-blue-50/70 dark:hover:bg-blue-50/70",
+                      onRowDoubleClick && "cursor-pointer",
+                    )}
                     key={keyExtractor(row, index)}
+                    onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
                   >
                     {columns.map((column) => {
                       const cellValue = column.accessor(row);
@@ -373,20 +424,40 @@ export function DataTable<T>({
                       );
                     })}
                     {actions?.length ? (
-                      <td className="sticky right-0 z-10 w-44 whitespace-nowrap bg-white/96 px-4 py-3 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-white/96">
+                      <td className={clsx(
+                        "sticky right-0 z-10 whitespace-nowrap bg-white/96 px-4 py-3 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.35)] dark:bg-white/96",
+                        actionsDisplay === "icon" ? "w-28" : "w-44",
+                      )}>
                         <div className="flex flex-nowrap justify-end gap-2">
                           {actions.map((action) => (
-                            <Button
-                              className={getActionVariantClass(action.label)}
-                              disabled={action.disabled?.(row) ?? false}
-                              key={action.label}
-                              onClick={() => action.onClick(row)}
-                              size="sm"
-                              type="button"
-                              variant={action.variant ?? "secondary"}
-                            >
-                              {action.label}
-                            </Button>
+                            actionsDisplay === "icon" ? (
+                              <button
+                                aria-label={action.ariaLabel ?? action.label}
+                                className={clsx(
+                                  "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#8fb0bd]/70 bg-[#cfe0e6] text-slate-800 shadow-sm shadow-teal-950/8 transition hover:border-teal-600/40 hover:bg-[#c5d8df] disabled:cursor-not-allowed disabled:opacity-60",
+                                  getActionVariantClass(action.label),
+                                )}
+                                disabled={action.disabled?.(row) ?? false}
+                                key={action.ariaLabel ?? action.label}
+                                onClick={() => action.onClick(row)}
+                                title={action.ariaLabel ?? action.label}
+                                type="button"
+                              >
+                                {action.icon ?? icons.chevronRight({ className: "h-4 w-4" })}
+                              </button>
+                            ) : (
+                              <Button
+                                className={getActionVariantClass(action.label)}
+                                disabled={action.disabled?.(row) ?? false}
+                                key={action.label}
+                                onClick={() => action.onClick(row)}
+                                size="sm"
+                                type="button"
+                                variant={action.variant ?? "secondary"}
+                              >
+                                {action.label}
+                              </Button>
+                            )
                           ))}
                         </div>
                       </td>
@@ -400,31 +471,33 @@ export function DataTable<T>({
         </div>
       )}
 
-      <div className="flex flex-col gap-3 border-t border-blue-100 bg-blue-50/35 px-5 py-3 text-sm font-medium text-slate-600 dark:border-blue-100 dark:bg-blue-50/35 dark:text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-        <span>
-          Page {formatNumber(page)} of {formatNumber(totalPages)}
-        </span>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <Button
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            Previous
-          </Button>
-          <Button
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(page + 1)}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            Next
-          </Button>
+      {!hidePagination ? (
+        <div className="flex flex-col gap-3 border-t border-blue-100 bg-blue-50/35 px-5 py-3 text-sm font-medium text-slate-600 dark:border-blue-100 dark:bg-blue-50/35 dark:text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            Page {formatNumber(page)} of {formatNumber(totalPages)}
+          </span>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <Button
+              disabled={page <= 1}
+              onClick={() => onPageChange(page - 1)}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Previous
+            </Button>
+            <Button
+              disabled={page >= totalPages}
+              onClick={() => onPageChange(page + 1)}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Next
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }
