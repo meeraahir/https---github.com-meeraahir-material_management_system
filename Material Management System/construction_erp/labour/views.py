@@ -14,8 +14,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from openpyxl import Workbook
 
 from sites.permissions import IsAdminOrReadOnly
-from .models import Labour, LabourAttendance, LabourPayment, LabourPaymentEntry
-from .serializers import LabourSerializer, LabourAttendanceSerializer, LabourPaymentSerializer
+from .models import CasualLabourEntry, Labour, LabourAttendance, LabourPayment, LabourPaymentEntry
+from .serializers import CasualLabourEntrySerializer, LabourSerializer, LabourAttendanceSerializer, LabourPaymentSerializer
 
 
 class LabourViewSet(viewsets.ModelViewSet):
@@ -23,8 +23,8 @@ class LabourViewSet(viewsets.ModelViewSet):
     serializer_class = LabourSerializer
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['name']
-    search_fields = ['name', 'phone']
+    filterset_fields = ['name', 'labour_type']
+    search_fields = ['name', 'phone', 'labour_type']
 
     def _date_range(self):
         return self.request.query_params.get('date_from'), self.request.query_params.get('date_to')
@@ -625,6 +625,15 @@ class LabourAttendanceViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['labour', 'site', 'date', 'present']
     search_fields = ['labour__name', 'site__name']
+
+
+class CasualLabourEntryViewSet(viewsets.ModelViewSet):
+    queryset = CasualLabourEntry.objects.select_related('site').all().order_by('id')
+    serializer_class = CasualLabourEntrySerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['site', 'date', 'labour_type']
+    search_fields = ['labour_name', 'labour_type', 'site__name']
 
 
 class LabourPaymentViewSet(viewsets.ModelViewSet):

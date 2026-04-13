@@ -1,8 +1,9 @@
 from django.db import transaction
 from rest_framework import serializers
 
+from core.payment_details import validate_payment_details
 from .utils import apply_receipt_style_entry
-from .models import Party, Transaction, ClientReceipt
+from .models import ClientReceipt, MiscellaneousExpense, Party, Transaction
 
 
 class PartySerializer(serializers.ModelSerializer):
@@ -19,6 +20,15 @@ class TransactionSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False,
     )
+    receipt_payment_mode = serializers.ChoiceField(
+        choices=ClientReceipt._meta.get_field('payment_mode').choices,
+        write_only=True,
+        required=False,
+        default='cash',
+    )
+    receipt_sender_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    receipt_receiver_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    receipt_cheque_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
     current_received_amount = serializers.SerializerMethodField(read_only=True)
     pending_amount = serializers.SerializerMethodField(read_only=True)
 
@@ -29,8 +39,14 @@ class TransactionSerializer(serializers.ModelSerializer):
             'party',
             'site',
             'amount',
+            'phase_name',
+            'description',
             'received',
             'received_amount',
+            'receipt_payment_mode',
+            'receipt_sender_name',
+            'receipt_receiver_name',
+            'receipt_cheque_number',
             'date',
             'current_received_amount',
             'pending_amount',
@@ -39,11 +55,30 @@ class TransactionSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         amount = attrs.get('amount', getattr(self.instance, 'amount', 0))
         received_amount = attrs.get('received_amount')
+        receipt_payment_mode = attrs.get('receipt_payment_mode', 'cash')
+        party = attrs.get('party', getattr(self.instance, 'party', None))
 
         if amount < 0:
             raise serializers.ValidationError({'amount': 'Amount must be zero or positive.'})
         if received_amount is not None and received_amount > amount:
             raise serializers.ValidationError({'received_amount': 'Received amount cannot exceed invoice amount.'})
+
+        payment_details = validate_payment_details(
+            payment_mode=receipt_payment_mode,
+            sender_name=attrs.get('receipt_sender_name'),
+            receiver_name=attrs.get('receipt_receiver_name'),
+            cheque_number=attrs.get('receipt_cheque_number'),
+            default_sender_name=party.name if party else None,
+        )
+        if payment_details['errors']:
+            raise serializers.ValidationError({
+                f'receipt_{field}': message
+                for field, message in payment_details['errors'].items()
+            })
+
+        attrs['receipt_sender_name'] = payment_details['sender_name']
+        attrs['receipt_receiver_name'] = payment_details['receiver_name']
+        attrs['receipt_cheque_number'] = payment_details['cheque_number']
 
         return attrs
 
@@ -53,7 +88,16 @@ class TransactionSerializer(serializers.ModelSerializer):
     def get_pending_amount(self, obj):
         return obj.pending_amount()
 
-    def _sync_receipts(self, invoice, should_mark_received, receipt_date):
+    def _sync_receipts(
+        self,
+        invoice,
+        should_mark_received,
+        receipt_date,
+        receipt_payment_mode,
+        receipt_sender_name,
+        receipt_receiver_name,
+        receipt_cheque_number,
+    ):
         current_received_amount = invoice.receipts_total()
 
         if should_mark_received:
@@ -65,6 +109,10 @@ class TransactionSerializer(serializers.ModelSerializer):
                     site=invoice.site,
                     amount=delta,
                     date=receipt_date or invoice.date,
+                    payment_mode=receipt_payment_mode,
+                    sender_name=receipt_sender_name,
+                    receiver_name=receipt_receiver_name,
+                    cheque_number=receipt_cheque_number,
                     notes='Auto-created from receivable update.',
                 )
         elif current_received_amount > 0:
@@ -74,7 +122,16 @@ class TransactionSerializer(serializers.ModelSerializer):
 
         invoice.sync_received_status(save=True)
 
-    def _sync_received_amount(self, invoice, desired_received_amount, receipt_date):
+    def _sync_received_amount(
+        self,
+        invoice,
+        desired_received_amount,
+        receipt_date,
+        receipt_payment_mode,
+        receipt_sender_name,
+        receipt_receiver_name,
+        receipt_cheque_number,
+    ):
         current_received_amount = invoice.receipts_total()
 
         if desired_received_amount is None:
@@ -93,6 +150,10 @@ class TransactionSerializer(serializers.ModelSerializer):
                 site=invoice.site,
                 amount=delta,
                 date=receipt_date or invoice.date,
+                payment_mode=receipt_payment_mode,
+                sender_name=receipt_sender_name,
+                receiver_name=receipt_receiver_name,
+                cheque_number=receipt_cheque_number,
                 notes='Auto-created from receivable received_amount update.',
             )
 
@@ -100,6 +161,10 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         desired_received_amount = validated_data.pop('received_amount', None)
+        receipt_payment_mode = validated_data.pop('receipt_payment_mode', 'cash')
+        receipt_sender_name = validated_data.pop('receipt_sender_name', None)
+        receipt_receiver_name = validated_data.pop('receipt_receiver_name', None)
+        receipt_cheque_number = validated_data.pop('receipt_cheque_number', None)
         should_mark_received = validated_data.get('received', False)
 
         with transaction.atomic():
@@ -113,6 +178,10 @@ class TransactionSerializer(serializers.ModelSerializer):
                     validated_data['site'],
                     desired_received_amount,
                     validated_data.get('date'),
+                    payment_mode=receipt_payment_mode,
+                    sender_name=receipt_sender_name,
+                    receiver_name=receipt_receiver_name,
+                    cheque_number=receipt_cheque_number,
                 )
                 if receipt_invoice is not None:
                     return receipt_invoice
@@ -121,13 +190,33 @@ class TransactionSerializer(serializers.ModelSerializer):
             invoice.full_clean()
             invoice.save()
             if desired_received_amount is not None:
-                self._sync_received_amount(invoice, desired_received_amount, validated_data.get('date'))
+                self._sync_received_amount(
+                    invoice,
+                    desired_received_amount,
+                    validated_data.get('date'),
+                    receipt_payment_mode,
+                    receipt_sender_name,
+                    receipt_receiver_name,
+                    receipt_cheque_number,
+                )
             else:
-                self._sync_receipts(invoice, should_mark_received, validated_data.get('date'))
+                self._sync_receipts(
+                    invoice,
+                    should_mark_received,
+                    validated_data.get('date'),
+                    receipt_payment_mode,
+                    receipt_sender_name,
+                    receipt_receiver_name,
+                    receipt_cheque_number,
+                )
             return invoice
 
     def update(self, instance, validated_data):
         desired_received_amount = validated_data.pop('received_amount', None)
+        receipt_payment_mode = validated_data.pop('receipt_payment_mode', 'cash')
+        receipt_sender_name = validated_data.pop('receipt_sender_name', None)
+        receipt_receiver_name = validated_data.pop('receipt_receiver_name', None)
+        receipt_cheque_number = validated_data.pop('receipt_cheque_number', None)
         should_mark_received = validated_data.get('received', instance.received)
 
         with transaction.atomic():
@@ -136,7 +225,59 @@ class TransactionSerializer(serializers.ModelSerializer):
             instance.full_clean()
             instance.save()
             if desired_received_amount is not None:
-                self._sync_received_amount(instance, desired_received_amount, validated_data.get('date', instance.date))
+                self._sync_received_amount(
+                    instance,
+                    desired_received_amount,
+                    validated_data.get('date', instance.date),
+                    receipt_payment_mode,
+                    receipt_sender_name,
+                    receipt_receiver_name,
+                    receipt_cheque_number,
+                )
             else:
-                self._sync_receipts(instance, should_mark_received, validated_data.get('date', instance.date))
+                self._sync_receipts(
+                    instance,
+                    should_mark_received,
+                    validated_data.get('date', instance.date),
+                    receipt_payment_mode,
+                    receipt_sender_name,
+                    receipt_receiver_name,
+                    receipt_cheque_number,
+                )
             return instance
+
+
+class MiscellaneousExpenseSerializer(serializers.ModelSerializer):
+    site_name = serializers.SerializerMethodField(read_only=True)
+    labour_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = MiscellaneousExpense
+        fields = [
+            'id',
+            'title',
+            'site',
+            'site_name',
+            'labour',
+            'labour_name',
+            'paid_to_name',
+            'amount',
+            'date',
+            'payment_mode',
+            'notes',
+        ]
+
+    def get_site_name(self, obj):
+        return obj.site.name if obj.site else None
+
+    def get_labour_name(self, obj):
+        return obj.labour.name if obj.labour else None
+
+    def validate(self, attrs):
+        labour = attrs.get('labour', getattr(self.instance, 'labour', None))
+        paid_to_name = attrs.get('paid_to_name', getattr(self.instance, 'paid_to_name', None))
+
+        if labour and (paid_to_name is None or not str(paid_to_name).strip()):
+            attrs['paid_to_name'] = labour.name
+
+        return attrs

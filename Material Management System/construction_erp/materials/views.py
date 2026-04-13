@@ -12,12 +12,18 @@ from django_filters.rest_framework import DjangoFilterBackend
 from openpyxl import Workbook
 
 from sites.permissions import IsAdminOrReadOnly
-from .models import Material, MaterialStock, MaterialUsage
-from .serializers import MaterialSerializer, MaterialStockSerializer, MaterialUsageSerializer
+from .models import Material, MaterialStock, MaterialUsage, MaterialVariant, MaterialVariantPrice
+from .serializers import (
+    MaterialSerializer,
+    MaterialStockSerializer,
+    MaterialUsageSerializer,
+    MaterialVariantSerializer,
+    MaterialVariantPriceSerializer,
+)
 
 
 class MaterialViewSet(viewsets.ModelViewSet):
-    queryset = Material.objects.all().order_by('id')
+    queryset = Material.objects.prefetch_related('variants__daily_prices').all().order_by('id')
     serializer_class = MaterialSerializer
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
@@ -25,13 +31,31 @@ class MaterialViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'unit']
 
 
+class MaterialVariantViewSet(viewsets.ModelViewSet):
+    queryset = MaterialVariant.objects.select_related('material').prefetch_related('daily_prices').all().order_by('id')
+    serializer_class = MaterialVariantSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['material', 'is_active']
+    search_fields = ['label', 'material__name']
+
+
+class MaterialVariantPriceViewSet(viewsets.ModelViewSet):
+    queryset = MaterialVariantPrice.objects.select_related('variant', 'variant__material').all().order_by('-date', '-id')
+    serializer_class = MaterialVariantPriceSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['variant', 'date', 'variant__material']
+    search_fields = ['variant__label', 'variant__material__name']
+
+
 class MaterialStockViewSet(viewsets.ModelViewSet):
-    queryset = MaterialStock.objects.select_related('site', 'material').all().order_by('id')
+    queryset = MaterialStock.objects.select_related('site', 'material', 'material_variant').all().order_by('id')
     serializer_class = MaterialStockSerializer
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['site', 'material']
-    search_fields = ['site__name', 'material__name']
+    filterset_fields = ['site', 'material', 'material_variant', 'date']
+    search_fields = ['site__name', 'material__name', 'material_variant__label']
 
     def _apply_date_range(self, queryset):
         date_from = self.request.query_params.get('date_from')
@@ -77,6 +101,9 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
                 'material__id',
                 'material__name',
                 'material__unit',
+                'material_variant__id',
+                'material_variant__label',
+                'material_variant__size_mm',
             )
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
@@ -102,6 +129,9 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
                 'material_id': item['material__id'],
                 'material_name': item['material__name'],
                 'material_unit': item['material__unit'],
+                'material_variant_id': item['material_variant__id'],
+                'material_variant_label': item['material_variant__label'],
+                'material_variant_size_mm': item['material_variant__size_mm'],
                 'cost_per_unit': (
                     (item['material_amount'] or 0) / item['total_quantity_received']
                     if item['total_quantity_received']
@@ -168,7 +198,14 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
     def site_specific_report(self, request, site_id=None):
         data = (
             self._apply_date_range(MaterialStock.objects.filter(site_id=site_id))
-            .values('material__id', 'material__name', 'material__unit')
+            .values(
+                'material__id',
+                'material__name',
+                'material__unit',
+                'material_variant__id',
+                'material_variant__label',
+                'material_variant__size_mm',
+            )
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
                 total_quantity_used=Sum('quantity_used', output_field=FloatField()),
@@ -193,6 +230,9 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
                 'material_id': item['material__id'],
                 'material_name': item['material__name'],
                 'material_unit': item['material__unit'],
+                'material_variant_id': item['material_variant__id'],
+                'material_variant_label': item['material_variant__label'],
+                'material_variant_size_mm': item['material_variant__size_mm'],
                 'cost_per_unit': (
                     (item['material_amount'] or 0) / item['total_quantity_received']
                     if item['total_quantity_received']
@@ -262,7 +302,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
 
 
 class MaterialUsageViewSet(viewsets.ModelViewSet):
-    queryset = MaterialUsage.objects.select_related('receipt', 'site', 'material').all().order_by('id')
+    queryset = MaterialUsage.objects.select_related('receipt', 'receipt__material_variant', 'site', 'material').all().order_by('id')
     serializer_class = MaterialUsageSerializer
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]

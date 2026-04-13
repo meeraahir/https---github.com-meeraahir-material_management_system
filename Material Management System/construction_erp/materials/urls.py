@@ -1,11 +1,19 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import MaterialViewSet, MaterialStockViewSet, MaterialUsageViewSet
+from .views import (
+    MaterialViewSet,
+    MaterialStockViewSet,
+    MaterialUsageViewSet,
+    MaterialVariantViewSet,
+    MaterialVariantPriceViewSet,
+)
 
 app_name = 'materials'
 
 router = DefaultRouter()
 router.register(r'materials', MaterialViewSet)
+router.register(r'variants', MaterialVariantViewSet)
+router.register(r'variant-prices', MaterialVariantPriceViewSet)
 router.register(r'stocks', MaterialStockViewSet)
 router.register(r'usages', MaterialUsageViewSet)
 
@@ -13,6 +21,10 @@ urlpatterns = [
     # Clean aliases for frontend integration.
     path('', MaterialViewSet.as_view({'get': 'list', 'post': 'create'}), name='material-list'),
     path('<int:pk>/', MaterialViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='material-detail'),
+    path('variants/', MaterialVariantViewSet.as_view({'get': 'list', 'post': 'create'}), name='materialvariant-list'),
+    path('variants/<int:pk>/', MaterialVariantViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='materialvariant-detail'),
+    path('variant-prices/', MaterialVariantPriceViewSet.as_view({'get': 'list', 'post': 'create'}), name='materialvariantprice-list'),
+    path('variant-prices/<int:pk>/', MaterialVariantPriceViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='materialvariantprice-detail'),
     path('stocks/', MaterialStockViewSet.as_view({'get': 'list', 'post': 'create'}), name='materialstock-list'),
     path('stocks/<int:pk>/', MaterialStockViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='materialstock-detail'),
     path('usages/', MaterialUsageViewSet.as_view({'get': 'list', 'post': 'create'}), name='materialusage-list'),

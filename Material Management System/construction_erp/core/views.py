@@ -2,6 +2,8 @@ from io import BytesIO
 
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -14,6 +16,7 @@ from materials.models import Material, MaterialStock
 from vendors.models import Vendor, VendorTransaction
 from labour.models import Labour, LabourPayment
 from finance.models import Party, Transaction, ClientReceipt
+from .serializers import OwnerDashboardSerializer, PersonalAdminDashboardSerializer
 
 # Create your views here.
 
@@ -138,3 +141,41 @@ class DashboardPDFView(DashboardMixin, APIView):
 
     def get(self, request):
         return self._export_pdf(self.get_dashboard_data(request.user), 'core_dashboard')
+
+
+class PersonalAdminDashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        selected_date_param = request.query_params.get('date')
+        if selected_date_param:
+            selected_date = parse_date(selected_date_param)
+            if selected_date is None:
+                return Response({'date': 'Date must be in YYYY-MM-DD format.'}, status=400)
+        else:
+            selected_date = timezone.localdate()
+
+        serializer = PersonalAdminDashboardSerializer(
+            instance={},
+            context={'request': request, 'selected_date': selected_date},
+        )
+        return Response(serializer.data)
+
+
+class OwnerDashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        selected_date_param = request.query_params.get('date')
+        if selected_date_param:
+            selected_date = parse_date(selected_date_param)
+            if selected_date is None:
+                return Response({'date': 'Date must be in YYYY-MM-DD format.'}, status=400)
+        else:
+            selected_date = timezone.localdate()
+
+        serializer = OwnerDashboardSerializer(
+            instance={},
+            context={'request': request, 'selected_date': selected_date},
+        )
+        return Response(serializer.data)

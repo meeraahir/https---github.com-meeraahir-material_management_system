@@ -1,12 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import LabourViewSet, LabourAttendanceViewSet, LabourPaymentViewSet
+from .views import CasualLabourEntryViewSet, LabourViewSet, LabourAttendanceViewSet, LabourPaymentViewSet
 
 app_name = 'labour'
 
 router = DefaultRouter()
 router.register(r'labours', LabourViewSet)
 router.register(r'attendance', LabourAttendanceViewSet)
+router.register(r'casual-labour', CasualLabourEntryViewSet)
 router.register(r'payments', LabourPaymentViewSet)
 
 urlpatterns = [
@@ -42,6 +43,8 @@ urlpatterns = [
     path('reports/site/<int:site_id>/pdf/', LabourViewSet.as_view({'get': 'export_site_specific_report_pdf'}), name='labour-report-site-specific-pdf'),
     path('attendance/', LabourAttendanceViewSet.as_view({'get': 'list', 'post': 'create'}), name='labourattendance-list'),
     path('attendance/<int:pk>/', LabourAttendanceViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='labourattendance-detail'),
+    path('casual-labour/', CasualLabourEntryViewSet.as_view({'get': 'list', 'post': 'create'}), name='casuallabourentry-list'),
+    path('casual-labour/<int:pk>/', CasualLabourEntryViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='casuallabourentry-detail'),
     path('payments/', LabourPaymentViewSet.as_view({'get': 'list', 'post': 'create'}), name='labourpayment-list'),
     path('payments/<int:pk>/', LabourPaymentViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='labourpayment-detail'),
     path('', include(router.urls)),

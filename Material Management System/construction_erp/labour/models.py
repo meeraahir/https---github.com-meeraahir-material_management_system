@@ -12,6 +12,7 @@ class Labour(models.Model):
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=15)
     per_day_wage = models.DecimalField(max_digits=14, decimal_places=2)
+    labour_type = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -28,6 +29,48 @@ class Labour(models.Model):
 
         if self.per_day_wage < 0:
             errors['per_day_wage'] = 'Per day wage must be zero or positive.'
+
+        if errors:
+            raise ValidationError(errors)
+
+
+class CasualLabourEntry(models.Model):
+    labour_name = models.CharField(max_length=255)
+    labour_type = models.CharField(max_length=100)
+    site = models.ForeignKey(Site, on_delete=models.CASCADE)
+    date = models.DateField(default=timezone.now)
+    paid_amount = models.DecimalField(max_digits=14, decimal_places=2)
+
+    class Meta:
+        verbose_name = 'Casual labour entry'
+        verbose_name_plural = 'Casual labour entries'
+
+    def __str__(self):
+        return f'{self.labour_name} - {self.labour_type} - {self.date}'
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        errors = {}
+
+        if not self.labour_name or not self.labour_name.strip():
+            errors['labour_name'] = 'Labour name is required.'
+
+        if not self.labour_type or not self.labour_type.strip():
+            errors['labour_type'] = 'Labour type is required.'
+
+        if self.site_id is None:
+            errors['site'] = 'Site must be provided.'
+
+        if self.date is None:
+            errors['date'] = 'Date is required.'
+
+        if self.paid_amount is None:
+            errors['paid_amount'] = 'Paid amount is required.'
+        elif self.paid_amount <= 0:
+            errors['paid_amount'] = 'Paid amount must be greater than zero.'
 
         if errors:
             raise ValidationError(errors)

@@ -31,7 +31,17 @@ def _total_pending(invoices):
     return sum((Decimal(invoice.pending_amount()) for invoice in invoices), Decimal("0"))
 
 
-def _apply_receipt_amount(invoices, amount, receipt_date, notes, reference_number=None):
+def _apply_receipt_amount(
+    invoices,
+    amount,
+    receipt_date,
+    notes,
+    reference_number=None,
+    payment_mode='cash',
+    sender_name=None,
+    receiver_name=None,
+    cheque_number=None,
+):
     remaining = Decimal(amount)
     touched = []
 
@@ -50,6 +60,10 @@ def _apply_receipt_amount(invoices, amount, receipt_date, notes, reference_numbe
             site=invoice.site,
             amount=allocation,
             date=receipt_date or invoice.date,
+            payment_mode=payment_mode,
+            sender_name=sender_name,
+            receiver_name=receiver_name,
+            cheque_number=cheque_number,
             reference_number=reference_number,
             notes=notes,
         )
@@ -63,7 +77,16 @@ def _apply_receipt_amount(invoices, amount, receipt_date, notes, reference_numbe
     return touched, remaining
 
 
-def apply_receipt_style_entry(party, site, amount, receipt_date):
+def apply_receipt_style_entry(
+    party,
+    site,
+    amount,
+    receipt_date,
+    payment_mode='cash',
+    sender_name=None,
+    receiver_name=None,
+    cheque_number=None,
+):
     invoices = _pending_invoices(party, site)
     if not invoices:
         return None
@@ -77,6 +100,10 @@ def apply_receipt_style_entry(party, site, amount, receipt_date):
         amount,
         receipt_date,
         RECEIPT_STYLE_ENTRY_NOTE,
+        payment_mode=payment_mode,
+        sender_name=sender_name,
+        receiver_name=receiver_name,
+        cheque_number=cheque_number,
     )
     if remaining > 0 or not touched:
         return None
@@ -120,6 +147,10 @@ def normalize_receipt_style_invoices(*, party=None):
                 receipt.date,
                 RECEIPT_STYLE_ENTRY_NOTE,
                 receipt.reference_number,
+                receipt.payment_mode,
+                receipt.sender_name,
+                receipt.receiver_name,
+                receipt.cheque_number,
             )
             if remaining > 0 or not touched:
                 continue

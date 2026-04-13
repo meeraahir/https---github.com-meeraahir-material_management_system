@@ -3,13 +3,19 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Labour, LabourAttendance, LabourPayment, LabourPaymentEntry
+from .models import CasualLabourEntry, Labour, LabourAttendance, LabourPayment, LabourPaymentEntry
 
 
 class LabourSerializer(serializers.ModelSerializer):
     class Meta:
         model = Labour
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'phone',
+            'per_day_wage',
+            'labour_type',
+        ]
 
 
 class LabourAttendanceSerializer(serializers.ModelSerializer):
@@ -62,6 +68,63 @@ class LabourAttendanceSerializer(serializers.ModelSerializer):
             if self.instance:
                 for attr, value in original_values.items():
                     setattr(attendance, attr, value)
+
+        return attrs
+
+
+class CasualLabourEntrySerializer(serializers.ModelSerializer):
+    site_name = serializers.CharField(source='site.name', read_only=True)
+
+    class Meta:
+        model = CasualLabourEntry
+        fields = [
+            'id',
+            'labour_name',
+            'labour_type',
+            'site',
+            'site_name',
+            'date',
+            'paid_amount',
+        ]
+
+    def validate(self, attrs):
+        labour_name = attrs.get('labour_name', getattr(self.instance, 'labour_name', None))
+        labour_type = attrs.get('labour_type', getattr(self.instance, 'labour_type', None))
+        site = attrs.get('site', getattr(self.instance, 'site', None))
+        entry_date = attrs.get('date', getattr(self.instance, 'date', None))
+        paid_amount = attrs.get('paid_amount', getattr(self.instance, 'paid_amount', None))
+
+        if self.instance:
+            entry = self.instance
+            original_values = {
+                'labour_name': entry.labour_name,
+                'labour_type': entry.labour_type,
+                'site': entry.site,
+                'date': entry.date,
+                'paid_amount': entry.paid_amount,
+            }
+            entry.labour_name = labour_name
+            entry.labour_type = labour_type
+            entry.site = site
+            entry.date = entry_date
+            entry.paid_amount = paid_amount
+        else:
+            entry = CasualLabourEntry(
+                labour_name=labour_name,
+                labour_type=labour_type,
+                site=site,
+                date=entry_date,
+                paid_amount=paid_amount,
+            )
+
+        try:
+            entry.full_clean()
+        except ValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict)
+        finally:
+            if self.instance:
+                for attr, value in original_values.items():
+                    setattr(entry, attr, value)
 
         return attrs
 
