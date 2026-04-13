@@ -17,6 +17,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   const isNumericInput = rest.type === "number";
+  const { onKeyDown, onWheel, ...inputProps } = rest;
 
   return (
     <label className="flex w-full flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-700">
@@ -38,6 +39,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           className,
         )}
         id={id}
+        {...inputProps}
         onKeyDown={(event) => {
           if (
             isNumericInput &&
@@ -46,7 +48,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             event.preventDefault();
           }
 
-          rest.onKeyDown?.(event);
+          onKeyDown?.(event);
         }}
         onWheel={(event) => {
           if (isNumericInput) {
@@ -54,9 +56,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             event.currentTarget.blur();
           }
 
-          rest.onWheel?.(event);
+          onWheel?.(event);
         }}
-        {...rest}
       />
       {hint ? (
         <span className="text-xs font-normal text-slate-500 dark:text-slate-500">
