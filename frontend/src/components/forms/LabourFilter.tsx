@@ -10,12 +10,10 @@ interface LabourFilterProps {
   dateTo: string;
   isLoading?: boolean;
   labourId?: number;
-  labourQuery: string;
   labourRecords: Labour[];
   onDateFromChange: (value: string) => void;
   onDateToChange: (value: string) => void;
   onLabourIdChange: (value?: number) => void;
-  onLabourQueryChange: (value: string) => void;
   onSubmit: () => void;
 }
 
@@ -24,45 +22,24 @@ export function LabourFilter({
   dateTo,
   isLoading = false,
   labourId,
-  labourQuery,
   labourRecords,
   onDateFromChange,
   onDateToChange,
   onLabourIdChange,
-  onLabourQueryChange,
   onSubmit,
 }: LabourFilterProps) {
   const filteredOptions = useMemo(
     () =>
       labourRecords
-        .filter((labour) => {
-          const query = labourQuery.trim().toLowerCase();
-
-          if (!query) {
-            return true;
-          }
-
-          return (
-            labour.name.toLowerCase().includes(query) ||
-            String(labour.id).includes(query)
-          );
-        })
         .map((labour) => ({
           label: `${labour.name} (#${labour.id})`,
           value: labour.id,
         })),
-    [labourQuery, labourRecords],
+    [labourRecords],
   );
 
   return (
-    <section className="grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 lg:grid-cols-5">
-      <Input
-        description="Filter labour options by name or employee ID."
-        label="Search Labour"
-        placeholder="Type labour name or ID"
-        value={labourQuery}
-        onChange={(event) => onLabourQueryChange(event.target.value)}
-      />
+    <section className="grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 lg:grid-cols-4">
       <Select
         description="Select a labour record to fetch the payment ledger report."
         label="Labour"

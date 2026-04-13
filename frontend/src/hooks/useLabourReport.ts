@@ -64,10 +64,16 @@ export function useLabourReport() {
     }
   }
 
+  function reset() {
+    setError("");
+    setReport(null);
+  }
+
   return {
     error,
     isLoading,
     loadLabourReport,
     report,
+    reset,
   };
 }

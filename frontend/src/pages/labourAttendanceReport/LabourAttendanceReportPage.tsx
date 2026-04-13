@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useToast } from "../../components/feedback/useToast";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { DataTable } from "../../components/table/DataTable";
-import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { useReferenceData } from "../../hooks/useReferenceData";
@@ -26,63 +25,57 @@ export function LabourAttendanceReportPage() {
   const [report, setReport] = useState<LabourAttendanceMonthlyReport | null>(
     null,
   );
-  const [searchValue, setSearchValue] = useState("");
   const [siteId, setSiteId] = useState(0);
   const [year, setYear] = useState("");
 
-  async function handleLoad() {
-    if (!labourId) {
-      setError("Labour is required.");
-      return;
+  useEffect(() => {
+    async function loadReport() {
+      if (!labourId) {
+        setError("");
+        setReport(null);
+        setPage(1);
+        return;
+      }
+
+      if (month && !year.trim()) {
+        setError("Year is required when month is selected.");
+        setReport(null);
+        setPage(1);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError("");
+        const response = await labourReportsService.getMonthlyAttendanceReport(
+          labourId,
+          {
+            dateFrom,
+            dateTo,
+            month: month || undefined,
+            site: siteId || undefined,
+            year: year.trim() ? Number(year) : undefined,
+          },
+        );
+        setReport(response);
+        setPage(1);
+      } catch (loadError) {
+        const message = getErrorMessage(loadError);
+        setError(message);
+        setReport(null);
+        showError("Unable to load monthly attendance", message);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
-    if (month && !year.trim()) {
-      setError("Year is required when month is selected.");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError("");
-      const response = await labourReportsService.getMonthlyAttendanceReport(
-        labourId,
-        {
-          dateFrom,
-          dateTo,
-          month: month || undefined,
-          site: siteId || undefined,
-          year: year.trim() ? Number(year) : undefined,
-        },
-      );
-      setReport(response);
-      setPage(1);
-      setSearchValue("");
-    } catch (loadError) {
-      const message = getErrorMessage(loadError);
-      setError(message);
-      showError("Unable to load monthly attendance", message);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+    void loadReport();
+  }, [dateFrom, dateTo, labourId, month, showError, siteId, year]);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        actions={
-          <Button isLoading={isLoading} onClick={() => void handleLoad()} type="button">
-            Load Report
-          </Button>
-        }
         description="Month-wise labour attendance and wage report for one labour record."
-        search={
-          <Input
-            label="Search"
-            placeholder="Search attendance months"
-            value={searchValue}
-            onChange={(event) => setSearchValue(event.target.value)}
-          />
-        }
         title="Monthly Attendance"
       />
 
@@ -230,10 +223,10 @@ export function LabourAttendanceReportPage() {
             isLoading={isLoading}
             keyExtractor={(row) => row.month}
             page={page}
-            searchValue={searchValue}
+            searchValue=""
             totalCount={report.months.length}
             onPageChange={setPage}
-            onSearchChange={setSearchValue}
+            onSearchChange={() => undefined}
           />
         </>
       ) : null}

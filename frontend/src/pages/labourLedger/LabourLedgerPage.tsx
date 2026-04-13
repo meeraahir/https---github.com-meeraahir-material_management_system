@@ -322,6 +322,9 @@ export function LabourLedgerPage() {
         }}
         referenceError={references.error}
         searchPlaceholder="Search labour ledger"
+        showLoadButton={false}
+        showSearch={false}
+        autoLoadOnSelect
         title="Labour Ledger"
       />
       <MovementDetailsModal

@@ -98,51 +98,26 @@ export function ReportsPage() {
   const [tablePage, setTablePage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isExportingLabour, setIsExportingLabour] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
   const [error, setError] = useState("");
 
   const partyOptions = useMemo(
     () =>
       references.parties
-        .filter((party) => {
-          const query = (filters.partyQuery ?? "").trim().toLowerCase();
-
-          if (!query) {
-            return true;
-          }
-
-          return (
-            party.name.toLowerCase().includes(query) ||
-            String(party.id).includes(query)
-          );
-        })
         .map((party) => ({
           label: `${party.name} (#${party.id})`,
           value: party.id,
         })),
-    [filters.partyQuery, references.parties],
+    [references.parties],
   );
 
   const vendorOptions = useMemo(
     () =>
       references.vendors
-        .filter((vendor) => {
-          const query = (filters.vendorQuery ?? "").trim().toLowerCase();
-
-          if (!query) {
-            return true;
-          }
-
-          return (
-            vendor.name.toLowerCase().includes(query) ||
-            String(vendor.id).includes(query)
-          );
-        })
         .map((vendor) => ({
           label: `${vendor.name} (#${vendor.id})`,
           value: vendor.id,
         })),
-    [filters.vendorQuery, references.vendors],
+    [references.vendors],
   );
 
   async function handleLabourCsvExport() {
@@ -246,6 +221,7 @@ export function ReportsPage() {
         });
         setRows(response.transactions as unknown as Record<string, unknown>[]);
         setTablePage(1);
+        labourReportState.reset();
       } catch (previewError) {
         const message = getErrorMessage(previewError);
         setError(message);
@@ -269,6 +245,7 @@ export function ReportsPage() {
         });
         setRows(response.transactions as unknown as Record<string, unknown>[]);
         setTablePage(1);
+        labourReportState.reset();
       } catch (previewError) {
         const message = getErrorMessage(previewError);
         setError(message);
@@ -297,6 +274,7 @@ export function ReportsPage() {
           })),
         );
       }
+      labourReportState.reset();
       setTablePage(1);
     } catch (previewError) {
       const message = getErrorMessage(previewError);
@@ -419,14 +397,6 @@ export function ReportsPage() {
           </>
         }
         description="Preview backend-supported reports, with a dedicated labour ledger view for worker-specific analysis."
-        search={
-          <Input
-            label="Search"
-            placeholder="Search preview rows"
-            value={searchValue}
-            onChange={(event) => setSearchValue(event.target.value)}
-          />
-        }
         title="Reports"
       />
 
@@ -436,6 +406,8 @@ export function ReportsPage() {
         className={
           filters.module === "vendors" || filters.module === "receivables"
             ? "grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-2 xl:grid-cols-6"
+            : filters.module === "labour"
+              ? "grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-1"
             : "grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 dark:border-blue-100/90 dark:bg-white/94 md:grid-cols-2 lg:grid-cols-4"
         }
       >
@@ -446,27 +418,18 @@ export function ReportsPage() {
           onChange={(event) =>
             setFilters((currentValue) => ({
               ...currentValue,
-              labourId: undefined,
-              module: event.target.value as ReportModuleKey,
-              partyId: undefined,
-              vendorId: undefined,
-            }))
+                labourId: undefined,
+                labourQuery: "",
+                module: event.target.value as ReportModuleKey,
+                partyId: undefined,
+                partyQuery: "",
+                vendorId: undefined,
+                vendorQuery: "",
+              }))
           }
         />
         {filters.module === "receivables" ? (
           <>
-            <Input
-              description="Filter party options by name or party ID."
-              label="Search Party"
-              placeholder="Type party name or ID"
-              value={filters.partyQuery ?? ""}
-              onChange={(event) =>
-                setFilters((currentValue) => ({
-                  ...currentValue,
-                  partyQuery: event.target.value,
-                }))
-              }
-            />
             <Select
               description="Select a party to preview and export that receivable ledger."
               label="Party"
@@ -483,18 +446,6 @@ export function ReportsPage() {
         ) : null}
         {filters.module === "vendors" ? (
           <>
-            <Input
-              description="Filter vendor options by name or vendor ID."
-              label="Search Vendor"
-              placeholder="Type vendor name or ID"
-              value={filters.vendorQuery ?? ""}
-              onChange={(event) =>
-                setFilters((currentValue) => ({
-                  ...currentValue,
-                  vendorQuery: event.target.value,
-                }))
-              }
-            />
             <Select
               description="Select a vendor to preview and export that vendor ledger."
               label="Vendor"
@@ -509,38 +460,42 @@ export function ReportsPage() {
             />
           </>
         ) : null}
-        <Input
-          label="Date From"
-          type="date"
-          value={filters.dateFrom}
-          onChange={(event) =>
-            setFilters((currentValue) => ({
-              ...currentValue,
-              dateFrom: event.target.value,
-            }))
-          }
-        />
-        <Input
-          label="Date To"
-          type="date"
-          value={filters.dateTo}
-          onChange={(event) =>
-            setFilters((currentValue) => ({
-              ...currentValue,
-              dateTo: event.target.value,
-            }))
-          }
-        />
-        <div className="flex items-end">
-          <Button
-            className="w-full"
-            isLoading={isLoading}
-            onClick={() => void handlePreview()}
-            type="button"
-          >
-            Preview Report
-          </Button>
-        </div>
+        {filters.module !== "labour" ? (
+          <>
+            <Input
+              label="Date From"
+              type="date"
+              value={filters.dateFrom}
+              onChange={(event) =>
+                setFilters((currentValue) => ({
+                  ...currentValue,
+                  dateFrom: event.target.value,
+                }))
+              }
+            />
+            <Input
+              label="Date To"
+              type="date"
+              value={filters.dateTo}
+              onChange={(event) =>
+                setFilters((currentValue) => ({
+                  ...currentValue,
+                  dateTo: event.target.value,
+                }))
+              }
+            />
+            <div className="flex items-end">
+              <Button
+                className="w-full"
+                isLoading={isLoading}
+                onClick={() => void handlePreview()}
+                type="button"
+              >
+                Preview Report
+              </Button>
+            </div>
+          </>
+        ) : null}
       </section>
 
       {filters.module === "labour" ? (
@@ -550,7 +505,6 @@ export function ReportsPage() {
             dateTo={filters.dateTo}
             isLoading={labourReportState.isLoading || references.isLoading}
             labourId={filters.labourId}
-            labourQuery={filters.labourQuery ?? ""}
             labourRecords={references.labour}
             onDateFromChange={(value) =>
               setFilters((currentValue) => ({ ...currentValue, dateFrom: value }))
@@ -560,9 +514,6 @@ export function ReportsPage() {
             }
             onLabourIdChange={(value) =>
               setFilters((currentValue) => ({ ...currentValue, labourId: value }))
-            }
-            onLabourQueryChange={(value) =>
-              setFilters((currentValue) => ({ ...currentValue, labourQuery: value }))
             }
             onSubmit={() => {
               void handlePreview();
@@ -629,12 +580,12 @@ export function ReportsPage() {
         isLoading={isLoading || labourReportState.isLoading}
         keyExtractor={(row, index) => String(row.metric ?? row.id ?? index)}
         page={tablePage}
-        searchPlaceholder="Search preview rows"
-        searchValue={searchValue}
+        searchPlaceholder=""
+        searchValue=""
         title={filters.module === "labour" && filters.labourId ? "Labour Report" : "Report Preview"}
         totalCount={activeRows.length}
         onPageChange={setTablePage}
-        onSearchChange={setSearchValue}
+        onSearchChange={() => undefined}
       />
     </div>
   );
