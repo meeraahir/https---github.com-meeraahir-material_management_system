@@ -74,12 +74,15 @@ class SiteViewSet(viewsets.ModelViewSet):
         )
         labour_payment_map = {
             item['labour__id']: {
-                'paid_amount': item['paid_amount'] or 0,
-                'pending_amount': item['pending_amount'] or 0,
+                'paid_amount': item['paid_amount_sum'] or 0,
+                'pending_amount': item['pending_amount_sum'] or 0,
             }
             for item in labour_payment_qs.values('labour__id').annotate(
-                paid_amount=Sum('paid_amount', output_field=FloatField()),
-                pending_amount=Sum(F('total_amount') - F('paid_amount'), output_field=FloatField()),
+                paid_amount_sum=Sum('paid_amount', output_field=FloatField()),
+                pending_amount_sum=(
+                    Sum('total_amount', output_field=FloatField())
+                    - Sum('paid_amount', output_field=FloatField())
+                ),
             )
         }
         receipt_map = {
