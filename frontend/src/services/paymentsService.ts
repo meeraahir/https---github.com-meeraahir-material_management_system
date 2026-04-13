@@ -12,6 +12,7 @@ const baseService = createCrudService<Payment, PaymentPayload>(
 function normalizePayload(payload: PaymentFormValues): PaymentPayload {
   return {
     ...payload,
+    auto_calculate_total: true,
     notes: payload.notes?.trim() || "",
     period_end: payload.period_end || undefined,
     period_start: payload.period_start || undefined,

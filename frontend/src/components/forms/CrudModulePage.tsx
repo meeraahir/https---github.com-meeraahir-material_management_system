@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FieldValues } from "react-hook-form";
+import type { UseFormSetValue } from "react-hook-form";
 import type { z } from "zod";
 
 import { useCrudModule } from "../../hooks/useCrudModule";
@@ -31,6 +32,10 @@ interface CrudModulePageProps<TEntity, TFormValues extends FieldValues> {
   fields: FormFieldConfig<TFormValues>[];
   getEditValues: (entity: TEntity) => TFormValues;
   getId: (entity: TEntity) => number;
+  onFormValuesChange?: (context: {
+    setValue: UseFormSetValue<TFormValues>;
+    values: Partial<TFormValues>;
+  }) => void | Promise<void>;
   refreshKey?: number;
   schema: z.ZodType<TFormValues>;
   searchPlaceholder: string;
@@ -54,6 +59,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
   fields,
   getEditValues,
   getId,
+  onFormValuesChange,
   refreshKey,
   schema,
   searchPlaceholder,
@@ -161,6 +167,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
         onClose={() => {
           setIsFormOpen(false);
         }}
+        onValuesChange={onFormValuesChange}
         onSubmit={handleSubmit}
         open={isFormOpen && (canCreate || canEdit)}
         schema={schema}

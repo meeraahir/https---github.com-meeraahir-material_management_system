@@ -1,8 +1,11 @@
+import { useCallback, useMemo, useRef } from "react";
+import type { UseFormSetValue } from "react-hook-form";
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
 import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
+import { attendanceReportsService } from "../../services/attendanceService";
 import { paymentsService } from "../../services/paymentsService";
 import type { Payment, PaymentFormValues } from "../../types/erp.types";
 import { formatDate } from "../../utils/format";
@@ -10,7 +13,7 @@ import { getCrudPermissions } from "../../utils/permissions";
 
 const paymentSchema = z
   .object({
-    auto_calculate_total: z.boolean(),
+    auto_calculate_total: z.boolean().optional().default(true),
     date: z.string().min(1, "Payment date is required."),
     labour: z.number().min(1, "Labour is required."),
     notes: z
@@ -25,7 +28,9 @@ const paymentSchema = z
     total_amount: z.number().min(0, "Total amount must be zero or more."),
   })
   .superRefine((value, context) => {
-    if (!value.auto_calculate_total && value.total_amount <= 0) {
+    const isAutoCalculateEnabled = value.auto_calculate_total ?? true;
+
+    if (!isAutoCalculateEnabled && value.total_amount <= 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message:
@@ -34,7 +39,7 @@ const paymentSchema = z
       });
     }
 
-    if (!value.auto_calculate_total && value.paid_amount > value.total_amount) {
+    if (!isAutoCalculateEnabled && value.paid_amount > value.total_amount) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Paid amount cannot exceed total amount.",
@@ -71,11 +76,97 @@ export function PaymentsPage() {
   const { user } = useAuth();
   const references = useReferenceData();
   const permissions = getCrudPermissions(user);
+  const calculationRequestRef = useRef(0);
   const labourNameMap = new Map(
     references.labour.map((labour) => [labour.id, labour.name]),
   );
   const siteNameMap = new Map(
     references.sites.map((site) => [site.id, site.name]),
+  );
+  const labourWageMap = useMemo(
+    () =>
+      new Map(
+        references.labour.map((labour) => [labour.id, labour.per_day_wage]),
+      ),
+    [references.labour],
+  );
+
+  const syncAutoCalculatedTotal = useCallback(
+    async ({
+      setValue,
+      values,
+    }: {
+      setValue: UseFormSetValue<PaymentFormValues>;
+      values: Partial<PaymentFormValues>;
+    }) => {
+      const labourId = Number(values.labour) || 0;
+      const periodStart = values.period_start || "";
+      const periodEnd = values.period_end || "";
+      const siteId = Number(values.site) || 0;
+      const currentTotal = Number(values.total_amount) || 0;
+
+      setValue("auto_calculate_total", true, {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+
+      if (!labourId || !periodStart || !periodEnd || periodEnd < periodStart) {
+        if (currentTotal !== 0) {
+          setValue("total_amount", 0, {
+            shouldDirty: true,
+            shouldTouch: false,
+            shouldValidate: true,
+          });
+        }
+
+        return;
+      }
+
+      const requestId = ++calculationRequestRef.current;
+
+      try {
+        const attendance = await attendanceReportsService.getLabourAttendance(
+          labourId,
+          {
+            dateFrom: periodStart,
+            dateTo: periodEnd,
+          },
+        );
+
+        if (requestId !== calculationRequestRef.current) {
+          return;
+        }
+
+        const presentDays = attendance.filter(
+          (row) => row.present && (!siteId || row.site === siteId),
+        ).length;
+        const totalAmount = Number(
+          (presentDays * (labourWageMap.get(labourId) || 0)).toFixed(2),
+        );
+
+        if (currentTotal !== totalAmount) {
+          setValue("total_amount", totalAmount, {
+            shouldDirty: true,
+            shouldTouch: false,
+            shouldValidate: true,
+          });
+        }
+      } catch {
+        if (requestId !== calculationRequestRef.current) {
+          return;
+        }
+
+        if (currentTotal !== 0) {
+          setValue("total_amount", 0, {
+            shouldDirty: true,
+            shouldTouch: false,
+            shouldValidate: true,
+          });
+        }
+      }
+    },
+    [labourWageMap],
   );
 
   return (
@@ -166,13 +257,6 @@ export function PaymentsPage() {
       externalError={references.error}
       fields={[
         {
-          kind: "checkbox",
-          description: "When enabled, the backend calculates total wage from attendance for the selected labour, site, and period.",
-          label: "Auto calculate total",
-          name: "auto_calculate_total",
-          wrapperClassName: "md:col-span-2",
-        },
-        {
           kind: "select",
           label: "Labour",
           name: "labour",
@@ -216,14 +300,13 @@ export function PaymentsPage() {
         },
         {
           kind: "number",
-          description: "Disabled while auto calculation is on.",
           label: "Total Amount",
           min: 0,
           name: "total_amount",
           required: true,
           valueType: "number",
           wrapperClassName: "md:col-span-1",
-          disabled: (values) => Boolean(values.auto_calculate_total),
+          disabled: true,
         },
         {
           kind: "number",
@@ -245,7 +328,7 @@ export function PaymentsPage() {
         },
       ]}
       getEditValues={(entity) => ({
-        auto_calculate_total: false,
+        auto_calculate_total: true,
         date: entity.date || new Date().toISOString().slice(0, 10),
         labour: entity.labour,
         notes: entity.notes || "",
@@ -256,6 +339,7 @@ export function PaymentsPage() {
         total_amount: entity.total_amount,
       })}
       getId={(entity) => entity.id}
+      onFormValuesChange={syncAutoCalculatedTotal}
       schema={paymentSchema}
       searchPlaceholder="Search payments"
       service={paymentsService}

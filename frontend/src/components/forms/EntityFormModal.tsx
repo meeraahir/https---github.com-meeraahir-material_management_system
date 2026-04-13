@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import type { DefaultValues, FieldValues, Path } from "react-hook-form";
+import type { UseFormSetValue } from "react-hook-form";
 import type { z } from "zod";
 
 import type { FormFieldConfig } from "../../types/ui.types";
@@ -19,6 +20,10 @@ interface EntityFormModalProps<TFormValues extends FieldValues> {
   description: string;
   fields: FormFieldConfig<TFormValues>[];
   onClose: () => void;
+  onValuesChange?: (context: {
+    setValue: UseFormSetValue<TFormValues>;
+    values: Partial<TFormValues>;
+  }) => void | Promise<void>;
   onSubmit: (values: TFormValues) => Promise<void>;
   open: boolean;
   schema: z.ZodType<TFormValues>;
@@ -29,6 +34,7 @@ export function EntityFormModal<TFormValues extends FieldValues>({
   defaultValues,
   fields,
   onClose,
+  onValuesChange,
   onSubmit,
   open,
   schema,
@@ -46,6 +52,7 @@ export function EntityFormModal<TFormValues extends FieldValues>({
     handleSubmit,
     register,
     reset,
+    setValue,
   } = useForm<TFormValues>({
     defaultValues: defaultValues as DefaultValues<TFormValues>,
     mode: "onChange",
@@ -59,6 +66,17 @@ export function EntityFormModal<TFormValues extends FieldValues>({
       reset(defaultValues);
     }
   }, [defaultValues, open, reset]);
+
+  useEffect(() => {
+    if (!open || !onValuesChange) {
+      return;
+    }
+
+    void onValuesChange({
+      setValue,
+      values: watchedValues,
+    });
+  }, [onValuesChange, open, setValue, watchedValues]);
 
   return (
     <Modal
