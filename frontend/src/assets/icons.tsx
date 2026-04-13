@@ -44,6 +44,11 @@ export const icons = {
     iconPath("M12 1v22M17 5H9a3 3 0 0 0 0 6h6a3 3 0 1 1 0 6H6", props),
   reports: (props?: IconProps) =>
     iconPath("M6 3h9l5 5v13H6zM14 3v5h5M9 13h6M9 17h6M9 9h2", props),
+  plus: (props?: IconProps) => iconPath("M12 5v14M5 12h14", props),
+  pencil: (props?: IconProps) =>
+    iconPath("M12 20h9M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z", props),
+  trash: (props?: IconProps) =>
+    iconPath("M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14", props),
   menu: (props?: IconProps) => iconPath("M4 7h16M4 12h16M4 17h16", props),
   chevronLeft: (props?: IconProps) => iconPath("m15 18-6-6 6-6", props),
   chevronRight: (props?: IconProps) => iconPath("m9 18 6-6-6-6", props),

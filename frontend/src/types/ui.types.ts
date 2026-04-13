@@ -11,7 +11,9 @@ export interface TableColumn<T> {
 }
 
 export interface TableAction<T> {
+  ariaLabel?: string;
   disabled?: (row: T) => boolean;
+  icon?: ReactNode;
   label: string;
   onClick: (row: T) => void;
   variant?: "primary" | "secondary" | "ghost";
@@ -44,6 +46,7 @@ interface BaseFieldConfig<TFormValues> {
   label: string;
   name: keyof TFormValues & string;
   placeholder?: string;
+  readOnly?: boolean;
   required?: boolean;
   wrapperClassName?: string;
 }
@@ -74,6 +77,7 @@ export interface TextFieldConfig<
 export interface SelectFieldConfig<
   TFormValues,
 > extends BaseFieldConfig<TFormValues> {
+  clearable?: boolean;
   kind: "select";
   options: FormOption[];
   valueType?: "number" | "string";

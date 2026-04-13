@@ -155,6 +155,7 @@ export function EntityFormModal<TFormValues extends FieldValues>({
               return (
                 <div className={field.wrapperClassName} key={sharedKey}>
                   <Select
+                    clearable={field.clearable}
                     description={field.description}
                     disabled={fieldDisabled}
                     error={
@@ -231,6 +232,7 @@ export function EntityFormModal<TFormValues extends FieldValues>({
                   }
                   pattern={field.kind !== "date" ? field.pattern : undefined}
                   placeholder={field.placeholder}
+                  readOnly={field.readOnly}
                   requiredIndicator={field.required}
                   step={field.kind === "number" ? field.step : undefined}
                   type={field.kind}

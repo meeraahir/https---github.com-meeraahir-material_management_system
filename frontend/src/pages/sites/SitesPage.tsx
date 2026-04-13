@@ -41,13 +41,6 @@ export function SitesPage() {
       description="Manage all construction sites linked to operational records."
       emptyDescription="No sites have been created yet."
       emptyTitle="No sites found"
-      extraActions={[
-        {
-          label: "Dashboard",
-          onClick: (row: Site) => navigate(`/sites/${row.id}/dashboard`),
-          variant: "secondary",
-        },
-      ]}
       fields={[
         {
           kind: "text",
@@ -81,16 +74,13 @@ export function SitesPage() {
         name: entity.name,
       })}
       getId={(entity) => entity.id}
+      onRowDoubleClick={(row) => navigate(`/sites/${row.id}/dashboard`)}
+      rowActionsDisplay="icon"
       schema={siteSchema}
       searchPlaceholder="Search by site name or location"
       service={sitesService}
+      showViewAction={false}
       title="Sites"
-      viewFields={[
-        { label: "Record ID", value: (row) => row.id, highlight: true },
-        { label: "Site Name", value: (row) => row.name, highlight: true },
-        { label: "Location", value: (row) => row.location },
-        { label: "Description", value: (row) => row.description, span: "full" },
-      ]}
     />
   );
 }
