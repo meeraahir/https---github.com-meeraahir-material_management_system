@@ -5,8 +5,14 @@ import { routeLabelMap } from "../../utils/navigation";
 export function Breadcrumb() {
   const location = useLocation();
   const segments = location.pathname.split("/").filter(Boolean);
+  const isSiteDashboardRoute =
+    segments.length === 3 &&
+    segments[0] === "sites" &&
+    segments[2] === "dashboard";
   const activeSegment = segments.at(-1) ?? "dashboard";
-  const activeLabel = routeLabelMap.get(activeSegment) ?? activeSegment;
+  const activeLabel = isSiteDashboardRoute
+    ? "Site Dashboard"
+    : routeLabelMap.get(activeSegment) ?? activeSegment;
 
   return (
     <div className="group min-w-0">

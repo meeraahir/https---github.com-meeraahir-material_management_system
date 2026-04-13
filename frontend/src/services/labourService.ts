@@ -1,6 +1,7 @@
 import { createCrudService } from "./crudService";
 import { apiClient } from "../api/client";
 import type {
+  LabourAttendanceMonthlyReport,
   DateRangeFilters,
   Labour,
   LabourFormValues,
@@ -43,6 +44,26 @@ export const labourReportsService = {
       ledger,
       summary,
     } satisfies LabourReportData;
+  },
+
+  async getMonthlyAttendanceReport(
+    labourId: number,
+    filters?: DateRangeFilters & { month?: number; site?: number; year?: number },
+  ) {
+    const response = await apiClient.get<LabourAttendanceMonthlyReport>(
+      `/labour/${labourId}/attendance-monthly-report/`,
+      {
+        params: {
+          date_from: filters?.dateFrom || undefined,
+          date_to: filters?.dateTo || undefined,
+          month: filters?.month || undefined,
+          site: filters?.site || undefined,
+          year: filters?.year || undefined,
+        },
+      },
+    );
+
+    return response.data;
   },
 
   async exportLedger(

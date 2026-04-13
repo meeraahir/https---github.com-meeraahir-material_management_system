@@ -3,6 +3,7 @@ import type {
   PartyLedger,
   ReportFilters,
   ReportModuleKey,
+  VendorPendingReportRow,
   VendorLedger,
 } from "../types/erp.types";
 import { downloadBlob } from "../utils/download";
@@ -178,5 +179,57 @@ export const reportsService = {
     });
 
     return response.data;
+  },
+
+  async getFinanceSiteReport(siteId?: number) {
+    const endpoint = siteId
+      ? `/finance/reports/site/${siteId}/`
+      : "/finance/reports/site-wise/";
+    const response = await apiClient.get<Record<string, unknown>[]>(endpoint);
+
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  async getVendorPendingReport() {
+    const response = await apiClient.get<VendorPendingReportRow[]>(
+      "/vendors/reports/pending/",
+    );
+
+    return response.data;
+  },
+
+  async exportFinanceSiteReport(format: "excel" | "pdf", siteId?: number) {
+    const endpoint = siteId
+      ? format === "excel"
+        ? `/finance/reports/site/${siteId}/export/`
+        : `/finance/reports/site/${siteId}/pdf/`
+      : format === "excel"
+        ? "/finance/reports/site-wise/export/"
+        : "/finance/reports/site-wise/pdf/";
+    const response = await apiClient.get(endpoint, {
+      responseType: "blob",
+    });
+
+    downloadBlob(
+      response.data,
+      siteId
+        ? `finance-site-${siteId}.${format === "excel" ? "xlsx" : "pdf"}`
+        : `finance-site-wise.${format === "excel" ? "xlsx" : "pdf"}`,
+    );
+  },
+
+  async exportVendorPendingReport(format: "excel" | "pdf") {
+    const endpoint =
+      format === "excel"
+        ? "/vendors/reports/pending/export/"
+        : "/vendors/reports/pending/pdf/";
+    const response = await apiClient.get(endpoint, {
+      responseType: "blob",
+    });
+
+    downloadBlob(
+      response.data,
+      `vendor-pending-report.${format === "excel" ? "xlsx" : "pdf"}`,
+    );
   },
 };

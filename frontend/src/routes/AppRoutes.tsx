@@ -27,6 +27,11 @@ const MaterialsPage = lazy(() =>
     default: module.MaterialsPage,
   })),
 );
+const MaterialUsagePage = lazy(() =>
+  import("../pages/materialUsage/MaterialUsagePage").then((module) => ({
+    default: module.MaterialUsagePage,
+  })),
+);
 const VendorsPage = lazy(() =>
   import("../pages/vendors/VendorsPage").then((module) => ({ default: module.VendorsPage })),
 );
@@ -42,6 +47,13 @@ const LabourLedgerPage = lazy(() =>
   import("../pages/labourLedger/LabourLedgerPage").then((module) => ({
     default: module.LabourLedgerPage,
   })),
+);
+const LabourAttendanceReportPage = lazy(() =>
+  import("../pages/labourAttendanceReport/LabourAttendanceReportPage").then(
+    (module) => ({
+      default: module.LabourAttendanceReportPage,
+    }),
+  ),
 );
 const PartiesPage = lazy(() =>
   import("../pages/parties/PartiesPage").then((module) => ({ default: module.PartiesPage })),
@@ -66,6 +78,11 @@ const VendorPaymentsPage = lazy(() =>
     default: module.VendorPaymentsPage,
   })),
 );
+const VendorPendingReportPage = lazy(() =>
+  import("../pages/vendorPending/VendorPendingReportPage").then((module) => ({
+    default: module.VendorPendingReportPage,
+  })),
+);
 const AttendancePage = lazy(() =>
   import("../pages/attendance/AttendancePage").then((module) => ({
     default: module.AttendancePage,
@@ -79,6 +96,18 @@ const PaymentsPage = lazy(() =>
 const ReceivablesPage = lazy(() =>
   import("../pages/receivables/ReceivablesPage").then((module) => ({
     default: module.ReceivablesPage,
+  })),
+);
+const ReceivablesSiteReportPage = lazy(() =>
+  import("../pages/receivablesSiteReport/ReceivablesSiteReportPage").then(
+    (module) => ({
+      default: module.ReceivablesSiteReportPage,
+    }),
+  ),
+);
+const SiteDashboardPage = lazy(() =>
+  import("../pages/siteDashboard/SiteDashboardPage").then((module) => ({
+    default: module.SiteDashboardPage,
   })),
 );
 const ReportsPage = lazy(() =>
@@ -105,11 +134,15 @@ export function AppRoutes() {
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/sites" element={<SitesPage />} />
+            <Route path="/sites/:siteId/dashboard" element={<SiteDashboardPage />} />
             <Route path="/materials" element={<MaterialsPage />} />
+            <Route path="/material-usage" element={<MaterialUsagePage />} />
             <Route path="/vendors" element={<VendorsPage />} />
             <Route path="/vendor-ledger" element={<VendorLedgerPage />} />
+            <Route path="/vendor-dues" element={<VendorPendingReportPage />} />
             <Route path="/labour" element={<LabourPage />} />
             <Route path="/labour-ledger" element={<LabourLedgerPage />} />
+            <Route path="/monthly-attendance" element={<LabourAttendanceReportPage />} />
             <Route path="/parties" element={<PartiesPage />} />
             <Route path="/party-ledger" element={<PartyLedgerPage />} />
             <Route path="/material-receipts" element={<MaterialReceiptsPage />} />
@@ -118,6 +151,7 @@ export function AppRoutes() {
             <Route path="/attendance" element={<AttendancePage />} />
             <Route path="/payments" element={<PaymentsPage />} />
             <Route path="/receivables" element={<ReceivablesPage />} />
+            <Route path="/site-receivables" element={<ReceivablesSiteReportPage />} />
             <Route path="/reports" element={<ReportsPage />} />
           </Route>
         </Route>

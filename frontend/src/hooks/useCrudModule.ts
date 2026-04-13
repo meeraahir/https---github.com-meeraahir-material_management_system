@@ -6,11 +6,13 @@ import { getErrorMessage } from "../utils/apiError";
 
 interface CrudModuleOptions<TEntity, TFormValues> {
   getId: (entity: TEntity) => number;
+  reloadSignal?: number;
   service: CrudService<TEntity, TFormValues>;
 }
 
 export function useCrudModule<TEntity, TFormValues>({
   getId,
+  reloadSignal,
   service,
 }: CrudModuleOptions<TEntity, TFormValues>) {
   const { showError, showSuccess } = useToast();
@@ -46,7 +48,7 @@ export function useCrudModule<TEntity, TFormValues>({
 
   useEffect(() => {
     void loadList();
-  }, [loadList]);
+  }, [loadList, reloadSignal]);
 
   useEffect(() => {
     setPage(1);
@@ -118,5 +120,6 @@ export function useCrudModule<TEntity, TFormValues>({
     setPage,
     setSearchValue,
     totalCount,
+    reloadList: loadList,
   };
 }

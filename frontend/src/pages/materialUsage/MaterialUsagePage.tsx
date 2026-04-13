@@ -1,0 +1,295 @@
+import { useEffect, useMemo, useState } from "react";
+
+import { useToast } from "../../components/feedback/useToast";
+import { ErrorMessage } from "../../components/common/ErrorMessage";
+import { PageHeader } from "../../components/layout/PageHeader";
+import { DataTable } from "../../components/table/DataTable";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
+import { useReferenceData } from "../../hooks/useReferenceData";
+import { materialReceiptsService } from "../../services/materialReceiptsService";
+import { materialUsageService } from "../../services/materialsService";
+import type { MaterialUsage, Receipt } from "../../types/erp.types";
+import { getErrorMessage } from "../../utils/apiError";
+import { formatDate, formatNumber } from "../../utils/format";
+
+interface UsageFilters {
+  date: string;
+  material: number;
+  receipt: number;
+  site: number;
+}
+
+const initialFilters: UsageFilters = {
+  date: "",
+  material: 0,
+  receipt: 0,
+  site: 0,
+};
+
+export function MaterialUsagePage() {
+  const { showError } = useToast();
+  const references = useReferenceData();
+  const [appliedFilters, setAppliedFilters] = useState<UsageFilters>(initialFilters);
+  const [filters, setFilters] = useState<UsageFilters>(initialFilters);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [rows, setRows] = useState<MaterialUsage[]>([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [totalCount, setTotalCount] = useState(0);
+
+  useEffect(() => {
+    async function loadReceipts() {
+      try {
+        setReceipts(await materialReceiptsService.getOptions());
+      } catch (loadError) {
+        showError("Unable to load receipt options", getErrorMessage(loadError));
+      }
+    }
+
+    void loadReceipts();
+  }, [showError]);
+
+  useEffect(() => {
+    async function loadUsages() {
+      try {
+        setIsLoading(true);
+        setError("");
+        const response = await materialUsageService.list({
+          date: appliedFilters.date || undefined,
+          material: appliedFilters.material || undefined,
+          page,
+          receipt: appliedFilters.receipt || undefined,
+          site: appliedFilters.site || undefined,
+        });
+        setRows(response.results);
+        setTotalCount(response.count);
+      } catch (loadError) {
+        const message = getErrorMessage(loadError);
+        setError(message);
+        showError("Unable to load material usage", message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    void loadUsages();
+  }, [appliedFilters, page, showError]);
+
+  const filteredReceiptOptions = useMemo(
+    () =>
+      receipts
+        .filter((receipt) =>
+          filters.site ? receipt.site === filters.site : true,
+        )
+        .filter((receipt) =>
+          filters.material ? receipt.material === filters.material : true,
+        )
+        .map((receipt) => ({
+          label: `${receipt.site_name} | ${receipt.material_name} | ${
+            receipt.invoice_number || `Receipt #${receipt.id}`
+          }`,
+          value: receipt.id,
+        })),
+    [filters.material, filters.site, receipts],
+  );
+
+  const totalUsed = useMemo(
+    () => rows.reduce((total, row) => total + row.quantity, 0),
+    [rows],
+  );
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        actions={
+          <>
+            <Button
+              onClick={() => {
+                setPage(1);
+                setAppliedFilters(filters);
+              }}
+              type="button"
+            >
+              Load Usage
+            </Button>
+            <Button
+              onClick={() => {
+                setFilters(initialFilters);
+                setAppliedFilters(initialFilters);
+                setPage(1);
+              }}
+              type="button"
+              variant="secondary"
+            >
+              Reset
+            </Button>
+          </>
+        }
+        description="Receipt-wise material consumption history across sites."
+        search={
+          <Input
+            label="Search"
+            placeholder="Search material usage"
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+          />
+        }
+        title="Material Usage"
+      />
+
+      <ErrorMessage message={error || references.error} />
+
+      <section className="grid gap-4 rounded-2xl border border-blue-100/90 bg-white/94 p-4 shadow-md shadow-blue-950/5 md:grid-cols-2 xl:grid-cols-4">
+        <Select
+          label="Site"
+          options={references.sites.map((site) => ({
+            label: site.name,
+            value: site.id,
+          }))}
+          value={filters.site || ""}
+          onChange={(event) =>
+            setFilters((currentValue) => ({
+              ...currentValue,
+              receipt: 0,
+              site: event.target.value ? Number(event.target.value) : 0,
+            }))
+          }
+        />
+        <Select
+          label="Material"
+          options={references.materials.map((material) => ({
+            label: material.name,
+            value: material.id,
+          }))}
+          value={filters.material || ""}
+          onChange={(event) =>
+            setFilters((currentValue) => ({
+              ...currentValue,
+              material: event.target.value ? Number(event.target.value) : 0,
+              receipt: 0,
+            }))
+          }
+        />
+        <Select
+          label="Receipt"
+          options={filteredReceiptOptions}
+          value={filters.receipt || ""}
+          onChange={(event) =>
+            setFilters((currentValue) => ({
+              ...currentValue,
+              receipt: event.target.value ? Number(event.target.value) : 0,
+            }))
+          }
+        />
+        <Input
+          label="Usage Date"
+          type="date"
+          value={filters.date}
+          onChange={(event) =>
+            setFilters((currentValue) => ({
+              ...currentValue,
+              date: event.target.value,
+            }))
+          }
+        />
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-[1.5rem] border border-blue-100 bg-white/95 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+            Usage Records
+          </p>
+          <p className="mt-2 text-2xl font-black text-slate-950">
+            {formatNumber(totalCount)}
+          </p>
+        </div>
+        <div className="rounded-[1.5rem] border border-cyan-200 bg-cyan-50/80 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">
+            Current Page Quantity
+          </p>
+          <p className="mt-2 text-2xl font-black text-slate-950">
+            {formatNumber(totalUsed)}
+          </p>
+        </div>
+        <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            Active Filters
+          </p>
+          <p className="mt-2 text-sm font-bold text-slate-950">
+            {[
+              appliedFilters.site ? "Site" : "",
+              appliedFilters.material ? "Material" : "",
+              appliedFilters.receipt ? "Receipt" : "",
+              appliedFilters.date ? "Date" : "",
+            ]
+              .filter(Boolean)
+              .join(", ") || "All records"}
+          </p>
+        </div>
+      </section>
+
+      <DataTable<MaterialUsage>
+        columns={[
+          {
+            key: "date",
+            header: "Usage Date",
+            accessor: (row) => formatDate(row.date),
+            sortValue: (row) => row.date,
+          },
+          {
+            key: "site",
+            header: "Site",
+            accessor: (row) => row.site_name,
+            sortValue: (row) => row.site_name,
+          },
+          {
+            key: "material",
+            header: "Material",
+            accessor: (row) => row.material_name,
+            sortValue: (row) => row.material_name,
+          },
+          {
+            key: "receipt",
+            header: "Receipt",
+            accessor: (row) =>
+              row.receipt_invoice_number || `Receipt #${row.receipt}`,
+            sortValue: (row) =>
+              row.receipt_invoice_number || `Receipt #${row.receipt}`,
+          },
+          {
+            key: "receipt_date",
+            header: "Receipt Date",
+            accessor: (row) => formatDate(row.receipt_date),
+            sortValue: (row) => row.receipt_date,
+          },
+          {
+            key: "quantity",
+            header: "Quantity Used",
+            accessor: (row) => row.quantity,
+            sortValue: (row) => row.quantity,
+          },
+          {
+            key: "notes",
+            header: "Notes",
+            accessor: (row) => row.notes || "-",
+            sortValue: (row) => row.notes || "",
+          },
+        ]}
+        data={rows}
+        emptyDescription="No material usage records found for the selected filters."
+        emptyTitle="No Usage Records"
+        isLoading={isLoading}
+        keyExtractor={(row) => row.id}
+        page={page}
+        searchValue={searchValue}
+        totalCount={totalCount}
+        onPageChange={setPage}
+        onSearchChange={setSearchValue}
+      />
+    </div>
+  );
+}

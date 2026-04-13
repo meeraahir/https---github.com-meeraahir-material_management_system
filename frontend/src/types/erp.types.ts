@@ -115,6 +115,20 @@ export interface Receipt {
   remaining_stock: number;
 }
 
+export interface MaterialUsage {
+  id: number;
+  receipt: number;
+  receipt_date: string;
+  receipt_invoice_number: string | null;
+  site: number;
+  site_name: string;
+  material: number;
+  material_name: string;
+  quantity: number;
+  date: string;
+  notes: string | null;
+}
+
 export interface ReceiptFormValues {
   site: number;
   material: number;
@@ -234,6 +248,7 @@ export interface Receivable {
   date: string;
   current_received_amount?: number;
   pending_amount?: number;
+  receipt_id?: number;
 }
 
 export interface ReceivableFormValues {
@@ -267,6 +282,50 @@ export interface DashboardStats {
   recent_vendors: Array<Pick<Vendor, "id" | "name" | "phone" | "address">>;
   recent_labour?: Array<Pick<Labour, "id" | "name" | "phone">>;
   recent_transactions?: Array<Pick<Receivable, "id" | "amount" | "received" | "date">>;
+}
+
+export interface SiteDashboardMaterialSummary {
+  material__id: number;
+  material__name: string;
+  total_received: number;
+  total_used: number;
+  total_cost: number;
+  remaining_stock: number;
+}
+
+export interface SiteDashboardVendorSummary {
+  vendor_id: number;
+  vendor_name: string;
+  total_amount: number;
+  paid_amount: number;
+  pending_amount: number;
+}
+
+export interface SiteDashboardLabourSummary {
+  labour_id: number;
+  labour_name: string;
+  present_count: number;
+  total_days: number;
+  absent_count: number;
+  total_wage: number;
+  paid_amount: number;
+  pending_amount: number;
+}
+
+export interface SiteDashboardFinanceSummary {
+  party__id: number;
+  party__name: string;
+  total_amount: number;
+  received_amount: number;
+  pending_amount: number;
+}
+
+export interface SiteDashboardData {
+  site: Site;
+  material_summary: SiteDashboardMaterialSummary[];
+  vendor_summary: SiteDashboardVendorSummary[];
+  labour_summary: SiteDashboardLabourSummary[];
+  finance_summary: SiteDashboardFinanceSummary[];
 }
 
 export type ReportModuleKey =
@@ -351,6 +410,35 @@ export interface LabourReportData {
   summary: LabourReportSummary;
 }
 
+export interface LabourAttendanceMonth {
+  month: string;
+  month_start: string;
+  present_days: number;
+  absent_days: number;
+  total_days: number;
+  total_wage: number;
+}
+
+export interface LabourAttendanceMonthlyReport {
+  labour_id: number;
+  labour_name: string;
+  per_day_wage: number;
+  filters: {
+    year: number | null;
+    month: number | null;
+    site: number | null;
+    date_from: string | null;
+    date_to: string | null;
+  };
+  totals: {
+    present_days: number;
+    absent_days: number;
+    total_days: number;
+    total_wage: number;
+  };
+  months: LabourAttendanceMonth[];
+}
+
 export interface VendorLedgerEntry {
   id: number | string;
   entry_type: string;
@@ -376,6 +464,14 @@ export interface VendorLedger {
   totals: VendorLedgerTotals;
 }
 
+export interface VendorPendingReportRow {
+  vendor_id: number;
+  vendor_name: string;
+  total_amount: number;
+  paid_amount: number;
+  pending_amount: number;
+}
+
 export interface PartyLedgerEntry {
   id: number | string;
   entry_type: string;
@@ -396,4 +492,11 @@ export interface PartyLedger {
   party: string;
   transactions: PartyLedgerEntry[];
   totals: PartyLedgerTotals;
+}
+
+export interface ReceivePaymentFormValues {
+  amount: number;
+  date: string;
+  reference_number: string;
+  notes: string;
 }

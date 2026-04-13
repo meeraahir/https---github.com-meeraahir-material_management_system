@@ -1,6 +1,9 @@
 import { z } from "zod";
+import { useState } from "react";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
+import { ReceivePaymentModal } from "../../components/forms/ReceivePaymentModal";
+import { useToast } from "../../components/feedback/useToast";
 import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { receivablesService } from "../../services/receivablesService";
@@ -39,136 +42,182 @@ function getReceivableStatus(row: Receivable) {
 }
 
 export function ReceivablesPage() {
+  const { showError } = useToast();
   const { user } = useAuth();
   const references = useReferenceData();
   const permissions = getCrudPermissions(user);
+  const [paymentTarget, setPaymentTarget] = useState<Receivable | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const partyNameMap = new Map(
     references.parties.map((party) => [party.id, party.name]),
   );
   const siteNameMap = new Map(references.sites.map((site) => [site.id, site.name]));
 
   return (
-    <CrudModulePage<Receivable, ReceivableFormValues>
-      canCreate={permissions.canCreate}
-      canDelete={permissions.canDelete}
-      canEdit={permissions.canEdit}
-      columns={[
-        {
-          key: "party",
-          header: "Party",
-          accessor: (row) => partyNameMap.get(row.party) || row.party,
-          sortValue: (row) => partyNameMap.get(row.party) || row.party,
-        },
-        {
-          key: "site",
-          header: "Site",
-          accessor: (row) => siteNameMap.get(row.site) || row.site,
-          sortValue: (row) => siteNameMap.get(row.site) || row.site,
-        },
-        { key: "amount", header: "Amount", accessor: (row) => row.amount, sortValue: (row) => row.amount },
-        {
-          key: "received_amount",
-          header: "Received Amount",
-          accessor: (row) => row.current_received_amount ?? 0,
-          sortValue: (row) => row.current_received_amount ?? 0,
-        },
-        {
-          key: "pending",
-          header: "Pending Amount",
-          accessor: (row) => row.pending_amount ?? row.amount,
-          sortValue: (row) => row.pending_amount ?? row.amount,
-        },
-        {
-          key: "status",
-          header: "Status",
-          accessor: (row) => getReceivableStatus(row),
-          sortValue: (row) => getReceivableStatus(row),
-        },
-        { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
-      ]}
-      createLabel="Add Receivable"
-      defaultValues={{
-        amount: 0,
-        date: new Date().toISOString().slice(0, 10),
-        party: 0,
-        received_amount: 0,
-        site: 0,
-      }}
-      description="Track client invoices with partial receipt amounts and real pending balances."
-      emptyDescription="No receivables have been recorded."
-      emptyTitle="No receivables found"
-      externalError={references.error}
-      fields={[
-        {
-          kind: "select",
-          label: "Party",
-          name: "party",
-          options: references.parties.map((party) => ({ label: party.name, value: party.id })),
-          required: true,
-          valueType: "number",
-        },
-        {
-          kind: "select",
-          label: "Site",
-          name: "site",
-          options: references.sites.map((site) => ({ label: site.name, value: site.id })),
-          required: true,
-          valueType: "number",
-        },
-        {
-          kind: "number",
-          description: "Total invoice amount raised to the party.",
-          label: "Amount",
-          min: 0,
-          name: "amount",
-          required: true,
-          valueType: "number",
-        },
-        { kind: "date", label: "Invoice Date", name: "date", required: true },
-        {
-          kind: "number",
-          description: "Enter amount received so far. Leave 0 if nothing has been collected yet.",
-          label: "Received Amount",
-          min: 0,
-          name: "received_amount",
-          required: true,
-          valueType: "number",
-        },
-      ]}
-      getEditValues={(entity) => ({
-        amount: entity.amount,
-        date: entity.date,
-        party: entity.party,
-        received_amount: entity.current_received_amount ?? 0,
-        site: entity.site,
-      })}
-      getId={(entity) => entity.id}
-      schema={receivableSchema}
-      searchPlaceholder="Search receivables"
-      service={receivablesService}
-      title="Receivables"
-      viewFields={[
-        { label: "Record ID", value: (row) => row.id, highlight: true },
-        {
-          label: "Party",
-          value: (row) => partyNameMap.get(row.party),
-          highlight: true,
-        },
-        {
-          label: "Site",
-          value: (row) => siteNameMap.get(row.site),
-          highlight: true,
-        },
-        { label: "Amount", value: (row) => row.amount, highlight: true },
-        { label: "Received", value: (row) => row.received },
-        { label: "Invoice Date", value: (row) => row.date },
-        { label: "Current Received Amount", value: (row) => row.current_received_amount },
-        { label: "Pending Amount", value: (row) => row.pending_amount, highlight: true },
-        {
-          label: "Status",
-          value: (row) => getReceivableStatus(row),
-        },
-      ]}
-    />
+    <>
+      <CrudModulePage<Receivable, ReceivableFormValues>
+        canCreate={permissions.canCreate}
+        canDelete={permissions.canDelete}
+        canEdit={permissions.canEdit}
+        columns={[
+          {
+            key: "party",
+            header: "Party",
+            accessor: (row) => partyNameMap.get(row.party) || row.party,
+            sortValue: (row) => partyNameMap.get(row.party) || row.party,
+          },
+          {
+            key: "site",
+            header: "Site",
+            accessor: (row) => siteNameMap.get(row.site) || row.site,
+            sortValue: (row) => siteNameMap.get(row.site) || row.site,
+          },
+          { key: "amount", header: "Amount", accessor: (row) => row.amount, sortValue: (row) => row.amount },
+          {
+            key: "received_amount",
+            header: "Received Amount",
+            accessor: (row) => row.current_received_amount ?? 0,
+            sortValue: (row) => row.current_received_amount ?? 0,
+          },
+          {
+            key: "pending",
+            header: "Pending Amount",
+            accessor: (row) => row.pending_amount ?? row.amount,
+            sortValue: (row) => row.pending_amount ?? row.amount,
+          },
+          {
+            key: "status",
+            header: "Status",
+            accessor: (row) => getReceivableStatus(row),
+            sortValue: (row) => getReceivableStatus(row),
+          },
+          { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
+        ]}
+        createLabel="Add Receivable"
+        defaultValues={{
+          amount: 0,
+          date: new Date().toISOString().slice(0, 10),
+          party: 0,
+          received_amount: 0,
+          site: 0,
+        }}
+        description="Track client invoices with partial receipt amounts and real pending balances."
+        emptyDescription="No receivables have been recorded."
+        emptyTitle="No receivables found"
+        externalError={references.error}
+        extraActions={[
+          {
+            disabled: (row) => (row.pending_amount ?? row.amount) <= 0,
+            label: "Receive",
+            onClick: (row: Receivable) => {
+              if ((row.pending_amount ?? row.amount) <= 0) {
+                showError(
+                  "Payment already received",
+                  "This receivable is already fully collected.",
+                );
+                return;
+              }
+
+              setPaymentTarget(row);
+            },
+            variant: "secondary",
+          },
+        ]}
+        fields={[
+          {
+            kind: "select",
+            label: "Party",
+            name: "party",
+            options: references.parties.map((party) => ({ label: party.name, value: party.id })),
+            required: true,
+            valueType: "number",
+          },
+          {
+            kind: "select",
+            label: "Site",
+            name: "site",
+            options: references.sites.map((site) => ({ label: site.name, value: site.id })),
+            required: true,
+            valueType: "number",
+          },
+          {
+            kind: "number",
+            description: "Total invoice amount raised to the party.",
+            label: "Amount",
+            min: 0,
+            name: "amount",
+            required: true,
+            valueType: "number",
+          },
+          { kind: "date", label: "Invoice Date", name: "date", required: true },
+          {
+            kind: "number",
+            description: "Enter amount received so far. Leave 0 if nothing has been collected yet.",
+            label: "Received Amount",
+            min: 0,
+            name: "received_amount",
+            required: true,
+            valueType: "number",
+          },
+        ]}
+        getEditValues={(entity) => ({
+          amount: entity.amount,
+          date: entity.date,
+          party: entity.party,
+          received_amount: entity.current_received_amount ?? 0,
+          site: entity.site,
+        })}
+        getId={(entity) => entity.id}
+        refreshKey={refreshKey}
+        schema={receivableSchema}
+        searchPlaceholder="Search receivables"
+        service={receivablesService}
+        title="Receivables"
+        viewFields={[
+          { label: "Record ID", value: (row) => row.id, highlight: true },
+          {
+            label: "Party",
+            value: (row) => partyNameMap.get(row.party),
+            highlight: true,
+          },
+          {
+            label: "Site",
+            value: (row) => siteNameMap.get(row.site),
+            highlight: true,
+          },
+          { label: "Amount", value: (row) => row.amount, highlight: true },
+          { label: "Received", value: (row) => row.received },
+          { label: "Invoice Date", value: (row) => row.date },
+          { label: "Current Received Amount", value: (row) => row.current_received_amount },
+          { label: "Pending Amount", value: (row) => row.pending_amount, highlight: true },
+          {
+            label: "Status",
+            value: (row) => getReceivableStatus(row),
+          },
+          { label: "Receipt ID", value: (row) => row.receipt_id },
+        ]}
+      />
+
+      <ReceivePaymentModal
+        item={paymentTarget}
+        onClose={() => setPaymentTarget(null)}
+        onSubmit={async (values) => {
+          if (!paymentTarget) {
+            return;
+          }
+
+          await receivablesService.receivePayment(paymentTarget.id, values);
+          setPaymentTarget(null);
+          setRefreshKey((currentValue) => currentValue + 1);
+        }}
+        open={Boolean(paymentTarget)}
+        partyLabel={
+          paymentTarget ? partyNameMap.get(paymentTarget.party) : undefined
+        }
+        siteLabel={
+          paymentTarget ? siteNameMap.get(paymentTarget.site) : undefined
+        }
+      />
+    </>
   );
 }

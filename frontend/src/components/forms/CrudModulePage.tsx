@@ -6,6 +6,7 @@ import { useCrudModule } from "../../hooks/useCrudModule";
 import type { CrudService } from "../../services/crudService";
 import type { TableColumn } from "../../types/ui.types";
 import type { DetailField, FormFieldConfig } from "../../types/ui.types";
+import type { TableAction } from "../../types/ui.types";
 import { PageHeader } from "../layout/PageHeader";
 import { ConfirmDialog } from "../modal/ConfirmDialog";
 import { DataTable } from "../table/DataTable";
@@ -25,10 +26,12 @@ interface CrudModulePageProps<TEntity, TFormValues extends FieldValues> {
   description: string;
   emptyDescription: string;
   emptyTitle: string;
+  extraActions?: TableAction<TEntity>[];
   externalError?: string;
   fields: FormFieldConfig<TFormValues>[];
   getEditValues: (entity: TEntity) => TFormValues;
   getId: (entity: TEntity) => number;
+  refreshKey?: number;
   schema: z.ZodType<TFormValues>;
   searchPlaceholder: string;
   service: CrudService<TEntity, TFormValues>;
@@ -46,10 +49,12 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
   description,
   emptyDescription,
   emptyTitle,
+  extraActions,
   externalError,
   fields,
   getEditValues,
   getId,
+  refreshKey,
   schema,
   searchPlaceholder,
   service,
@@ -77,6 +82,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
     totalCount,
   } = useCrudModule({
     getId,
+    reloadSignal: refreshKey,
     service,
   });
   const [viewingItem, setViewingItem] = useState<TEntity | null>(null);
@@ -84,6 +90,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
     ...(viewFields?.length
       ? [{ label: "View", onClick: setViewingItem, variant: "primary" as const }]
       : []),
+    ...(extraActions ?? []),
     ...(canEdit
       ? [{ label: "Edit", onClick: openEdit, variant: "secondary" as const }]
       : []),

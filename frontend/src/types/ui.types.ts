@@ -11,6 +11,7 @@ export interface TableColumn<T> {
 }
 
 export interface TableAction<T> {
+  disabled?: (row: T) => boolean;
   label: string;
   onClick: (row: T) => void;
   variant?: "primary" | "secondary" | "ghost";

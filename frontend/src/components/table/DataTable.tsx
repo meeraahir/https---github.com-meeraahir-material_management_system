@@ -262,6 +262,7 @@ export function DataTable<T>({
                     {actions.map((action) => (
                       <Button
                         className={getActionVariantClass(action.label)}
+                        disabled={action.disabled?.(row) ?? false}
                         key={action.label}
                         onClick={() => action.onClick(row)}
                         size="sm"
@@ -377,6 +378,7 @@ export function DataTable<T>({
                           {actions.map((action) => (
                             <Button
                               className={getActionVariantClass(action.label)}
+                              disabled={action.disabled?.(row) ?? false}
                               key={action.label}
                               onClick={() => action.onClick(row)}
                               size="sm"

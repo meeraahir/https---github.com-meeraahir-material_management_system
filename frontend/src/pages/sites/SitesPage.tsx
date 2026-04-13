@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { useNavigate } from "react-router-dom";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
 import { useAuth } from "../../hooks/useAuth";
@@ -22,6 +23,7 @@ const siteSchema = z.object({
 
 export function SitesPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const permissions = getCrudPermissions(user);
 
   return (
@@ -39,6 +41,13 @@ export function SitesPage() {
       description="Manage all construction sites linked to operational records."
       emptyDescription="No sites have been created yet."
       emptyTitle="No sites found"
+      extraActions={[
+        {
+          label: "Dashboard",
+          onClick: (row: Site) => navigate(`/sites/${row.id}/dashboard`),
+          variant: "secondary",
+        },
+      ]}
       fields={[
         {
           kind: "text",
