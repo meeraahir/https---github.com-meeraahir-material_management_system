@@ -17,6 +17,7 @@ import {
 import { formatCurrency, formatNumber } from "../../utils/format";
 
 const palette = ["#2563eb", "#0f766e", "#d97706", "#dc2626", "#7c3aed", "#0891b2"];
+const RADIAN = Math.PI / 180;
 
 function getNumericValue(
   value: number | string | ReadonlyArray<number | string> | undefined,
@@ -36,7 +37,7 @@ function truncateLabel(value: string, maxLength = 12) {
   return `${value.slice(0, Math.max(1, maxLength - 3))}...`;
 }
 
-function splitLabel(value: string, maxLineLength = 14) {
+function splitLabel(value: string, maxLineLength = 14, maxLines = 2) {
   const words = value.trim().split(/\s+/).filter(Boolean);
 
   if (words.length === 0) {
@@ -62,18 +63,18 @@ function splitLabel(value: string, maxLineLength = 14) {
       currentLine = "";
     }
 
-    if (lines.length === 2) {
+    if (lines.length === maxLines) {
       break;
     }
   }
 
-  if (currentLine && lines.length < 2) {
+  if (currentLine && lines.length < maxLines) {
     lines.push(currentLine);
   }
 
   const visibleLength = lines.join(" ").length;
 
-  return lines.slice(0, 2).map((line, index, allLines) => {
+  return lines.slice(0, maxLines).map((line, index, allLines) => {
     if (index === allLines.length - 1 && visibleLength < value.length) {
       return truncateLabel(line, maxLineLength);
     }
@@ -86,10 +87,11 @@ function renderTickWithTooltip(props: {
   payload?: { value?: string | number };
   x?: number | string;
   y?: number | string;
-}) {
+}, options?: { lineHeight?: number; maxLineLength?: number; maxLines?: number }) {
   const { payload, x = 0, y = 0 } = props;
+  const { lineHeight = 13, maxLineLength = 14, maxLines = 2 } = options ?? {};
   const rawValue = String(payload?.value ?? "");
-  const displayLines = splitLabel(rawValue);
+  const displayLines = splitLabel(rawValue, maxLineLength, maxLines);
 
   return (
     <g transform={`translate(${x},${y})`}>
@@ -102,7 +104,7 @@ function renderTickWithTooltip(props: {
       >
         {displayLines.map((line, index) => (
           <tspan
-            dy={index === 0 ? 0 : 13}
+            dy={index === 0 ? 0 : lineHeight}
             key={`${rawValue}-${index}`}
             x={0}
           >
@@ -118,6 +120,46 @@ function renderLegendLabel(value: string) {
   const displayValue = truncateLabel(value, 18);
 
   return <span title={value}>{displayValue}</span>;
+}
+
+function renderSiteDistributionLabel(props: {
+  cx?: number;
+  cy?: number;
+  midAngle?: number;
+  name?: string | number;
+  outerRadius?: number;
+  percent?: number;
+}) {
+  const {
+    cx = 0,
+    cy = 0,
+    midAngle = 0,
+    name = "",
+    outerRadius = 0,
+    percent = 0,
+  } = props;
+
+  if (percent < 0.03) {
+    return null;
+  }
+
+  const radius = outerRadius + 18;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const label = `${truncateLabel(String(name), 12)} ${Math.round(percent * 100)}%`;
+
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor={x > cx ? "start" : "end"}
+      dominantBaseline="central"
+      className="fill-slate-700 text-[12px] font-medium dark:fill-slate-700"
+    >
+      <title>{String(name)}</title>
+      {label}
+    </text>
+  );
 }
 
 interface MaterialUsageDatum {
@@ -147,17 +189,24 @@ export function MaterialUsageBarChart({
 }) {
   return (
     <ResponsiveContainer height="100%" width="100%">
-      <BarChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
+      <BarChart data={data} margin={{ bottom: 18, left: 12, right: 24, top: 8 }}>
         <CartesianGrid stroke="#cbd5e1" strokeDasharray="3 3" vertical={false} />
         <XAxis
           axisLine={false}
           dataKey="material"
-          height={62}
+          height={86}
           interval={0}
-          tick={renderTickWithTooltip}
+          tick={(props) => renderTickWithTooltip(props, { maxLineLength: 10, maxLines: 3 })}
+          tickMargin={10}
           tickLine={false}
         />
-        <YAxis tickFormatter={(value) => formatNumber(value)} tickLine={false} axisLine={false} />
+        <YAxis
+          axisLine={false}
+          tickFormatter={(value) => formatNumber(value)}
+          tickLine={false}
+          tickMargin={8}
+          width={76}
+        />
         <Tooltip formatter={(value) => formatNumber(getNumericValue(value))} />
         <Legend formatter={renderLegendLabel} />
         <Bar dataKey="used" fill="#2563eb" name="Used Quantity" radius={[12, 12, 0, 0]} />
@@ -173,17 +222,24 @@ export function CostTrackingLineChart({
 }) {
   return (
     <ResponsiveContainer height="100%" width="100%">
-      <LineChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
+      <LineChart data={data} margin={{ bottom: 18, left: 18, right: 24, top: 8 }}>
         <CartesianGrid stroke="#cbd5e1" strokeDasharray="3 3" vertical={false} />
         <XAxis
           axisLine={false}
           dataKey="label"
-          height={62}
+          height={86}
           interval={0}
-          tick={renderTickWithTooltip}
+          tick={(props) => renderTickWithTooltip(props, { maxLineLength: 10, maxLines: 3 })}
+          tickMargin={10}
           tickLine={false}
         />
-        <YAxis tickFormatter={(value) => formatCurrency(value)} tickLine={false} axisLine={false} />
+        <YAxis
+          axisLine={false}
+          tickFormatter={(value) => formatCurrency(value)}
+          tickLine={false}
+          tickMargin={8}
+          width={112}
+        />
         <Tooltip formatter={(value) => formatCurrency(getNumericValue(value))} />
         <Legend formatter={renderLegendLabel} />
         <Line
@@ -213,12 +269,11 @@ export function SiteDistributionPieChart({
           cy="50%"
           data={data}
           dataKey="value"
-          innerRadius={60}
-          label={({ name, percent }) =>
-            `${truncateLabel(String(name ?? ""), 10)} ${(((percent ?? 0) as number) * 100).toFixed(0)}%`
-          }
+          innerRadius={56}
+          label={renderSiteDistributionLabel}
+          labelLine={false}
           nameKey="site"
-          outerRadius={96}
+          outerRadius={84}
           paddingAngle={3}
         >
           {data.map((entry, index) => (
