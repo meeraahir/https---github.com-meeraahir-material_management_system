@@ -23,6 +23,7 @@ interface DataTableProps<T> {
   hidePagination?: boolean;
   isLoading?: boolean;
   keyExtractor: (row: T, index: number) => number | string;
+  onRowClick?: (row: T) => void;
   onRowDoubleClick?: (row: T) => void;
   page: number;
   pageSize?: number;
@@ -161,6 +162,7 @@ export function DataTable<T>({
   hidePagination = false,
   isLoading = false,
   keyExtractor,
+  onRowClick,
   onRowDoubleClick,
   page,
   pageSize = 10,
@@ -220,6 +222,7 @@ export function DataTable<T>({
     ? rows.slice((page - 1) * pageSize, page * pageSize)
     : rows;
   const showHeader = Boolean(headerTitle || headerActions);
+  const isRowInteractive = Boolean(onRowClick || onRowDoubleClick);
   const headerCellClassName = compact
     ? "min-w-24 max-w-[8.75rem] px-3 py-2.5 text-[0.76rem]"
     : "min-w-36 max-w-[13rem] px-4 py-3.5 text-[0.86rem]";
@@ -256,8 +259,12 @@ export function DataTable<T>({
           <div className="grid gap-3 p-4 md:hidden">
             {paginatedRows.map((row, index) => (
               <article
-                className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm shadow-blue-950/5 dark:border-blue-100 dark:bg-white"
+                className={clsx(
+                  "rounded-2xl border border-blue-100 bg-white p-4 shadow-sm shadow-blue-950/5 dark:border-blue-100 dark:bg-white",
+                  isRowInteractive && "cursor-pointer hover:border-blue-200",
+                )}
                 key={keyExtractor(row, index)}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
                 onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
               >
                 <dl className="grid gap-3">
@@ -305,7 +312,10 @@ export function DataTable<T>({
                           )}
                           disabled={action.disabled?.(row) ?? false}
                           key={action.ariaLabel ?? action.label}
-                          onClick={() => action.onClick(row)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            action.onClick(row);
+                          }}
                           title={action.ariaLabel ?? action.label}
                           type="button"
                         >
@@ -316,7 +326,10 @@ export function DataTable<T>({
                           className={getActionVariantClass(action.label)}
                           disabled={action.disabled?.(row) ?? false}
                           key={action.label}
-                          onClick={() => action.onClick(row)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            action.onClick(row);
+                          }}
                           size="sm"
                           type="button"
                           variant={action.variant ?? "secondary"}
@@ -410,9 +423,10 @@ export function DataTable<T>({
                   <tr
                     className={clsx(
                       "transition hover:bg-blue-50/70 dark:hover:bg-blue-50/70",
-                      onRowDoubleClick && "cursor-pointer",
+                      isRowInteractive && "cursor-pointer",
                     )}
                     key={keyExtractor(row, index)}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
                     onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
                   >
                     {columns.map((column) => {
@@ -460,7 +474,10 @@ export function DataTable<T>({
                                 )}
                                 disabled={action.disabled?.(row) ?? false}
                                 key={action.ariaLabel ?? action.label}
-                                onClick={() => action.onClick(row)}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  action.onClick(row);
+                                }}
                                 title={action.ariaLabel ?? action.label}
                                 type="button"
                               >
@@ -471,7 +488,10 @@ export function DataTable<T>({
                                 className={getActionVariantClass(action.label)}
                                 disabled={action.disabled?.(row) ?? false}
                                 key={action.label}
-                                onClick={() => action.onClick(row)}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  action.onClick(row);
+                                }}
                                 size="sm"
                                 type="button"
                                 variant={action.variant ?? "secondary"}

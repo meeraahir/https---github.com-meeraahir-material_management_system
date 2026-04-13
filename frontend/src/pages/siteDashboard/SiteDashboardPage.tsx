@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { icons } from "../../assets/icons";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { useToast } from "../../components/feedback/useToast";
 import { EntityFormModal } from "../../components/forms/EntityFormModal";
-import { PageHeader } from "../../components/layout/PageHeader";
 import { StatCard } from "../../components/layout/StatCard";
 import { ConfirmDialog } from "../../components/modal/ConfirmDialog";
 import { DataTable } from "../../components/table/DataTable";
@@ -35,8 +34,9 @@ import type {
 } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
 import { formatCurrency, formatDate } from "../../utils/format";
+import { DashboardLabourAttendanceModal } from "../dashboard/DashboardLabourAttendanceModal";
 import {
-  SiteLabourEntryModal,
+  SiteLabourPaymentModal,
   SiteMaterialReceiptModal,
   SitePartyEntryModal,
   SiteVendorEntryModal,
@@ -189,6 +189,7 @@ function upsertById<TEntity extends { id: number }>(
 
 export function SiteDashboardPage() {
   const { siteId } = useParams();
+  const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const references = useReferenceData();
   const parsedSiteId = Number(siteId);
@@ -199,6 +200,7 @@ export function SiteDashboardPage() {
   const [error, setError] = useState("");
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [isExporting, setIsExporting] = useState<"" | "excel" | "pdf">("");
+  const [isLabourAttendanceModalOpen, setIsLabourAttendanceModalOpen] = useState(false);
   const [isLabourPaymentModalOpen, setIsLabourPaymentModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isMaterialReceiptModalOpen, setIsMaterialReceiptModalOpen] = useState(false);
@@ -593,11 +595,6 @@ export function SiteDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        description={`Monitor site activity, add new entries, and keep ${site.name} updated from one workspace.`}
-        title="Site Dashboard"
-      />
-
       <ErrorMessage message={references.error || error} />
 
       {data ? (
@@ -734,6 +731,7 @@ export function SiteDashboardPage() {
               hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.id}
+              onRowClick={(row) => navigate(`/sites/${site.id}/dashboard/materials/${row.material}`)}
               page={1}
               searchValue=""
               totalCount={receipts.length}
@@ -802,6 +800,7 @@ export function SiteDashboardPage() {
               hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.id}
+              onRowClick={(row) => navigate(`/sites/${site.id}/dashboard/vendors/${row.vendor}`)}
               page={1}
               searchValue=""
               totalCount={purchases.length}
@@ -864,6 +863,7 @@ export function SiteDashboardPage() {
               hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.id}
+              onRowClick={(row) => navigate(`/sites/${site.id}/dashboard/parties/${row.party}`)}
               page={1}
               searchValue=""
               totalCount={receivables.length}
@@ -922,15 +922,27 @@ export function SiteDashboardPage() {
               emptyDescription="No labour payments are available for this site."
               emptyTitle="No Labour Payments"
               headerActions={
-                <AddSectionButton
-                  ariaLabel="Add Labour Payment"
-                  onClick={() => setIsLabourPaymentModalOpen(true)}
-                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    className="h-9 rounded-xl px-3"
+                    onClick={() => setIsLabourAttendanceModalOpen(true)}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    Attendance
+                  </Button>
+                  <AddSectionButton
+                    ariaLabel="Add Labour Payment"
+                    onClick={() => setIsLabourPaymentModalOpen(true)}
+                  />
+                </div>
               }
               headerTitle="Labour"
               hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.id}
+              onRowClick={(row) => navigate(`/sites/${site.id}/dashboard/labours/${row.labour}`)}
               page={1}
               searchValue=""
               totalCount={payments.length}
@@ -978,7 +990,7 @@ export function SiteDashboardPage() {
         siteName={site.name}
       />
 
-      <SiteLabourEntryModal
+      <SiteLabourPaymentModal
         labours={labours}
         onClose={() => setIsLabourPaymentModalOpen(false)}
         onLabourAdded={addLabourOption}
@@ -986,6 +998,14 @@ export function SiteDashboardPage() {
         open={isLabourPaymentModalOpen}
         siteId={site.id}
         siteName={site.name}
+      />
+
+      <DashboardLabourAttendanceModal
+        fixedSiteId={site.id}
+        fixedSiteName={site.name}
+        onClose={() => setIsLabourAttendanceModalOpen(false)}
+        onSaved={refreshDashboardData}
+        open={isLabourAttendanceModalOpen}
       />
 
       <EntityFormModal<ReceiptFormValues>

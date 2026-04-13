@@ -9,10 +9,22 @@ export function Breadcrumb() {
     segments.length === 3 &&
     segments[0] === "sites" &&
     segments[2] === "dashboard";
+  const isSiteDashboardDetailRoute =
+    segments.length === 5 &&
+    segments[0] === "sites" &&
+    segments[2] === "dashboard";
+  const siteDetailLabelMap = new Map([
+    ["materials", "Material Detail"],
+    ["vendors", "Vendor Detail"],
+    ["parties", "Party Detail"],
+    ["labours", "Labour Detail"],
+  ]);
   const activeSegment = segments.at(-1) ?? "dashboard";
   const activeLabel = isSiteDashboardRoute
     ? "Site Dashboard"
-    : routeLabelMap.get(activeSegment) ?? activeSegment;
+    : isSiteDashboardDetailRoute
+      ? siteDetailLabelMap.get(segments[3]) ?? "Site Detail"
+      : routeLabelMap.get(activeSegment) ?? activeSegment;
 
   return (
     <div className="group min-w-0">

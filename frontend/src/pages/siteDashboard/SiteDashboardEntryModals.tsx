@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import { icons } from "../../assets/icons";
 import { EntityFormModal } from "../../components/forms/EntityFormModal";
 import { useToast } from "../../components/feedback/useToast";
 import { Modal } from "../../components/modal/Modal";
@@ -10,11 +12,12 @@ import { FormError } from "../../components/ui/FormError";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Textarea } from "../../components/ui/Textarea";
-import { attendanceService } from "../../services/attendanceService";
+import { attendanceReportsService, attendanceService } from "../../services/attendanceService";
 import { labourService } from "../../services/labourService";
 import { materialReceiptsService } from "../../services/materialReceiptsService";
 import { materialsService } from "../../services/materialsService";
 import { partiesService } from "../../services/partiesService";
+import { paymentsService } from "../../services/paymentsService";
 import { receivablesService } from "../../services/receivablesService";
 import { vendorPurchasesService } from "../../services/vendorPurchasesService";
 import { vendorsService } from "../../services/vendorsService";
@@ -24,6 +27,7 @@ import type {
   LabourFormValues,
   Material,
   MaterialFormValues,
+  PaymentFormValues,
   Party,
   PartyFormValues,
   PurchaseFormValues,
@@ -40,6 +44,32 @@ const otherMaterialOptionValue = -1;
 const otherVendorOptionValue = -1;
 const otherPartyOptionValue = -1;
 const otherLabourOptionValue = -1;
+
+function InlineSelectActionField({
+  actionAriaLabel,
+  children,
+  onActionClick,
+}: {
+  actionAriaLabel: string;
+  children: ReactNode;
+  onActionClick: () => void;
+}) {
+  return (
+    <div className="flex min-w-0 items-end gap-2">
+      <div className="min-w-0 flex-1">{children}</div>
+      <Button
+        aria-label={actionAriaLabel}
+        className="h-11 w-11 shrink-0 rounded-2xl px-0"
+        onClick={onActionClick}
+        title={actionAriaLabel}
+        type="button"
+        variant="secondary"
+      >
+        {icons.plus({ className: "h-4 w-4" })}
+      </Button>
+    </div>
+  );
+}
 
 const materialSchema = z.object({
   name: z
@@ -162,6 +192,36 @@ const receivableSchema = z
         code: z.ZodIssueCode.custom,
         message: "Received amount cannot exceed invoice amount.",
         path: ["received_amount"],
+      });
+    }
+  });
+
+const paymentSchema = z
+  .object({
+    auto_calculate_total: z.boolean().optional(),
+    date: z.string().min(1, "Payment date is required."),
+    labour: z.number().min(1, "Labour is required."),
+    notes: z.string().max(600, "Notes must be 600 characters or fewer.").nullable().optional(),
+    paid_amount: z.number().min(0, "Paid amount must be zero or more."),
+    period_end: z.string().optional(),
+    period_start: z.string().optional(),
+    site: z.number().min(0, "Site is invalid.").optional(),
+    total_amount: z.number().min(0, "Total amount must be zero or more."),
+  })
+  .superRefine((value, context) => {
+    if (value.paid_amount > value.total_amount) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Paid amount cannot exceed total amount.",
+        path: ["paid_amount"],
+      });
+    }
+
+    if (value.period_start && value.period_end && value.period_end < value.period_start) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Period end must be on or after period start.",
+        path: ["period_end"],
       });
     }
   });
@@ -327,35 +387,40 @@ export function SiteMaterialReceiptModal({
               control={control}
               name="material"
               render={({ field }) => (
-                <Select
-                  clearable={false}
-                  error={errors.material?.message}
-                  label="Material"
-                  options={[
-                    ...materials.map((material) => ({
-                      label: material.name,
-                      value: material.id,
-                    })),
-                    { label: "Other Material", value: otherMaterialOptionValue },
-                  ]}
-                  placeholder="Select material"
-                  requiredIndicator
-                  value={field.value || ""}
-                  onChange={(event) => {
-                    const nextValue = event.target.value
-                      ? Number(event.target.value)
-                      : 0;
+                <InlineSelectActionField
+                  actionAriaLabel="Add Material"
+                  onActionClick={() => setIsMaterialModalOpen(true)}
+                >
+                  <Select
+                    clearable={false}
+                    error={errors.material?.message}
+                    label="Material"
+                    options={[
+                      ...materials.map((material) => ({
+                        label: material.name,
+                        value: material.id,
+                      })),
+                      { label: "Other Material", value: otherMaterialOptionValue },
+                    ]}
+                    placeholder="Select material"
+                    requiredIndicator
+                    value={field.value || ""}
+                    onChange={(event) => {
+                      const nextValue = event.target.value
+                        ? Number(event.target.value)
+                        : 0;
 
-                    if (nextValue === otherMaterialOptionValue) {
-                      field.onChange(lastSelectedMaterialRef.current || 0);
-                      setIsMaterialModalOpen(true);
-                      return;
-                    }
+                      if (nextValue === otherMaterialOptionValue) {
+                        field.onChange(lastSelectedMaterialRef.current || 0);
+                        setIsMaterialModalOpen(true);
+                        return;
+                      }
 
-                    lastSelectedMaterialRef.current = nextValue;
-                    field.onChange(nextValue);
-                  }}
-                />
+                      lastSelectedMaterialRef.current = nextValue;
+                      field.onChange(nextValue);
+                    }}
+                  />
+                </InlineSelectActionField>
               )}
             />
 
@@ -599,30 +664,35 @@ export function SiteVendorEntryModal({
               control={control}
               name="vendor"
               render={({ field }) => (
-                <Select
-                  clearable={false}
-                  error={errors.vendor?.message}
-                  label="Vendor"
-                  options={[
-                    ...vendors.map((vendor) => ({ label: vendor.name, value: vendor.id })),
-                    { label: "Other Vendor", value: otherVendorOptionValue },
-                  ]}
-                  placeholder="Select vendor"
-                  requiredIndicator
-                  value={field.value || ""}
-                  onChange={(event) => {
-                    const nextValue = event.target.value ? Number(event.target.value) : 0;
+                <InlineSelectActionField
+                  actionAriaLabel="Add Vendor"
+                  onActionClick={() => setIsVendorModalOpen(true)}
+                >
+                  <Select
+                    clearable={false}
+                    error={errors.vendor?.message}
+                    label="Vendor"
+                    options={[
+                      ...vendors.map((vendor) => ({ label: vendor.name, value: vendor.id })),
+                      { label: "Other Vendor", value: otherVendorOptionValue },
+                    ]}
+                    placeholder="Select vendor"
+                    requiredIndicator
+                    value={field.value || ""}
+                    onChange={(event) => {
+                      const nextValue = event.target.value ? Number(event.target.value) : 0;
 
-                    if (nextValue === otherVendorOptionValue) {
-                      field.onChange(lastSelectedVendorRef.current || 0);
-                      setIsVendorModalOpen(true);
-                      return;
-                    }
+                      if (nextValue === otherVendorOptionValue) {
+                        field.onChange(lastSelectedVendorRef.current || 0);
+                        setIsVendorModalOpen(true);
+                        return;
+                      }
 
-                    lastSelectedVendorRef.current = nextValue;
-                    field.onChange(nextValue);
-                  }}
-                />
+                      lastSelectedVendorRef.current = nextValue;
+                      field.onChange(nextValue);
+                    }}
+                  />
+                </InlineSelectActionField>
               )}
             />
             <Select
@@ -855,30 +925,35 @@ export function SitePartyEntryModal({
               control={control}
               name="party"
               render={({ field }) => (
-                <Select
-                  clearable={false}
-                  error={errors.party?.message}
-                  label="Party"
-                  options={[
-                    ...parties.map((party) => ({ label: party.name, value: party.id })),
-                    { label: "Other Party", value: otherPartyOptionValue },
-                  ]}
-                  placeholder="Select party"
-                  requiredIndicator
-                  value={field.value || ""}
-                  onChange={(event) => {
-                    const nextValue = event.target.value ? Number(event.target.value) : 0;
+                <InlineSelectActionField
+                  actionAriaLabel="Add Party"
+                  onActionClick={() => setIsPartyModalOpen(true)}
+                >
+                  <Select
+                    clearable={false}
+                    error={errors.party?.message}
+                    label="Party"
+                    options={[
+                      ...parties.map((party) => ({ label: party.name, value: party.id })),
+                      { label: "Other Party", value: otherPartyOptionValue },
+                    ]}
+                    placeholder="Select party"
+                    requiredIndicator
+                    value={field.value || ""}
+                    onChange={(event) => {
+                      const nextValue = event.target.value ? Number(event.target.value) : 0;
 
-                    if (nextValue === otherPartyOptionValue) {
-                      field.onChange(lastSelectedPartyRef.current || 0);
-                      setIsPartyModalOpen(true);
-                      return;
-                    }
+                      if (nextValue === otherPartyOptionValue) {
+                        field.onChange(lastSelectedPartyRef.current || 0);
+                        setIsPartyModalOpen(true);
+                        return;
+                      }
 
-                    lastSelectedPartyRef.current = nextValue;
-                    field.onChange(nextValue);
-                  }}
-                />
+                      lastSelectedPartyRef.current = nextValue;
+                      field.onChange(nextValue);
+                    }}
+                  />
+                </InlineSelectActionField>
               )}
             />
             <Select clearable={false} disabled label="Site" options={[{ label: siteName, value: siteId }]} value={siteId} />
@@ -915,6 +990,325 @@ export function SitePartyEntryModal({
         open={isPartyModalOpen}
         schema={partySchema}
         title="Add Party"
+      />
+    </>
+  );
+}
+
+interface SiteLabourPaymentModalProps {
+  labours: Labour[];
+  onClose: () => void;
+  onLabourAdded: (labour: Labour) => void;
+  onSaved: () => void;
+  open: boolean;
+  siteId: number;
+  siteName: string;
+}
+
+export function SiteLabourPaymentModal({
+  labours,
+  onClose,
+  onLabourAdded,
+  onSaved,
+  open,
+  siteId,
+  siteName,
+}: SiteLabourPaymentModalProps) {
+  const { showSuccess } = useToast();
+  const [isLabourModalOpen, setIsLabourModalOpen] = useState(false);
+  const [formError, setFormError] = useState("");
+  const lastSelectedLabourRef = useRef(0);
+  const calculationRequestRef = useRef(0);
+  const lastCalculationKeyRef = useRef("");
+  const labourWageMap = useMemo(
+    () => new Map(labours.map((labour) => [labour.id, labour.per_day_wage])),
+    [labours],
+  );
+  const {
+    control,
+    formState: { errors, isSubmitting, isValid },
+    handleSubmit,
+    register,
+    reset,
+    setValue,
+  } = useForm<PaymentFormValues>({
+    defaultValues: {
+      auto_calculate_total: true,
+      date: siteDashboardToday,
+      labour: 0,
+      notes: "",
+      paid_amount: 0,
+      period_end: "",
+      period_start: "",
+      site: siteId,
+      total_amount: 0,
+    },
+    mode: "onChange",
+    resolver: createZodResolver(paymentSchema),
+  });
+  const selectedLabourId = useWatch({ control, name: "labour" });
+  const selectedPeriodStart = useWatch({ control, name: "period_start" });
+  const selectedPeriodEnd = useWatch({ control, name: "period_end" });
+  const selectedTotalAmount = useWatch({ control, name: "total_amount" });
+
+  function handleClose() {
+    setFormError("");
+    setIsLabourModalOpen(false);
+    onClose();
+  }
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    calculationRequestRef.current = 0;
+    lastCalculationKeyRef.current = "";
+    lastSelectedLabourRef.current = 0;
+    reset({
+      auto_calculate_total: true,
+      date: siteDashboardToday,
+      labour: 0,
+      notes: "",
+      paid_amount: 0,
+      period_end: "",
+      period_start: "",
+      site: siteId,
+      total_amount: 0,
+    });
+  }, [open, reset, siteId]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const labourId = Number(selectedLabourId) || 0;
+    const periodStart = selectedPeriodStart || "";
+    const periodEnd = selectedPeriodEnd || "";
+    const currentTotal = Number(selectedTotalAmount) || 0;
+    const calculationKey = `${labourId}|${siteId}|${periodStart}|${periodEnd}`;
+
+    if (!labourId || !periodStart || !periodEnd || periodEnd < periodStart) {
+      if (lastCalculationKeyRef.current === calculationKey && currentTotal === 0) {
+        return;
+      }
+
+      lastCalculationKeyRef.current = calculationKey;
+
+      if (currentTotal !== 0) {
+        setValue("total_amount", 0, {
+          shouldDirty: false,
+          shouldTouch: false,
+          shouldValidate: true,
+        });
+      }
+
+      return;
+    }
+
+    if (lastCalculationKeyRef.current === calculationKey) {
+      return;
+    }
+
+    lastCalculationKeyRef.current = calculationKey;
+    const requestId = ++calculationRequestRef.current;
+
+    async function syncAutoCalculatedTotal() {
+      try {
+        const attendance = await attendanceReportsService.getLabourAttendance(labourId, {
+          dateFrom: periodStart,
+          dateTo: periodEnd,
+        });
+
+        if (requestId !== calculationRequestRef.current) {
+          return;
+        }
+
+        const presentDays = attendance.filter(
+          (row) => row.present && row.site === siteId,
+        ).length;
+        const totalAmount = Number(
+          (presentDays * (labourWageMap.get(labourId) || 0)).toFixed(2),
+        );
+
+        if (currentTotal !== totalAmount) {
+          setValue("total_amount", totalAmount, {
+            shouldDirty: false,
+            shouldTouch: false,
+            shouldValidate: true,
+          });
+        }
+      } catch {
+        if (requestId !== calculationRequestRef.current) {
+          return;
+        }
+
+        if (currentTotal !== 0) {
+          setValue("total_amount", 0, {
+            shouldDirty: false,
+            shouldTouch: false,
+            shouldValidate: true,
+          });
+        }
+      }
+    }
+
+    void syncAutoCalculatedTotal();
+  }, [
+    labourWageMap,
+    open,
+    selectedLabourId,
+    selectedPeriodEnd,
+    selectedPeriodStart,
+    selectedTotalAmount,
+    setValue,
+    siteId,
+  ]);
+
+  return (
+    <>
+      <Modal
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button onClick={handleClose} type="button" variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              disabled={!isValid}
+              form="site-labour-payment-form"
+              isLoading={isSubmitting}
+              type="submit"
+            >
+              Save Payment
+            </Button>
+          </div>
+        }
+        onClose={handleClose}
+        open={open}
+        size="xl"
+        title="Add Labour Payment"
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700 dark:border-blue-100 dark:bg-blue-50/70 dark:text-slate-700">
+            New labour payment will be recorded for <span className="font-semibold">{siteName}</span>.
+          </div>
+
+          <form
+            className="grid gap-4 md:grid-cols-2"
+            id="site-labour-payment-form"
+            onSubmit={handleSubmit(async (values) => {
+              try {
+                setFormError("");
+                await paymentsService.create(values as PaymentFormValues);
+                showSuccess("Payment added", "Labour payment has been created for this site.");
+                onSaved();
+                handleClose();
+              } catch (error) {
+                setFormError(getErrorMessage(error));
+              }
+            })}
+          >
+            <Controller
+              control={control}
+              name="labour"
+              render={({ field }) => (
+                <InlineSelectActionField
+                  actionAriaLabel="Add Labour"
+                  onActionClick={() => setIsLabourModalOpen(true)}
+                >
+                  <Select
+                    clearable={false}
+                    error={errors.labour?.message}
+                    label="Labour"
+                    options={[
+                      ...labours.map((labour) => ({ label: labour.name, value: labour.id })),
+                      { label: "Other Labour", value: otherLabourOptionValue },
+                    ]}
+                    placeholder="Select labour"
+                    requiredIndicator
+                    value={field.value || ""}
+                    onChange={(event) => {
+                      const nextValue = event.target.value ? Number(event.target.value) : 0;
+
+                      if (nextValue === otherLabourOptionValue) {
+                        field.onChange(lastSelectedLabourRef.current || 0);
+                        setIsLabourModalOpen(true);
+                        return;
+                      }
+
+                      lastSelectedLabourRef.current = nextValue;
+                      field.onChange(nextValue);
+                    }}
+                  />
+                </InlineSelectActionField>
+              )}
+            />
+            <Select clearable={false} disabled label="Site" options={[{ label: siteName, value: siteId }]} value={siteId} />
+            <Input error={errors.date?.message} label="Payment Date" requiredIndicator type="date" {...register("date")} />
+            <Input error={errors.period_start?.message} label="Period Start" type="date" {...register("period_start")} />
+            <Input error={errors.period_end?.message} label="Period End" type="date" {...register("period_end")} />
+            <Input
+              error={errors.total_amount?.message}
+              label="Total Amount"
+              min={0}
+              readOnly
+              requiredIndicator
+              type="number"
+              {...register("total_amount", {
+                setValueAs: (value) => (value === "" ? 0 : Number(value)),
+              })}
+            />
+            <Input
+              error={errors.paid_amount?.message}
+              label="Paid Amount"
+              min={0}
+              requiredIndicator
+              type="number"
+              {...register("paid_amount", {
+                setValueAs: (value) => (value === "" ? 0 : Number(value)),
+              })}
+            />
+            <div className="md:col-span-2">
+              <Textarea
+                error={errors.notes?.message}
+                label="Notes"
+                placeholder="Optional payment notes"
+                rows={4}
+                {...register("notes")}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <FormError message={formError} />
+            </div>
+          </form>
+        </div>
+      </Modal>
+
+      <EntityFormModal<LabourFormValues>
+        defaultValues={{ name: "", per_day_wage: 0, phone: "" }}
+        description="Create or update labour records."
+        fields={[
+          { kind: "text", label: "Labour Name", maxLength: 80, minLength: 2, name: "name", placeholder: "Worker name", required: true },
+          { kind: "text", label: "Phone", maxLength: 15, minLength: 10, name: "phone", pattern: "[0-9]{10,15}", placeholder: "Contact number", required: true },
+          { kind: "number", label: "Per Day Wage", min: 0, name: "per_day_wage", placeholder: "500", required: true, step: 1, valueType: "number" },
+        ]}
+        onClose={() => setIsLabourModalOpen(false)}
+        onSubmit={async (values) => {
+          const labour = await labourService.create(values);
+          onLabourAdded(labour);
+          lastSelectedLabourRef.current = labour.id;
+          setValue("labour", labour.id, {
+            shouldDirty: true,
+            shouldTouch: false,
+            shouldValidate: true,
+          });
+          setIsLabourModalOpen(false);
+          showSuccess("Labour added", "New labour is ready to use in this payment.");
+        }}
+        open={isLabourModalOpen}
+        schema={labourSchema}
+        title="Add Labour"
       />
     </>
   );

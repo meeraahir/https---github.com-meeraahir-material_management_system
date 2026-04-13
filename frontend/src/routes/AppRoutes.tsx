@@ -110,6 +110,26 @@ const SiteDashboardPage = lazy(() =>
     default: module.SiteDashboardPage,
   })),
 );
+const SiteMaterialDetailPage = lazy(() =>
+  import("../pages/siteDashboardDetails/SiteMaterialDetailPage").then((module) => ({
+    default: module.SiteMaterialDetailPage,
+  })),
+);
+const SiteVendorDetailPage = lazy(() =>
+  import("../pages/siteDashboardDetails/SiteVendorDetailPage").then((module) => ({
+    default: module.SiteVendorDetailPage,
+  })),
+);
+const SitePartyDetailPage = lazy(() =>
+  import("../pages/siteDashboardDetails/SitePartyDetailPage").then((module) => ({
+    default: module.SitePartyDetailPage,
+  })),
+);
+const SiteLabourDetailPage = lazy(() =>
+  import("../pages/siteDashboardDetails/SiteLabourDetailPage").then((module) => ({
+    default: module.SiteLabourDetailPage,
+  })),
+);
 const ReportsPage = lazy(() =>
   import("../pages/reports/ReportsPage").then((module) => ({ default: module.ReportsPage })),
 );
@@ -135,6 +155,10 @@ export function AppRoutes() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/sites" element={<SitesPage />} />
             <Route path="/sites/:siteId/dashboard" element={<SiteDashboardPage />} />
+            <Route path="/sites/:siteId/dashboard/materials/:materialId" element={<SiteMaterialDetailPage />} />
+            <Route path="/sites/:siteId/dashboard/vendors/:vendorId" element={<SiteVendorDetailPage />} />
+            <Route path="/sites/:siteId/dashboard/parties/:partyId" element={<SitePartyDetailPage />} />
+            <Route path="/sites/:siteId/dashboard/labours/:labourId" element={<SiteLabourDetailPage />} />
             <Route path="/materials" element={<MaterialsPage />} />
             <Route path="/material-usage" element={<MaterialUsagePage />} />
             <Route path="/vendors" element={<VendorsPage />} />

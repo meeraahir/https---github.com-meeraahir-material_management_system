@@ -11,7 +11,6 @@ import { useToast } from "../../components/feedback/useToast";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { Skeleton } from "../../components/common/Skeleton";
 import { EntityFormModal } from "../../components/forms/EntityFormModal";
-import { PageHeader } from "../../components/layout/PageHeader";
 import { StatCard } from "../../components/layout/StatCard";
 import { dashboardService } from "../../services/dashboardService";
 import { sitesService } from "../../services/sitesService";
@@ -186,24 +185,18 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        actions={
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => setIsSiteModalOpen(true)} type="button">
-              Add Site
-            </Button>
-            <Button
-              onClick={() => setIsAttendanceModalOpen(true)}
-              type="button"
-              variant="secondary"
-            >
-              Labour Attendance
-            </Button>
-          </div>
-        }
-        description="Track key activity and handle common daily actions directly from the dashboard."
-        title="Dashboard"
-      />
+      <section className="flex flex-wrap items-center justify-end gap-3">
+        <Button onClick={() => setIsSiteModalOpen(true)} type="button">
+          Add Site
+        </Button>
+        <Button
+          onClick={() => setIsAttendanceModalOpen(true)}
+          type="button"
+          variant="secondary"
+        >
+          Labour Attendance
+        </Button>
+      </section>
 
       <ErrorMessage message={error} />
 

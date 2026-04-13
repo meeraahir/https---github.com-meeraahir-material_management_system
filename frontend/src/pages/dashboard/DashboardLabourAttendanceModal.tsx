@@ -19,12 +19,18 @@ import { getErrorMessage } from "../../utils/apiError";
 const today = new Date().toISOString().slice(0, 10);
 
 interface DashboardLabourAttendanceModalProps {
+  fixedSiteId?: number;
+  fixedSiteName?: string;
+  initialDate?: string;
   onClose: () => void;
   onSaved?: () => Promise<void> | void;
   open: boolean;
 }
 
 export function DashboardLabourAttendanceModal({
+  fixedSiteId,
+  fixedSiteName,
+  initialDate = today,
   onClose,
   onSaved,
   open,
@@ -42,6 +48,7 @@ export function DashboardLabourAttendanceModal({
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const hasFixedSite = Boolean(fixedSiteId && fixedSiteName);
   const isSiteSelected = selectedSiteId > 0;
   const isDateSelected = selectedDate.length > 0;
   const canSave =
@@ -58,6 +65,17 @@ export function DashboardLabourAttendanceModal({
       return;
     }
 
+    if (fixedSiteId) {
+      setFormError("");
+      setSites([]);
+      setSelectedSiteId(fixedSiteId);
+      setSelectedDate(initialDate);
+      setLabours([]);
+      setAttendanceRows([]);
+      setSelectedLabourIds([]);
+      return;
+    }
+
     let isMounted = true;
 
     async function loadSites() {
@@ -65,7 +83,7 @@ export function DashboardLabourAttendanceModal({
         setIsSitesLoading(true);
         setFormError("");
         setSelectedSiteId(0);
-        setSelectedDate("");
+        setSelectedDate(initialDate);
         setSites([]);
         setLabours([]);
         setAttendanceRows([]);
@@ -103,7 +121,7 @@ export function DashboardLabourAttendanceModal({
     return () => {
       isMounted = false;
     };
-  }, [open, showError]);
+  }, [fixedSiteId, initialDate, open, showError]);
 
   useEffect(() => {
     if (!open) {
@@ -342,18 +360,27 @@ export function DashboardLabourAttendanceModal({
     >
       <div className="space-y-4">
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-          <Select
-            clearable={false}
-            disabled={isSitesLoading || isSaving}
-            label="Site"
-            options={sites.map((site) => ({ label: site.name, value: site.id }))}
-            placeholder={isSitesLoading ? "Loading sites..." : "Select site"}
-            requiredIndicator
-            value={selectedSiteId || ""}
-            onChange={(event) => {
-              setSelectedSiteId(event.target.value ? Number(event.target.value) : 0);
-            }}
-          />
+          {hasFixedSite ? (
+            <Input
+              disabled
+              label="Site"
+              readOnly
+              value={fixedSiteName}
+            />
+          ) : (
+            <Select
+              clearable={false}
+              disabled={isSitesLoading || isSaving}
+              label="Site"
+              options={sites.map((site) => ({ label: site.name, value: site.id }))}
+              placeholder={isSitesLoading ? "Loading sites..." : "Select site"}
+              requiredIndicator
+              value={selectedSiteId || ""}
+              onChange={(event) => {
+                setSelectedSiteId(event.target.value ? Number(event.target.value) : 0);
+              }}
+            />
+          )}
           <Input
             disabled={isSaving}
             hint={!isDateSelected ? "Date is required before attendance can be marked." : undefined}
