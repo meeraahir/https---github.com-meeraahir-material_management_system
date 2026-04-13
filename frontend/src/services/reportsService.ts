@@ -3,7 +3,6 @@ import type {
   PartyLedger,
   ReportFilters,
   ReportModuleKey,
-  VendorPendingReportRow,
   VendorLedger,
 } from "../types/erp.types";
 import { downloadBlob } from "../utils/download";
@@ -191,11 +190,35 @@ export const reportsService = {
   },
 
   async getVendorPendingReport() {
-    const response = await apiClient.get<VendorPendingReportRow[]>(
+    const response = await apiClient.get<Array<Record<string, unknown>>>(
       "/vendors/reports/pending/",
     );
 
-    return response.data;
+    if (!Array.isArray(response.data)) {
+      return [];
+    }
+
+    return response.data.map((row, index) => ({
+      paid_amount:
+        typeof row.paid_amount === "number"
+          ? row.paid_amount
+          : Number(row.paid_amount ?? 0),
+      pending_amount:
+        typeof row.pending_amount === "number"
+          ? row.pending_amount
+          : Number(row.pending_amount ?? 0),
+      total_amount:
+        typeof row.total_amount === "number"
+          ? row.total_amount
+          : Number(row.total_amount ?? 0),
+      vendor_id:
+        typeof row.vendor_id === "number"
+          ? row.vendor_id
+          : typeof row.id === "number"
+            ? row.id
+            : index + 1,
+      vendor_name: String(row.vendor_name ?? row.vendor ?? "Unknown Vendor"),
+    }));
   },
 
   async exportFinanceSiteReport(format: "excel" | "pdf", siteId?: number) {

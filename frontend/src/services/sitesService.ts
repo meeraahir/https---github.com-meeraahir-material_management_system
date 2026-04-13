@@ -34,12 +34,18 @@ function normalizeMaterialSummary(
       row && typeof row === "object" ? (row as Record<string, unknown>) : {};
 
     return {
-      material__id: toNumber(source.material__id ?? index + 1),
-      material__name: String(source.material__name ?? "Unknown Material"),
+      material__id: toNumber(
+        source.material__id ?? source.material_id ?? index + 1,
+      ),
+      material__name: String(
+        source.material__name ?? source.material_name ?? "Unknown Material",
+      ),
       remaining_stock: toNumber(source.remaining_stock),
       total_cost: toNumber(source.total_cost),
-      total_received: toNumber(source.total_received),
-      total_used: toNumber(source.total_used),
+      total_received: toNumber(
+        source.total_received ?? source.total_quantity_received,
+      ),
+      total_used: toNumber(source.total_used ?? source.total_quantity_used),
     };
   });
 }
@@ -57,8 +63,8 @@ function normalizeVendorSummary(rows: unknown): SiteDashboardVendorSummary[] {
       paid_amount: toNumber(source.paid_amount),
       pending_amount: toNumber(source.pending_amount),
       total_amount: toNumber(source.total_amount),
-      vendor_id: toNumber(source.vendor_id ?? index + 1),
-      vendor_name: String(source.vendor_name ?? "Unknown Vendor"),
+      vendor_id: toNumber(source.vendor_id ?? source.id ?? index + 1),
+      vendor_name: String(source.vendor_name ?? source.vendor ?? "Unknown Vendor"),
     };
   });
 }
@@ -95,8 +101,8 @@ function normalizeFinanceSummary(rows: unknown): SiteDashboardFinanceSummary[] {
       row && typeof row === "object" ? (row as Record<string, unknown>) : {};
 
     return {
-      party__id: toNumber(source.party__id ?? index + 1),
-      party__name: String(source.party__name ?? "Unknown Party"),
+      party__id: toNumber(source.party__id ?? source.party_id ?? index + 1),
+      party__name: String(source.party__name ?? source.party_name ?? "Unknown Party"),
       pending_amount: toNumber(source.pending_amount),
       received_amount: toNumber(source.received_amount),
       total_amount: toNumber(source.total_amount),
