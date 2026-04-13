@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useToast } from "../feedback/useToast";
 import { PageHeader } from "../layout/PageHeader";
@@ -26,6 +26,7 @@ interface LedgerTotals {
 }
 
 interface LedgerStatementPageProps<TEntry> {
+  autoLoadOnSelect?: boolean;
   actions?: TableAction<TEntry>[];
   columns: TableColumn<TEntry>[];
   description: string;
@@ -36,10 +37,13 @@ interface LedgerStatementPageProps<TEntry> {
   loadLedger: (entityId: number) => Promise<{ entries: TEntry[]; name: string; totals: LedgerTotals }>;
   referenceError?: string;
   searchPlaceholder: string;
+  showLoadButton?: boolean;
+  showSearch?: boolean;
   title: string;
 }
 
 export function LedgerStatementPage<TEntry>({
+  autoLoadOnSelect = false,
   actions,
   columns,
   description,
@@ -50,6 +54,8 @@ export function LedgerStatementPage<TEntry>({
   loadLedger,
   referenceError,
   searchPlaceholder,
+  showLoadButton = true,
+  showSearch = true,
   title,
 }: LedgerStatementPageProps<TEntry>) {
   const { showError } = useToast();
@@ -62,15 +68,15 @@ export function LedgerStatementPage<TEntry>({
   const [selectedId, setSelectedId] = useState(0);
   const [totals, setTotals] = useState<LedgerTotals | null>(null);
 
-  function validateFilters() {
+  const validateFilters = useCallback(() => {
     if (!selectedId) {
       return `${entityLabel} is required.`;
     }
 
     return "";
-  }
+  }, [entityLabel, selectedId]);
 
-  async function handleLoad() {
+  const handleLoad = useCallback(async () => {
     const validationMessage = validateFilters();
 
     if (validationMessage) {
@@ -97,20 +103,38 @@ export function LedgerStatementPage<TEntry>({
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [loadLedger, selectedId, showError, validateFilters]);
+
+  useEffect(() => {
+    if (!autoLoadOnSelect) {
+      return;
+    }
+
+    if (!selectedId) {
+      setError("");
+      setLedgerName("");
+      setRows([]);
+      setSearchValue("");
+      setTotals(null);
+      setPage(1);
+      return;
+    }
+
+    void handleLoad();
+  }, [autoLoadOnSelect, handleLoad, selectedId]);
 
   return (
     <div className="space-y-6">
       <PageHeader
         description={description}
-        search={
+        search={showSearch ? (
           <Input
             label="Search"
             placeholder={searchPlaceholder}
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
           />
-        }
+        ) : undefined}
         title={title}
       />
 
@@ -124,16 +148,18 @@ export function LedgerStatementPage<TEntry>({
           value={selectedId || ""}
           onChange={(event) => setSelectedId(event.target.value ? Number(event.target.value) : 0)}
         />
-        <div className="flex items-end">
-          <Button
-            className="w-full md:w-auto"
-            isLoading={isLoading}
-            onClick={() => void handleLoad()}
-            type="button"
-          >
-            Load Ledger
-          </Button>
-        </div>
+        {showLoadButton ? (
+          <div className="flex items-end">
+            <Button
+              className="w-full md:w-auto"
+              isLoading={isLoading}
+              onClick={() => void handleLoad()}
+              type="button"
+            >
+              Load Ledger
+            </Button>
+          </div>
+        ) : null}
       </section>
 
       {totals ? (

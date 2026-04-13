@@ -14,11 +14,11 @@ export function PageHeader({ actions, description, search }: PageHeaderProps) {
         <div className="min-w-0 flex-1">
           {search ? (
             <div className="max-w-xl">{search}</div>
-          ) : (
+          ) : description ? (
             <p className="max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-600">
               {description}
             </p>
-          )}
+          ) : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
       </div>

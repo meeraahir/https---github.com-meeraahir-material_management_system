@@ -197,7 +197,7 @@ function MovementDetailsModal({
               </div>
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Pending</p>
-                <p className="font-semibold text-slate-950 dark:text-slate-50">
+                <p className="font-black text-amber-800 dark:text-amber-200">
                   {formatCurrency(row.pendingAmount)}
                 </p>
               </div>
@@ -234,11 +234,15 @@ function MovementDetailsModal({
                       <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-slate-100">
                         {formatCurrency(movement.debit)}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-emerald-700 dark:text-emerald-300">
-                        {formatCurrency(movement.credit)}
+                      <td className="px-4 py-3 text-right">
+                        <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 font-bold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
+                          {formatCurrency(movement.credit)}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-amber-700 dark:text-amber-300">
-                        {formatCurrency(movement.balance)}
+                      <td className="px-4 py-3 text-right">
+                        <span className="inline-flex rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 font-bold text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-100">
+                          {formatCurrency(movement.balance)}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -357,6 +361,9 @@ export function VendorLedgerPage() {
         }}
         referenceError={references.error}
         searchPlaceholder="Search vendor ledger"
+        showLoadButton={false}
+        showSearch={false}
+        autoLoadOnSelect
         title="Vendor Ledger"
       />
       <MovementDetailsModal row={selectedRow} onClose={() => setSelectedRow(null)} />

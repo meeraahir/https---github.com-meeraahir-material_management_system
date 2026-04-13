@@ -33,7 +33,53 @@ function truncateLabel(value: string, maxLength = 12) {
     return value;
   }
 
-  return `${value.slice(0, maxLength - 1)}…`;
+  return `${value.slice(0, Math.max(1, maxLength - 3))}...`;
+}
+
+function splitLabel(value: string, maxLineLength = 14) {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length === 0) {
+    return [""];
+  }
+
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+
+    if (nextLine.length <= maxLineLength) {
+      currentLine = nextLine;
+      continue;
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      lines.push(truncateLabel(word, maxLineLength));
+      currentLine = "";
+    }
+
+    if (lines.length === 2) {
+      break;
+    }
+  }
+
+  if (currentLine && lines.length < 2) {
+    lines.push(currentLine);
+  }
+
+  const visibleLength = lines.join(" ").length;
+
+  return lines.slice(0, 2).map((line, index, allLines) => {
+    if (index === allLines.length - 1 && visibleLength < value.length) {
+      return truncateLabel(line, maxLineLength);
+    }
+
+    return line;
+  });
 }
 
 function renderTickWithTooltip(props: {
@@ -43,18 +89,26 @@ function renderTickWithTooltip(props: {
 }) {
   const { payload, x = 0, y = 0 } = props;
   const rawValue = String(payload?.value ?? "");
-  const displayValue = truncateLabel(rawValue);
+  const displayLines = splitLabel(rawValue);
 
   return (
     <g transform={`translate(${x},${y})`}>
       <title>{rawValue}</title>
       <text
-        dy={16}
+        dy={12}
         fill="currentColor"
         textAnchor="middle"
-        className="fill-slate-500 text-[11px] dark:fill-slate-400"
+        className="fill-slate-700 text-[12px] font-medium dark:fill-slate-700"
       >
-        {displayValue}
+        {displayLines.map((line, index) => (
+          <tspan
+            dy={index === 0 ? 0 : 13}
+            key={`${rawValue}-${index}`}
+            x={0}
+          >
+            {line}
+          </tspan>
+        ))}
       </text>
     </g>
   );
@@ -95,7 +149,14 @@ export function MaterialUsageBarChart({
     <ResponsiveContainer height="100%" width="100%">
       <BarChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
         <CartesianGrid stroke="#cbd5e1" strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="material" tick={renderTickWithTooltip} tickLine={false} axisLine={false} interval={0} height={48} />
+        <XAxis
+          axisLine={false}
+          dataKey="material"
+          height={62}
+          interval={0}
+          tick={renderTickWithTooltip}
+          tickLine={false}
+        />
         <YAxis tickFormatter={(value) => formatNumber(value)} tickLine={false} axisLine={false} />
         <Tooltip formatter={(value) => formatNumber(getNumericValue(value))} />
         <Legend formatter={renderLegendLabel} />
@@ -114,7 +175,14 @@ export function CostTrackingLineChart({
     <ResponsiveContainer height="100%" width="100%">
       <LineChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
         <CartesianGrid stroke="#cbd5e1" strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="label" tick={renderTickWithTooltip} tickLine={false} axisLine={false} interval={0} height={48} />
+        <XAxis
+          axisLine={false}
+          dataKey="label"
+          height={62}
+          interval={0}
+          tick={renderTickWithTooltip}
+          tickLine={false}
+        />
         <YAxis tickFormatter={(value) => formatCurrency(value)} tickLine={false} axisLine={false} />
         <Tooltip formatter={(value) => formatCurrency(getNumericValue(value))} />
         <Legend formatter={renderLegendLabel} />
@@ -140,7 +208,6 @@ export function SiteDistributionPieChart({
     <ResponsiveContainer height="100%" width="100%">
       <PieChart>
         <Tooltip formatter={(value, _name, item) => [formatNumber(getNumericValue(value)), item.payload.site]} />
-        <Legend formatter={renderLegendLabel} />
         <Pie
           cx="50%"
           cy="50%"
@@ -172,7 +239,6 @@ export function StockComparisonChart({
     <ResponsiveContainer height="100%" width="100%">
       <PieChart>
         <Tooltip formatter={(value, name) => [formatNumber(getNumericValue(value)), String(name)]} />
-        <Legend formatter={renderLegendLabel} />
         <Pie
           cx="50%"
           cy="50%"
@@ -202,7 +268,14 @@ export function LabourLedgerChart({
     <ResponsiveContainer height="100%" width="100%">
       <BarChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
         <CartesianGrid stroke="#cbd5e1" strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="date" tick={renderTickWithTooltip} tickLine={false} axisLine={false} interval={0} height={48} />
+        <XAxis
+          axisLine={false}
+          dataKey="date"
+          height={62}
+          interval={0}
+          tick={renderTickWithTooltip}
+          tickLine={false}
+        />
         <YAxis tickFormatter={(value) => formatCurrency(value)} tickLine={false} axisLine={false} />
         <Tooltip formatter={(value) => formatCurrency(getNumericValue(value))} />
         <Legend formatter={renderLegendLabel} />

@@ -92,6 +92,17 @@ export function SiteDashboardPage() {
     };
   }, [data]);
 
+  const site = data?.site ?? {
+    description: "",
+    id: parsedSiteId || 0,
+    location: "-",
+    name: "Selected Site",
+  };
+  const materialSummary = data?.material_summary ?? [];
+  const vendorSummary = data?.vendor_summary ?? [];
+  const labourSummary = data?.labour_summary ?? [];
+  const financeSummary = data?.finance_summary ?? [];
+
   async function handleExport(format: "excel" | "pdf") {
     if (!parsedSiteId) {
       return;
@@ -163,13 +174,13 @@ export function SiteDashboardPage() {
                   Site Overview
                 </p>
                 <h2 className="mt-2 text-3xl font-black text-slate-950">
-                  {data.site.name}
+                  {site.name}
                 </h2>
                 <p className="mt-2 text-sm font-medium text-slate-600">
-                  {data.site.location}
+                  {site.location}
                 </p>
                 <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">
-                  {data.site.description || "No site description provided."}
+                  {site.description || "No site description provided."}
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -236,14 +247,14 @@ export function SiteDashboardPage() {
                   sortValue: (row) => row.total_cost,
                 },
               ]}
-              data={data.material_summary}
+              data={materialSummary}
               emptyDescription="No material summary is available for this site."
               emptyTitle="No Materials"
               isLoading={isLoading}
               keyExtractor={(row) => row.material__id}
               page={materialPage}
               searchValue=""
-              totalCount={data.material_summary.length}
+              totalCount={materialSummary.length}
               onPageChange={setMaterialPage}
               onSearchChange={() => undefined}
             />
@@ -276,14 +287,14 @@ export function SiteDashboardPage() {
                   sortValue: (row) => row.pending_amount,
                 },
               ]}
-              data={data.vendor_summary}
+              data={vendorSummary}
               emptyDescription="No vendor purchase data is available for this site."
               emptyTitle="No Vendors"
               isLoading={isLoading}
               keyExtractor={(row) => row.vendor_id}
               page={vendorPage}
               searchValue=""
-              totalCount={data.vendor_summary.length}
+              totalCount={vendorSummary.length}
               onPageChange={setVendorPage}
               onSearchChange={() => undefined}
             />
@@ -322,14 +333,14 @@ export function SiteDashboardPage() {
                   sortValue: (row) => row.pending_amount,
                 },
               ]}
-              data={data.labour_summary}
+              data={labourSummary}
               emptyDescription="No labour summary is available for this site."
               emptyTitle="No Labour"
               isLoading={isLoading}
               keyExtractor={(row) => row.labour_id}
               page={labourPage}
               searchValue=""
-              totalCount={data.labour_summary.length}
+              totalCount={labourSummary.length}
               onPageChange={setLabourPage}
               onSearchChange={() => undefined}
             />
@@ -362,14 +373,14 @@ export function SiteDashboardPage() {
                   sortValue: (row) => row.pending_amount,
                 },
               ]}
-              data={data.finance_summary}
+              data={financeSummary}
               emptyDescription="No finance summary is available for this site."
               emptyTitle="No Finance Data"
               isLoading={isLoading}
               keyExtractor={(row) => row.party__id}
               page={financePage}
               searchValue=""
-              totalCount={data.finance_summary.length}
+              totalCount={financeSummary.length}
               onPageChange={setFinancePage}
               onSearchChange={() => undefined}
             />

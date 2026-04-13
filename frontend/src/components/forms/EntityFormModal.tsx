@@ -64,11 +64,6 @@ export function EntityFormModal<TFormValues extends FieldValues>({
     <Modal
       footer={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs leading-5 text-slate-600 dark:text-slate-600">
-            {isValid
-              ? "Ready to save. Please review the details once before submitting."
-              : "Complete required fields and fix highlighted errors to enable Save."}
-          </p>
           <div className="flex justify-end gap-3">
             <Button onClick={handleClose} type="button" variant="secondary">
               Cancel

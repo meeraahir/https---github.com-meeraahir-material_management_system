@@ -12,7 +12,7 @@ import { materialReceiptsService } from "../../services/materialReceiptsService"
 import { materialUsageService } from "../../services/materialsService";
 import type { MaterialUsage, Receipt } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
-import { formatDate, formatNumber } from "../../utils/format";
+import { formatDate } from "../../utils/format";
 
 interface UsageFilters {
   date: string;
@@ -31,7 +31,6 @@ const initialFilters: UsageFilters = {
 export function MaterialUsagePage() {
   const { showError } = useToast();
   const references = useReferenceData();
-  const [appliedFilters, setAppliedFilters] = useState<UsageFilters>(initialFilters);
   const [filters, setFilters] = useState<UsageFilters>(initialFilters);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -59,11 +58,11 @@ export function MaterialUsagePage() {
         setIsLoading(true);
         setError("");
         const response = await materialUsageService.list({
-          date: appliedFilters.date || undefined,
-          material: appliedFilters.material || undefined,
+          date: filters.date || undefined,
+          material: filters.material || undefined,
           page,
-          receipt: appliedFilters.receipt || undefined,
-          site: appliedFilters.site || undefined,
+          receipt: filters.receipt || undefined,
+          site: filters.site || undefined,
         });
         setRows(response.results);
         setTotalCount(response.count);
@@ -77,7 +76,11 @@ export function MaterialUsagePage() {
     }
 
     void loadUsages();
-  }, [appliedFilters, page, showError]);
+  }, [filters, page, showError]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters.date, filters.material, filters.receipt, filters.site]);
 
   const filteredReceiptOptions = useMemo(
     () =>
@@ -97,37 +100,20 @@ export function MaterialUsagePage() {
     [filters.material, filters.site, receipts],
   );
 
-  const totalUsed = useMemo(
-    () => rows.reduce((total, row) => total + row.quantity, 0),
-    [rows],
-  );
-
   return (
     <div className="space-y-6">
       <PageHeader
         actions={
-          <>
-            <Button
-              onClick={() => {
-                setPage(1);
-                setAppliedFilters(filters);
-              }}
-              type="button"
-            >
-              Load Usage
-            </Button>
-            <Button
-              onClick={() => {
-                setFilters(initialFilters);
-                setAppliedFilters(initialFilters);
-                setPage(1);
-              }}
-              type="button"
-              variant="secondary"
-            >
-              Reset
-            </Button>
-          </>
+          <Button
+            onClick={() => {
+              setFilters(initialFilters);
+              setPage(1);
+            }}
+            type="button"
+            variant="secondary"
+          >
+            Reset
+          </Button>
         }
         description="Receipt-wise material consumption history across sites."
         search={
@@ -196,40 +182,6 @@ export function MaterialUsagePage() {
             }))
           }
         />
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[1.5rem] border border-blue-100 bg-white/95 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-            Usage Records
-          </p>
-          <p className="mt-2 text-2xl font-black text-slate-950">
-            {formatNumber(totalCount)}
-          </p>
-        </div>
-        <div className="rounded-[1.5rem] border border-cyan-200 bg-cyan-50/80 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">
-            Current Page Quantity
-          </p>
-          <p className="mt-2 text-2xl font-black text-slate-950">
-            {formatNumber(totalUsed)}
-          </p>
-        </div>
-        <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-            Active Filters
-          </p>
-          <p className="mt-2 text-sm font-bold text-slate-950">
-            {[
-              appliedFilters.site ? "Site" : "",
-              appliedFilters.material ? "Material" : "",
-              appliedFilters.receipt ? "Receipt" : "",
-              appliedFilters.date ? "Date" : "",
-            ]
-              .filter(Boolean)
-              .join(", ") || "All records"}
-          </p>
-        </div>
       </section>
 
       <DataTable<MaterialUsage>

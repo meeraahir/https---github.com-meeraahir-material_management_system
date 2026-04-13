@@ -167,10 +167,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        description="A visual command center for material consumption, cost movement, stock position, and site distribution."
-        title="Dashboard"
-      />
+      <PageHeader description="" title="Dashboard" />
 
       <ErrorMessage message={error} />
 
@@ -178,12 +175,12 @@ export function DashboardPage() {
         {isLoading
           ? Array.from({ length: 6 }).map((_, index) => (
               <div
-                className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-sm dark:border-blue-100 dark:bg-white/95"
+                className="rounded-[2rem] border border-blue-100 bg-white/95 p-4 shadow-sm dark:border-blue-100 dark:bg-white/95"
                 key={index}
               >
                 <Skeleton className="h-4 w-24" />
-                <Skeleton className="mt-4 h-10 w-2/3" />
-                <Skeleton className="mt-3 h-4 w-1/2" />
+                <Skeleton className="mt-3 h-8 w-2/3" />
+                <Skeleton className="mt-2 h-4 w-1/2" />
               </div>
             ))
           : summaryCards.map((card) => (
@@ -191,9 +188,9 @@ export function DashboardPage() {
                 className={`rounded-[2rem] border border-blue-100 bg-gradient-to-br ${card.accent} p-1 shadow-md shadow-blue-950/5 dark:border-blue-100`}
                 key={card.label}
               >
-                <div className="rounded-[1.7rem] bg-white/95 p-5 dark:bg-white/95">
+                <div className="rounded-[1.7rem] bg-white/95 px-4 py-3.5 dark:bg-white/95">
                   <StatCard label={card.label} value={card.value} />
-                  <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-600">
+                  <p className="mt-2 text-[0.82rem] font-medium leading-5 text-slate-600 dark:text-slate-600">
                     {card.helper}
                   </p>
                 </div>

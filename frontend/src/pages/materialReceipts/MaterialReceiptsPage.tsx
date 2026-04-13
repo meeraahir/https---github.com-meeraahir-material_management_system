@@ -88,11 +88,6 @@ export function MaterialReceiptsPage() {
         { key: "unit", header: "Unit", accessor: (row) => getUnitLabel(row.material_unit), sortValue: (row) => row.material_unit },
         { key: "invoice", header: "Invoice", accessor: (row) => row.invoice_number || "-", sortValue: (row) => row.invoice_number || "" },
         { key: "date", header: "Date", accessor: (row) => row.date_display || row.date, sortValue: (row) => row.date },
-        { key: "received", header: "Received", accessor: (row) => getQuantityLabel(row.quantity_received, row.material_unit), sortValue: (row) => row.quantity_received },
-        { key: "used", header: "Used", accessor: (row) => getQuantityLabel(row.quantity_used, row.material_unit), sortValue: (row) => row.quantity_used },
-        { key: "remaining", header: "Remaining Stock", accessor: (row) => getQuantityLabel(row.remaining_stock, row.material_unit), sortValue: (row) => row.remaining_stock },
-        { key: "costPerUnit", header: "Cost / Unit", accessor: (row) => getCostPerUnitLabel(row), sortValue: (row) => row.cost_per_unit },
-        { key: "transport", header: "Transport Cost", accessor: (row) => row.transport_cost, sortValue: (row) => row.transport_cost },
         { key: "cost", header: "Total Cost", accessor: (row) => row.total_cost, sortValue: (row) => row.total_cost },
         { key: "status", header: "Stock Status", accessor: (row) => getStockStatus(row), sortValue: (row) => getStockStatus(row) },
       ]}
