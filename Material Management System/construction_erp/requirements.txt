@@ -31,3 +31,4 @@ uritemplate==4.2.0
 weasyprint==68.1
 webencodings==0.5.1
 zopfli==0.4.1
+twilio==9.10.4
