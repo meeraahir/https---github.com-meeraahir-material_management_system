@@ -250,3 +250,17 @@ a {
 .table-action-view > span {
   color: #ffffff !important;
 }
+
+.payment-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  border-radius: 6px;
+  flex-shrink: 0;
+}

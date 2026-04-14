@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import type { Receivable, ReceivePaymentFormValues } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
 import { createZodResolver } from "../../utils/zodResolver";
-import { formatCurrency, formatDate } from "../../utils/format";
 import { useToast } from "../feedback/useToast";
 import { Modal } from "../modal/Modal";
 import { Button } from "../ui/Button";
@@ -52,8 +51,6 @@ interface ReceivePaymentModalProps {
   onClose: () => void;
   onSubmit: (values: ReceivePaymentFormValues) => Promise<void>;
   open: boolean;
-  partyLabel?: string;
-  siteLabel?: string;
 }
 
 export function ReceivePaymentModal({
@@ -61,52 +58,47 @@ export function ReceivePaymentModal({
   onClose,
   onSubmit,
   open,
-  partyLabel,
-  siteLabel,
 }: ReceivePaymentModalProps) {
   const { showSuccess } = useToast();
   const [formError, setFormError] = useState("");
-  const pendingAmount = useMemo(
-    () => item?.pending_amount ?? item?.amount ?? 0,
-    [item],
-  );
-  const currentReceivedAmount = useMemo(
-    () => item?.current_received_amount ?? 0,
-    [item],
-  );
+  const pendingAmount = item?.pending_amount ?? item?.amount ?? 0;
+
+  function getDefaultValues(): ReceivePaymentFormValues {
+    return {
+      amount: pendingAmount,
+      cheque_number: "",
+      date: today,
+      notes: "",
+      payment_mode: "cash",
+      receiver_name: "",
+      reference_number: "",
+      sender_name: "",
+    };
+  }
+
   const {
     formState: { errors, isSubmitting, isValid },
     handleSubmit,
     register,
     reset,
   } = useForm<ReceivePaymentFormValues>({
-    defaultValues: {
-      amount: pendingAmount,
-      cheque_number: "",
-      date: today,
-      payment_mode: "cash",
-      receiver_name: "",
-      reference_number: "",
-      sender_name: "",
-    },
+    defaultValues: getDefaultValues(),
     mode: "onChange",
     resolver: createZodResolver(receivePaymentSchema),
   });
+
+  function handleClose() {
+    reset(getDefaultValues());
+    setFormError("");
+    onClose();
+  }
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    reset({
-      amount: pendingAmount,
-      cheque_number: "",
-      date: today,
-      payment_mode: "cash",
-      receiver_name: "",
-      reference_number: "",
-      sender_name: "",
-    });
+    reset(getDefaultValues());
     setFormError("");
   }, [open, pendingAmount, reset]);
 
@@ -123,6 +115,7 @@ export function ReceivePaymentModal({
     try {
       setFormError("");
       await onSubmit(values);
+      reset(getDefaultValues());
       showSuccess(
         "Payment received",
         "Receivable balance has been updated successfully.",
@@ -136,7 +129,7 @@ export function ReceivePaymentModal({
     <Modal
       footer={
         <div className="flex justify-end gap-3">
-          <Button onClick={onClose} type="button" variant="secondary">
+          <Button onClick={handleClose} type="button" variant="secondary">
             Cancel
           </Button>
           <Button
@@ -149,79 +142,12 @@ export function ReceivePaymentModal({
           </Button>
         </div>
       }
-      onClose={onClose}
+      onClose={handleClose}
       open={open}
       size="lg"
       title="Receive Payment"
     >
       <div className="space-y-5">
-        <section className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-4 md:grid-cols-2 dark:border-blue-100 dark:bg-blue-50/60">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-              Party
-            </p>
-            <p className="mt-1 text-base font-black text-slate-950">
-              {partyLabel || `Party #${item.party}`}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-              Site
-            </p>
-            <p className="mt-1 text-base font-black text-slate-950">
-              {siteLabel || `Site #${item.site}`}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-              Invoice Amount
-            </p>
-            <p className="mt-1 text-base font-black text-slate-950">
-              {formatCurrency(item.amount)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-              Invoice Date
-            </p>
-            <p className="mt-1 text-base font-black text-slate-950">
-              {formatDate(item.date)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-              Phase
-            </p>
-            <p className="mt-1 text-base font-black text-slate-950">
-              {item.phase_name || "-"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-              Received So Far
-            </p>
-            <p className="mt-1 text-base font-black text-emerald-700">
-              {formatCurrency(currentReceivedAmount)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-              Pending Amount
-            </p>
-            <p className="mt-1 text-base font-black text-amber-700">
-              {formatCurrency(pendingAmount)}
-            </p>
-          </div>
-          <div className="md:col-span-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-              Description
-            </p>
-            <p className="mt-1 text-base font-black text-slate-950">
-              {item.description || "-"}
-            </p>
-          </div>
-        </section>
-
         <form
           className="grid gap-4 md:grid-cols-2"
           id="receive-payment-form"
