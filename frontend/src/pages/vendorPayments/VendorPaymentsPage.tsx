@@ -17,14 +17,34 @@ import { getCrudPermissions } from "../../utils/permissions";
 
 const vendorPaymentSchema = z.object({
   amount: z.number().gt(0, "Payment amount must be greater than zero."),
+  cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer."),
   date: z.string().min(1, "Payment date is required."),
+  payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
   purchase: z.number().min(1, "Purchase is required."),
+  receiver_name: z.string().max(255, "Receiver name must be 255 characters or fewer."),
   reference_number: z
     .string()
     .max(50, "Reference number must be 50 characters or fewer."),
   remarks: z
     .string()
     .max(600, "Remarks must be 600 characters or fewer."),
+  sender_name: z.string().max(255, "Sender name must be 255 characters or fewer."),
+}).superRefine((value, context) => {
+  if (value.payment_mode === "cash" && !value.sender_name.trim() && !value.receiver_name.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Sender name or receiver name is required for cash payments.",
+      path: ["sender_name"],
+    });
+  }
+
+  if (value.payment_mode === "check" && !value.cheque_number.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Cheque number is required for check payments.",
+      path: ["cheque_number"],
+    });
+  }
 });
 
 function getPurchaseLabel(purchase: Purchase) {
@@ -72,6 +92,12 @@ export function VendorPaymentsPage() {
         { key: "amount", header: "Amount", accessor: (row) => row.amount, sortValue: (row) => row.amount },
         { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
         {
+          key: "payment_mode",
+          header: "Payment Mode",
+          accessor: (row) => row.payment_mode || "-",
+          sortValue: (row) => row.payment_mode || "",
+        },
+        {
           key: "reference",
           header: "Reference",
           accessor: (row) => row.reference_number || "-",
@@ -87,10 +113,14 @@ export function VendorPaymentsPage() {
       createLabel="Record Vendor Payment"
       defaultValues={{
         amount: 0,
+        cheque_number: "",
         date: new Date().toISOString().slice(0, 10),
+        payment_mode: "cash",
         purchase: 0,
+        receiver_name: "",
         reference_number: "",
         remarks: "",
+        sender_name: "",
       }}
       description="Record vendor payments against existing purchase invoices and keep purchase pending balances in sync."
       emptyDescription="No vendor payments have been recorded."
@@ -119,6 +149,40 @@ export function VendorPaymentsPage() {
         },
         { kind: "date", label: "Payment Date", name: "date", required: true },
         {
+          kind: "select",
+          label: "Payment Mode",
+          name: "payment_mode",
+          options: [
+            { label: "Cash", value: "cash" },
+            { label: "Check", value: "check" },
+            { label: "Bank Transfer", value: "bank_transfer" },
+            { label: "UPI", value: "upi" },
+            { label: "Other", value: "other" },
+          ],
+          required: true,
+        },
+        {
+          kind: "text",
+          label: "Sender Name",
+          maxLength: 255,
+          name: "sender_name",
+          placeholder: "Who paid this amount",
+        },
+        {
+          kind: "text",
+          label: "Receiver Name",
+          maxLength: 255,
+          name: "receiver_name",
+          placeholder: "Who received this amount",
+        },
+        {
+          kind: "text",
+          label: "Cheque Number",
+          maxLength: 50,
+          name: "cheque_number",
+          placeholder: "Required for check payments",
+        },
+        {
           kind: "text",
           label: "Reference Number",
           maxLength: 50,
@@ -137,10 +201,14 @@ export function VendorPaymentsPage() {
       ]}
       getEditValues={(entity) => ({
         amount: entity.amount,
+        cheque_number: entity.cheque_number || "",
         date: entity.date,
+        payment_mode: entity.payment_mode || "cash",
         purchase: entity.purchase,
+        receiver_name: entity.receiver_name || "",
         reference_number: entity.reference_number || "",
         remarks: entity.remarks || "",
+        sender_name: entity.sender_name || "",
       })}
       getId={(entity) => entity.id}
       schema={vendorPaymentSchema}
@@ -155,6 +223,10 @@ export function VendorPaymentsPage() {
         { label: "Purchase Total Amount", value: (row) => row.purchase_total_amount },
         { label: "Payment Amount", value: (row) => row.amount, highlight: true },
         { label: "Payment Date", value: (row) => row.date },
+        { label: "Payment Mode", value: (row) => row.payment_mode },
+        { label: "Sender Name", value: (row) => row.sender_name },
+        { label: "Receiver Name", value: (row) => row.receiver_name },
+        { label: "Cheque Number", value: (row) => row.cheque_number },
         { label: "Reference Number", value: (row) => row.reference_number },
         { label: "Pending After Payment", value: (row) => row.pending_after_payment ?? row.purchase_pending_amount, highlight: true },
         { label: "Purchase Pending Amount", value: (row) => row.purchase_pending_amount },

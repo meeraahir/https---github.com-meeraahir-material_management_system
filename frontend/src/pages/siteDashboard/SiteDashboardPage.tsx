@@ -63,6 +63,27 @@ function getReceivableStatus(row: Receivable) {
   return "Pending";
 }
 
+const paymentModeOptions = [
+  { label: "Cash", value: "cash" },
+  { label: "Check", value: "check" },
+  { label: "Bank Transfer", value: "bank_transfer" },
+  { label: "UPI", value: "upi" },
+  { label: "Other", value: "other" },
+];
+
+function getMaterialVariantLabel(row: {
+  material_variant_label?: string | null;
+  material_variant_size_mm?: number | null;
+}) {
+  if (!row.material_variant_label) {
+    return "-";
+  }
+
+  return row.material_variant_size_mm
+    ? `${row.material_variant_label} (${row.material_variant_size_mm} mm)`
+    : row.material_variant_label;
+}
+
 const receiptSchema = z
   .object({
     cost_per_unit: z.number().min(0, "Cost per unit must be zero or more."),
@@ -73,6 +94,7 @@ const receiptSchema = z
       .optional()
       .or(z.literal("")),
     material: z.number().min(1, "Material is required."),
+    material_variant: z.number().min(0, "Variant is invalid.").optional(),
     notes: z
       .string()
       .max(600, "Notes must be 600 characters or fewer.")
@@ -90,25 +112,58 @@ const receiptSchema = z
 
 const purchaseSchema = z
   .object({
+    cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer."),
     date: z.string().min(1, "Date is required."),
     description: z.string().max(300, "Description must be 300 characters or fewer."),
     invoice_number: z.string().max(60, "Invoice number must be 60 characters or fewer."),
     material: z.number().min(0, "Material is invalid."),
     paid_amount: z.number().min(0, "Paid amount must be zero or more."),
+    payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
+    receiver_name: z.string().max(255, "Receiver name must be 255 characters or fewer."),
+    sender_name: z.string().max(255, "Sender name must be 255 characters or fewer."),
     site: z.number().min(1, "Site is required."),
     total_amount: z.number().gt(0, "Total amount must be greater than zero."),
     vendor: z.number().min(1, "Vendor is required."),
   })
-  .refine((value) => value.paid_amount <= value.total_amount, {
-    message: "Paid amount cannot exceed total amount.",
-    path: ["paid_amount"],
+  .superRefine((value, context) => {
+    if (value.paid_amount > value.total_amount) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Paid amount cannot exceed total amount.",
+        path: ["paid_amount"],
+      });
+    }
+
+    if (value.paid_amount > 0 && value.payment_mode === "cash") {
+      if (!value.sender_name.trim() && !value.receiver_name.trim()) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sender name or receiver name is required for cash payments.",
+          path: ["sender_name"],
+        });
+      }
+    }
+
+    if (value.paid_amount > 0 && value.payment_mode === "check" && !value.cheque_number.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Cheque number is required for check payments.",
+        path: ["cheque_number"],
+      });
+    }
   });
 
 const receivableSchema = z
   .object({
     amount: z.number().gt(0, "Amount must be greater than zero."),
     date: z.string().min(1, "Invoice date is required."),
+    description: z.string().max(1000, "Description must be 1000 characters or fewer."),
     party: z.number().min(1, "Party is required."),
+    phase_name: z.string().max(255, "Phase name must be 255 characters or fewer."),
+    receipt_cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer.").optional().or(z.literal("")),
+    receipt_payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]).optional(),
+    receipt_receiver_name: z.string().max(255, "Receiver name must be 255 characters or fewer.").optional().or(z.literal("")),
+    receipt_sender_name: z.string().max(255, "Sender name must be 255 characters or fewer.").optional().or(z.literal("")),
     received_amount: z.number().min(0, "Received amount must be zero or more.").optional(),
     site: z.number().min(1, "Site is required."),
   })
@@ -118,6 +173,24 @@ const receivableSchema = z
         code: z.ZodIssueCode.custom,
         message: "Received amount cannot exceed invoice amount.",
         path: ["received_amount"],
+      });
+    }
+
+    if ((value.received_amount ?? 0) > 0 && value.receipt_payment_mode === "cash") {
+      if (!value.receipt_sender_name?.trim() && !value.receipt_receiver_name?.trim()) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sender name or receiver name is required for cash receipts.",
+          path: ["receipt_sender_name"],
+        });
+      }
+    }
+
+    if ((value.received_amount ?? 0) > 0 && value.receipt_payment_mode === "check" && !value.receipt_cheque_number?.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Cheque number is required for check receipts.",
+        path: ["receipt_cheque_number"],
       });
     }
   });
@@ -363,6 +436,17 @@ export function SiteDashboardPage() {
   );
 
   const siteOption = useMemo(() => [{ label: site.name, value: site.id }], [site.id, site.name]);
+  const materialVariantOptions = useMemo(
+    () =>
+      references.materialVariants.map((variant) => ({
+        label: `${variant.material_name} | ${getMaterialVariantLabel({
+          material_variant_label: variant.label,
+          material_variant_size_mm: variant.size_mm,
+        })}`,
+        value: variant.id,
+      })),
+    [references.materialVariants],
+  );
   const partyNameMap = useMemo(
     () => new Map(parties.map((party) => [party.id, party.name])),
     [parties],
@@ -836,6 +920,12 @@ export function SiteDashboardPage() {
                   sortValue: (row) => row.invoice_number || "",
                 },
                 {
+                  key: "variant",
+                  header: "Variant",
+                  accessor: (row) => getMaterialVariantLabel(row),
+                  sortValue: (row) => row.material_variant_label || "",
+                },
+                {
                   key: "date",
                   header: "Date",
                   accessor: (row) => row.date_display || row.date,
@@ -917,6 +1007,12 @@ export function SiteDashboardPage() {
                   sortValue: (row) => row.date,
                 },
                 {
+                  key: "payment_mode",
+                  header: "Payment Mode",
+                  accessor: (row) => row.payment_mode || "-",
+                  sortValue: (row) => row.payment_mode || "",
+                },
+                {
                   key: "total_amount",
                   header: "Total Amount",
                   accessor: (row) => row.total_amount,
@@ -972,6 +1068,12 @@ export function SiteDashboardPage() {
                   header: "Amount",
                   accessor: (row) => row.amount,
                   sortValue: (row) => row.amount,
+                },
+                {
+                  key: "phase_name",
+                  header: "Phase",
+                  accessor: (row) => row.phase_name || "-",
+                  sortValue: (row) => row.phase_name || "",
                 },
                 {
                   key: "received_amount",
@@ -1110,6 +1212,7 @@ export function SiteDashboardPage() {
 
       <SiteMaterialReceiptModal
         materials={materials}
+        materialVariants={references.materialVariants}
         onClose={() => setIsMaterialReceiptModalOpen(false)}
         onMaterialAdded={addMaterialOption}
         onSaved={refreshDashboardData}
@@ -1307,6 +1410,14 @@ export function SiteDashboardPage() {
                 </div>
                 <div className="rounded-xl bg-[#F9FAFB] p-4">
                   <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Variant
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {getMaterialVariantLabel(selectedReceipt.receipt)}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
                     Received Quantity
                   </p>
                   <p className="mt-2 text-base font-semibold text-[#111111]">
@@ -1343,6 +1454,14 @@ export function SiteDashboardPage() {
                   </p>
                   <p className="mt-2 text-base font-semibold text-[#111111]">
                     {formatCurrency(selectedReceipt.receipt.transport_cost)}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Variant Unit Weight
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {selectedReceipt.receipt.material_variant_unit_weight ?? "-"}
                   </p>
                 </div>
                 <div className="rounded-xl bg-[#F9FAFB] p-4">
@@ -1422,6 +1541,7 @@ export function SiteDashboardPage() {
                 date: editingReceipt.date,
                 invoice_number: editingReceipt.invoice_number || "",
                 material: editingReceipt.material,
+                material_variant: editingReceipt.material_variant || 0,
                 notes: editingReceipt.notes || "",
                 quantity_received: editingReceipt.quantity_received,
                 quantity_used: editingReceipt.quantity_used,
@@ -1433,6 +1553,7 @@ export function SiteDashboardPage() {
                 date: new Date().toISOString().slice(0, 10),
                 invoice_number: "",
                 material: 0,
+                material_variant: 0,
                 notes: "",
                 quantity_received: 0,
                 quantity_used: 0,
@@ -1458,6 +1579,13 @@ export function SiteDashboardPage() {
             name: "material",
             options: materials.map((material) => ({ label: material.name, value: material.id })),
             required: true,
+            valueType: "number",
+          },
+          {
+            kind: "select",
+            label: "Material Variant",
+            name: "material_variant",
+            options: materialVariantOptions,
             valueType: "number",
           },
           { kind: "date", label: "Receipt Date", name: "date", required: true },
@@ -1489,21 +1617,29 @@ export function SiteDashboardPage() {
         defaultValues={
           editingPurchase
             ? {
+                cheque_number: editingPurchase.cheque_number || "",
                 date: editingPurchase.date,
                 description: editingPurchase.description || "",
                 invoice_number: editingPurchase.invoice_number || "",
                 material: editingPurchase.material || 0,
                 paid_amount: editingPurchase.paid_amount,
+                payment_mode: editingPurchase.payment_mode || "cash",
+                receiver_name: editingPurchase.receiver_name || "",
+                sender_name: editingPurchase.sender_name || "",
                 site: editingPurchase.site,
                 total_amount: editingPurchase.total_amount,
                 vendor: editingPurchase.vendor,
               }
             : {
+                cheque_number: "",
                 date: new Date().toISOString().slice(0, 10),
                 description: "",
                 invoice_number: "",
                 material: 0,
                 paid_amount: 0,
+                payment_mode: "cash",
+                receiver_name: "",
+                sender_name: "",
                 site: site.id,
                 total_amount: 0,
                 vendor: 0,
@@ -1541,6 +1677,10 @@ export function SiteDashboardPage() {
           { kind: "textarea", label: "Description", name: "description", placeholder: "Purchase notes", rows: 5 },
           { kind: "number", label: "Total Amount", min: 0, name: "total_amount", required: true, valueType: "number" },
           { kind: "number", label: "Initial Paid Amount", min: 0, name: "paid_amount", required: true, valueType: "number" },
+          { kind: "select", label: "Payment Mode", name: "payment_mode", options: paymentModeOptions, required: true },
+          { kind: "text", label: "Sender Name", maxLength: 255, name: "sender_name", placeholder: "Who paid the amount" },
+          { kind: "text", label: "Receiver Name", maxLength: 255, name: "receiver_name", placeholder: "Who received the amount" },
+          { kind: "text", label: "Cheque Number", maxLength: 50, name: "cheque_number", placeholder: "Required for check payments" },
         ]}
         onClose={() => setEditingPurchase(null)}
         onSubmit={async (values) => {
@@ -1565,14 +1705,26 @@ export function SiteDashboardPage() {
             ? {
                 amount: editingReceivable.amount,
                 date: editingReceivable.date,
+                description: editingReceivable.description || "",
                 party: editingReceivable.party,
+                phase_name: editingReceivable.phase_name || "",
+                receipt_cheque_number: "",
+                receipt_payment_mode: "cash",
+                receipt_receiver_name: "",
+                receipt_sender_name: "",
                 received_amount: editingReceivable.current_received_amount ?? 0,
                 site: editingReceivable.site,
               }
             : {
                 amount: 0,
                 date: new Date().toISOString().slice(0, 10),
+                description: "",
                 party: 0,
+                phase_name: "",
+                receipt_cheque_number: "",
+                receipt_payment_mode: "cash",
+                receipt_receiver_name: "",
+                receipt_sender_name: "",
                 received_amount: 0,
                 site: site.id,
               }
@@ -1598,8 +1750,14 @@ export function SiteDashboardPage() {
             valueType: "number",
           },
           { kind: "number", label: "Amount", min: 0, name: "amount", required: true, valueType: "number" },
+          { kind: "text", label: "Phase Name", maxLength: 255, name: "phase_name", placeholder: "Plaster Work, Slab, Brickwork..." },
           { kind: "date", label: "Invoice Date", name: "date", required: true },
           { kind: "number", label: "Received Amount", min: 0, name: "received_amount", required: true, valueType: "number" },
+          { kind: "select", label: "Receipt Payment Mode", name: "receipt_payment_mode", options: paymentModeOptions },
+          { kind: "text", label: "Receipt Sender Name", maxLength: 255, name: "receipt_sender_name", placeholder: "Who sent the receipt payment" },
+          { kind: "text", label: "Receipt Receiver Name", maxLength: 255, name: "receipt_receiver_name", placeholder: "Who received the receipt payment" },
+          { kind: "text", label: "Receipt Cheque Number", maxLength: 50, name: "receipt_cheque_number", placeholder: "Required for check receipts" },
+          { kind: "textarea", label: "Description", name: "description", placeholder: "Invoice or work description", rows: 4, wrapperClassName: "md:col-span-2" },
         ]}
         onClose={() => setEditingReceivable(null)}
         onSubmit={async (values) => {

@@ -27,6 +27,7 @@ import type {
   LabourFormValues,
   Material,
   MaterialFormValues,
+  MaterialVariant,
   PaymentFormValues,
   Party,
   PartyFormValues,
@@ -44,6 +45,19 @@ const otherMaterialOptionValue = -1;
 const otherVendorOptionValue = -1;
 const otherPartyOptionValue = -1;
 const otherLabourOptionValue = -1;
+const paymentModeOptions = [
+  { label: "Cash", value: "cash" },
+  { label: "Check", value: "check" },
+  { label: "Bank Transfer", value: "bank_transfer" },
+  { label: "UPI", value: "upi" },
+  { label: "Other", value: "other" },
+];
+
+function formatMaterialVariantLabel(variant: MaterialVariant) {
+  return variant.size_mm
+    ? `${variant.label} (${variant.size_mm} mm)`
+    : variant.label;
+}
 
 function InlineSelectActionField({
   actionAriaLabel,
@@ -77,7 +91,7 @@ const materialSchema = z.object({
     .trim()
     .min(2, "Material name must be at least 2 characters.")
     .max(100, "Material name must be 100 characters or fewer."),
-  unit: z.enum(["bag", "kg", "ton", "meter", "litre", "piece"]),
+  unit: z.enum(["bag", "kg", "ton", "meter", "litre", "piece", "other"]),
 });
 
 const phoneRegex = /^[0-9]{10}$/;
@@ -150,6 +164,11 @@ const partySchema = z.object({
 });
 
 const labourSchema = z.object({
+  labour_type: z
+    .string()
+    .max(100, "Labour type must be 100 characters or fewer.")
+    .optional()
+    .or(z.literal("")),
   name: z
     .string()
     .trim()
@@ -164,25 +183,58 @@ const labourSchema = z.object({
 
 const purchaseSchema = z
   .object({
+    cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer."),
     date: z.string().min(1, "Date is required."),
     description: z.string().max(300, "Description must be 300 characters or fewer."),
     invoice_number: z.string().max(60, "Invoice number must be 60 characters or fewer."),
     material: z.number().min(0, "Material is invalid."),
     paid_amount: z.number().min(0, "Paid amount must be zero or more."),
+    payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
+    receiver_name: z.string().max(255, "Receiver name must be 255 characters or fewer."),
+    sender_name: z.string().max(255, "Sender name must be 255 characters or fewer."),
     site: z.number().min(1, "Site is required."),
     total_amount: z.number().gt(0, "Total amount must be greater than zero."),
     vendor: z.number().min(1, "Vendor is required."),
   })
-  .refine((value) => value.paid_amount <= value.total_amount, {
-    message: "Paid amount cannot exceed total amount.",
-    path: ["paid_amount"],
+  .superRefine((value, context) => {
+    if (value.paid_amount > value.total_amount) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Paid amount cannot exceed total amount.",
+        path: ["paid_amount"],
+      });
+    }
+
+    if (value.paid_amount > 0 && value.payment_mode === "cash") {
+      if (!value.sender_name.trim() && !value.receiver_name.trim()) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sender name or receiver name is required for cash payments.",
+          path: ["sender_name"],
+        });
+      }
+    }
+
+    if (value.paid_amount > 0 && value.payment_mode === "check" && !value.cheque_number.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Cheque number is required for check payments.",
+        path: ["cheque_number"],
+      });
+    }
   });
 
 const receivableSchema = z
   .object({
     amount: z.number().gt(0, "Amount must be greater than zero."),
     date: z.string().min(1, "Invoice date is required."),
+    description: z.string().max(1000, "Description must be 1000 characters or fewer."),
     party: z.number().min(1, "Party is required."),
+    phase_name: z.string().max(255, "Phase name must be 255 characters or fewer."),
+    receipt_cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer.").optional().or(z.literal("")),
+    receipt_payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]).optional(),
+    receipt_receiver_name: z.string().max(255, "Receiver name must be 255 characters or fewer.").optional().or(z.literal("")),
+    receipt_sender_name: z.string().max(255, "Sender name must be 255 characters or fewer.").optional().or(z.literal("")),
     received_amount: z.number().min(0, "Received amount must be zero or more.").optional(),
     site: z.number().min(1, "Site is required."),
   })
@@ -192,6 +244,24 @@ const receivableSchema = z
         code: z.ZodIssueCode.custom,
         message: "Received amount cannot exceed invoice amount.",
         path: ["received_amount"],
+      });
+    }
+
+    if ((value.received_amount ?? 0) > 0 && value.receipt_payment_mode === "cash") {
+      if (!value.receipt_sender_name?.trim() && !value.receipt_receiver_name?.trim()) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sender name or receiver name is required for cash receipts.",
+          path: ["receipt_sender_name"],
+        });
+      }
+    }
+
+    if ((value.received_amount ?? 0) > 0 && value.receipt_payment_mode === "check" && !value.receipt_cheque_number?.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Cheque number is required for check receipts.",
+        path: ["receipt_cheque_number"],
       });
     }
   });
@@ -246,6 +316,7 @@ const receiptSchema = z
       .optional()
       .or(z.literal("")),
     material: z.number().min(1, "Material is required."),
+    material_variant: z.number().min(0, "Variant is invalid.").optional(),
     notes: z
       .string()
       .max(600, "Notes must be 600 characters or fewer.")
@@ -263,6 +334,7 @@ const receiptSchema = z
 
 interface SiteMaterialReceiptModalProps {
   materials: Material[];
+  materialVariants: MaterialVariant[];
   onClose: () => void;
   onMaterialAdded: (material: Material) => void;
   onSaved: () => void;
@@ -273,6 +345,7 @@ interface SiteMaterialReceiptModalProps {
 
 export function SiteMaterialReceiptModal({
   materials,
+  materialVariants,
   onClose,
   onMaterialAdded,
   onSaved,
@@ -297,6 +370,7 @@ export function SiteMaterialReceiptModal({
       date: siteDashboardToday,
       invoice_number: "",
       material: 0,
+      material_variant: 0,
       notes: "",
       quantity_received: 0,
       quantity_used: 0,
@@ -306,6 +380,15 @@ export function SiteMaterialReceiptModal({
     mode: "onChange",
     resolver: createZodResolver(receiptSchema),
   });
+  const selectedMaterialId = useWatch({ control, name: "material" });
+  const filteredMaterialVariants = useMemo(
+    () =>
+      materialVariants.filter((variant) => {
+        const materialId = Number(selectedMaterialId) || 0;
+        return !materialId || variant.material === materialId;
+      }),
+    [materialVariants, selectedMaterialId],
+  );
 
   function handleClose() {
     setFormError("");
@@ -324,6 +407,7 @@ export function SiteMaterialReceiptModal({
       date: siteDashboardToday,
       invoice_number: "",
       material: 0,
+      material_variant: 0,
       notes: "",
       quantity_received: 0,
       quantity_used: 0,
@@ -421,6 +505,27 @@ export function SiteMaterialReceiptModal({
                     }}
                   />
                 </InlineSelectActionField>
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="material_variant"
+              render={({ field }) => (
+                <Select
+                  clearable
+                  error={errors.material_variant?.message}
+                  label="Material Variant"
+                  options={filteredMaterialVariants.map((variant) => ({
+                    label: formatMaterialVariantLabel(variant),
+                    value: variant.id,
+                  }))}
+                  placeholder="Optional variant"
+                  value={field.value || ""}
+                  onChange={(event) => {
+                    field.onChange(event.target.value ? Number(event.target.value) : 0);
+                  }}
+                />
               )}
             />
 
@@ -522,6 +627,7 @@ export function SiteMaterialReceiptModal({
               { label: "Meter", value: "meter" },
               { label: "Litre", value: "litre" },
               { label: "Piece", value: "piece" },
+              { label: "Other", value: "other" },
             ],
             required: true,
           },
@@ -581,11 +687,15 @@ export function SiteVendorEntryModal({
     setValue,
   } = useForm<PurchaseFormValues>({
     defaultValues: {
+      cheque_number: "",
       date: siteDashboardToday,
       description: "",
       invoice_number: "",
       material: 0,
       paid_amount: 0,
+      payment_mode: "cash",
+      receiver_name: "",
+      sender_name: "",
       site: siteId,
       total_amount: 0,
       vendor: 0,
@@ -607,11 +717,15 @@ export function SiteVendorEntryModal({
 
     lastSelectedVendorRef.current = 0;
     reset({
+      cheque_number: "",
       date: siteDashboardToday,
       description: "",
       invoice_number: "",
       material: 0,
       paid_amount: 0,
+      payment_mode: "cash",
+      receiver_name: "",
+      sender_name: "",
       site: siteId,
       total_amount: 0,
       vendor: 0,
@@ -754,6 +868,42 @@ export function SiteVendorEntryModal({
                 setValueAs: (value) => (value === "" ? 0 : Number(value)),
               })}
             />
+            <Controller
+              control={control}
+              name="payment_mode"
+              render={({ field }) => (
+                <Select
+                  clearable={false}
+                  error={errors.payment_mode?.message}
+                  label="Payment Mode"
+                  options={paymentModeOptions}
+                  requiredIndicator
+                  value={field.value}
+                  onChange={(event) => field.onChange(event.target.value)}
+                />
+              )}
+            />
+            <Input
+              error={errors.sender_name?.message}
+              label="Sender Name"
+              maxLength={255}
+              placeholder="Who paid the amount"
+              {...register("sender_name")}
+            />
+            <Input
+              error={errors.receiver_name?.message}
+              label="Receiver Name"
+              maxLength={255}
+              placeholder="Who received the amount"
+              {...register("receiver_name")}
+            />
+            <Input
+              error={errors.cheque_number?.message}
+              label="Cheque Number"
+              maxLength={50}
+              placeholder="Required for check payments"
+              {...register("cheque_number")}
+            />
             <div className="md:col-span-2">
               <Textarea
                 error={errors.description?.message}
@@ -855,7 +1005,13 @@ export function SitePartyEntryModal({
     defaultValues: {
       amount: 0,
       date: siteDashboardToday,
+      description: "",
       party: 0,
+      phase_name: "",
+      receipt_cheque_number: "",
+      receipt_payment_mode: "cash",
+      receipt_receiver_name: "",
+      receipt_sender_name: "",
       received_amount: 0,
       site: siteId,
     },
@@ -878,7 +1034,13 @@ export function SitePartyEntryModal({
     reset({
       amount: 0,
       date: siteDashboardToday,
+      description: "",
       party: 0,
+      phase_name: "",
+      receipt_cheque_number: "",
+      receipt_payment_mode: "cash",
+      receipt_receiver_name: "",
+      receipt_sender_name: "",
       received_amount: 0,
       site: siteId,
     });
@@ -958,8 +1120,59 @@ export function SitePartyEntryModal({
             />
             <Select clearable={false} disabled label="Site" options={[{ label: siteName, value: siteId }]} value={siteId} />
             <Input error={errors.amount?.message} label="Amount" min={0} requiredIndicator type="number" {...register("amount", { setValueAs: (value) => (value === "" ? 0 : Number(value)) })} />
+            <Input
+              error={errors.phase_name?.message}
+              label="Phase Name"
+              maxLength={255}
+              placeholder="Plaster Work, Slab, Brickwork..."
+              {...register("phase_name")}
+            />
             <Input error={errors.date?.message} label="Invoice Date" requiredIndicator type="date" {...register("date")} />
             <Input error={errors.received_amount?.message} label="Received Amount" min={0} requiredIndicator type="number" {...register("received_amount", { setValueAs: (value) => (value === "" ? 0 : Number(value)) })} />
+            <Controller
+              control={control}
+              name="receipt_payment_mode"
+              render={({ field }) => (
+                <Select
+                  clearable={false}
+                  error={errors.receipt_payment_mode?.message}
+                  label="Receipt Payment Mode"
+                  options={paymentModeOptions}
+                  value={field.value || "cash"}
+                  onChange={(event) => field.onChange(event.target.value)}
+                />
+              )}
+            />
+            <Input
+              error={errors.receipt_sender_name?.message}
+              label="Receipt Sender Name"
+              maxLength={255}
+              placeholder="Who sent the receipt payment"
+              {...register("receipt_sender_name")}
+            />
+            <Input
+              error={errors.receipt_receiver_name?.message}
+              label="Receipt Receiver Name"
+              maxLength={255}
+              placeholder="Who received the receipt payment"
+              {...register("receipt_receiver_name")}
+            />
+            <Input
+              error={errors.receipt_cheque_number?.message}
+              label="Receipt Cheque Number"
+              maxLength={50}
+              placeholder="Required for check receipts"
+              {...register("receipt_cheque_number")}
+            />
+            <div className="md:col-span-2">
+              <Textarea
+                error={errors.description?.message}
+                label="Description"
+                placeholder="Invoice or work description"
+                rows={4}
+                {...register("description")}
+              />
+            </div>
             <div className="md:col-span-2">
               <FormError message={formError} />
             </div>
@@ -1286,10 +1499,11 @@ export function SiteLabourPaymentModal({
       </Modal>
 
       <EntityFormModal<LabourFormValues>
-        defaultValues={{ name: "", per_day_wage: 0, phone: "" }}
+        defaultValues={{ labour_type: "", name: "", per_day_wage: 0, phone: "" }}
         description="Create or update labour records."
         fields={[
           { kind: "text", label: "Labour Name", maxLength: 80, minLength: 2, name: "name", placeholder: "Worker name", required: true },
+          { kind: "text", label: "Labour Type", maxLength: 100, name: "labour_type", placeholder: "Mason, Helper, Carpenter..." },
           { kind: "text", label: "Phone", maxLength: 15, minLength: 10, name: "phone", pattern: "[0-9]{10,15}", placeholder: "Contact number", required: true },
           { kind: "number", label: "Per Day Wage", min: 0, name: "per_day_wage", placeholder: "500", required: true, step: 1, valueType: "number" },
         ]}
@@ -1469,10 +1683,11 @@ export function SiteLabourEntryModal({
       </Modal>
 
       <EntityFormModal<LabourFormValues>
-        defaultValues={{ name: "", per_day_wage: 0, phone: "" }}
+        defaultValues={{ labour_type: "", name: "", per_day_wage: 0, phone: "" }}
         description="Create or update labour records."
         fields={[
           { kind: "text", label: "Labour Name", maxLength: 80, minLength: 2, name: "name", placeholder: "Worker name", required: true },
+          { kind: "text", label: "Labour Type", maxLength: 100, name: "labour_type", placeholder: "Mason, Helper, Carpenter..." },
           { kind: "text", label: "Phone", maxLength: 15, minLength: 10, name: "phone", pattern: "[0-9]{10,15}", placeholder: "Contact number", required: true },
           { kind: "number", label: "Per Day Wage", min: 0, name: "per_day_wage", placeholder: "500", required: true, step: 1, valueType: "number" },
         ]}

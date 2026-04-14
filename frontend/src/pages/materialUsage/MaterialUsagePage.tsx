@@ -205,6 +205,17 @@ export function MaterialUsagePage() {
             sortValue: (row) => row.material_name,
           },
           {
+            key: "variant",
+            header: "Variant",
+            accessor: (row) =>
+              row.receipt_material_variant_label
+                ? row.receipt_material_variant_size_mm
+                  ? `${row.receipt_material_variant_label} (${row.receipt_material_variant_size_mm} mm)`
+                  : row.receipt_material_variant_label
+                : "-",
+            sortValue: (row) => row.receipt_material_variant_label || "",
+          },
+          {
             key: "receipt",
             header: "Receipt",
             accessor: (row) =>

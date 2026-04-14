@@ -17,15 +17,32 @@ const today = new Date().toISOString().slice(0, 10);
 
 const receivePaymentSchema = z.object({
   amount: z.number().gt(0, "Received amount must be greater than zero."),
-  date: z
-    .string()
-    .min(1, "Receipt date is required.")
-    .refine((value) => value <= today, "Receipt date cannot be in the future."),
+  cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer."),
+  date: z.string().min(1, "Receipt date is required."),
+  payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
   notes: z.string().max(600, "Notes must be 600 characters or fewer."),
   payment_mode: z.string().min(1, "Payment method is required."),
   reference_number: z
     .string()
     .max(50, "Reference number must be 50 characters or fewer."),
+  receiver_name: z.string().max(255, "Receiver name must be 255 characters or fewer."),
+  sender_name: z.string().max(255, "Sender name must be 255 characters or fewer."),
+}).superRefine((value, context) => {
+  if (value.payment_mode === "cash" && !value.sender_name.trim() && !value.receiver_name.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Sender name or receiver name is required for cash payments.",
+      path: ["sender_name"],
+    });
+  }
+
+  if (value.payment_mode === "check" && !value.cheque_number.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Cheque number is required for check payments.",
+      path: ["cheque_number"],
+    });
+  }
 });
 
 interface ReceivePaymentModalProps {
@@ -59,10 +76,13 @@ export function ReceivePaymentModal({
   } = useForm<ReceivePaymentFormValues>({
     defaultValues: {
       amount: pendingAmount,
+      cheque_number: "",
       date: new Date().toISOString().slice(0, 10),
-      notes: "",
       payment_mode: "cash",
+      notes: "",
+      receiver_name: "",
       reference_number: "",
+      sender_name: "",
     },
     mode: "onChange",
     resolver: createZodResolver(receivePaymentSchema),
@@ -75,10 +95,13 @@ export function ReceivePaymentModal({
 
     reset({
       amount: pendingAmount,
+      cheque_number: "",
       date: new Date().toISOString().slice(0, 10),
-      notes: "",
       payment_mode: "cash",
+      notes: "",
+      receiver_name: "",
       reference_number: "",
+      sender_name: "",
     });
   }, [open, pendingAmount, reset]);
 
@@ -113,14 +136,82 @@ export function ReceivePaymentModal({
       size="lg"
       title="Receive Payment"
     >
-      <form
-        className="grid gap-4 md:grid-cols-2"
-        id="receive-payment-form"
-        onSubmit={handleSubmit(async (values: ReceivePaymentFormValues) => {
-          if (values.amount > pendingAmount) {
-            setFormError("Received amount cannot exceed pending amount.");
-            return;
-          }
+      <div className="space-y-5">
+        <section className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-4 md:grid-cols-2 dark:border-blue-100 dark:bg-blue-50/60">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              Party
+            </p>
+            <p className="mt-1 text-base font-black text-slate-950">
+              {partyLabel || `Party #${item.party}`}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              Site
+            </p>
+            <p className="mt-1 text-base font-black text-slate-950">
+              {siteLabel || `Site #${item.site}`}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              Invoice Amount
+            </p>
+            <p className="mt-1 text-base font-black text-slate-950">
+              {formatCurrency(item.amount)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              Invoice Date
+            </p>
+            <p className="mt-1 text-base font-black text-slate-950">
+              {formatDate(item.date)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              Phase
+            </p>
+            <p className="mt-1 text-base font-black text-slate-950">
+              {item.phase_name || "-"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              Received So Far
+            </p>
+            <p className="mt-1 text-base font-black text-emerald-700">
+              {formatCurrency(currentReceivedAmount)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              Pending Amount
+            </p>
+            <p className="mt-1 text-base font-black text-amber-700">
+              {formatCurrency(pendingAmount)}
+            </p>
+          </div>
+          <div className="md:col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              Description
+            </p>
+            <p className="mt-1 text-base font-black text-slate-950">
+              {item.description || "-"}
+            </p>
+          </div>
+        </section>
+
+        <form
+          className="grid gap-4 md:grid-cols-2"
+          id="receive-payment-form"
+          onSubmit={handleSubmit(async (values: ReceivePaymentFormValues) => {
+            if (values.amount > pendingAmount) {
+              setFormError("Received amount cannot exceed pending amount.");
+              return;
+            }
 
           try {
             setFormError("");
@@ -153,16 +244,38 @@ export function ReceivePaymentModal({
             {...register("date")}
           />
           <Select
-            clearable={false}
             error={errors.payment_mode?.message}
-            label="Payment Method"
+            label="Payment Mode"
             options={[
               { label: "Cash", value: "cash" },
-              { label: "Bank", value: "bank_transfer" },
+              { label: "Check", value: "check" },
+              { label: "Bank Transfer", value: "bank_transfer" },
               { label: "UPI", value: "upi" },
+              { label: "Other", value: "other" },
             ]}
             requiredIndicator
             {...register("payment_mode")}
+          />
+          <Input
+            error={errors.sender_name?.message}
+            label="Sender Name"
+            maxLength={255}
+            placeholder="Who sent the payment"
+            {...register("sender_name")}
+          />
+          <Input
+            error={errors.receiver_name?.message}
+            label="Receiver Name"
+            maxLength={255}
+            placeholder="Who received the payment"
+            {...register("receiver_name")}
+          />
+          <Input
+            error={errors.cheque_number?.message}
+            label="Cheque Number"
+            maxLength={50}
+            placeholder="Required for check payments"
+            {...register("cheque_number")}
           />
           <Input
             error={errors.reference_number?.message}

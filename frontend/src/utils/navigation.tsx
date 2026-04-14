@@ -29,6 +29,8 @@ export const navigationGroups: NavigationGroup[] = [
     id: "inventory",
     items: [
       { icon: icons.materials({ className: "h-4 w-4" }), label: "Materials", to: "/materials" },
+      { icon: icons.materials({ className: "h-4 w-4" }), label: "Material Variants", to: "/material-variants" },
+      { icon: icons.reports({ className: "h-4 w-4" }), label: "Variant Prices", to: "/material-variant-prices" },
       { icon: icons.receipts({ className: "h-4 w-4" }), label: "Material Receipts", to: "/material-receipts" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Material Usage", to: "/material-usage" },
     ],
@@ -55,6 +57,7 @@ export const navigationGroups: NavigationGroup[] = [
     id: "workforce",
     items: [
       { icon: icons.labour({ className: "h-4 w-4" }), label: "Labour", to: "/labour" },
+      { icon: icons.labour({ className: "h-4 w-4" }), label: "Casual Labour", to: "/casual-labour" },
       { icon: icons.attendance({ className: "h-4 w-4" }), label: "Attendance", to: "/attendance" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Labour Ledger", to: "/labour-ledger" },
       { icon: icons.attendance({ className: "h-4 w-4" }), label: "Monthly Attendance", to: "/monthly-attendance" },
@@ -68,6 +71,7 @@ export const navigationGroups: NavigationGroup[] = [
     id: "finance",
     items: [
       { icon: icons.payments({ className: "h-4 w-4" }), label: "Payments", to: "/payments" },
+      { icon: icons.payments({ className: "h-4 w-4" }), label: "Misc Expenses", to: "/miscellaneous-expenses" },
       { icon: icons.receivables({ className: "h-4 w-4" }), label: "Receivables", to: "/receivables" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Party Ledger", to: "/party-ledger" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Site Receivables", to: "/site-receivables" },
@@ -91,9 +95,12 @@ export const navigationGroups: NavigationGroup[] = [
 export const navigationItems: NavigationItem[] = [
   ...navigationPrimaryItems,
   { icon: icons.materials({ className: "h-5 w-5" }), label: "Materials", to: "/materials" },
+  { icon: icons.materials({ className: "h-5 w-5" }), label: "Material Variants", to: "/material-variants" },
+  { icon: icons.reports({ className: "h-5 w-5" }), label: "Variant Prices", to: "/material-variant-prices" },
   { icon: icons.vendors({ className: "h-5 w-5" }), label: "Vendors", to: "/vendors" },
   { icon: icons.reports({ className: "h-5 w-5" }), label: "Vendor Ledger", to: "/vendor-ledger" },
   { icon: icons.labour({ className: "h-5 w-5" }), label: "Labour", to: "/labour" },
+  { icon: icons.labour({ className: "h-5 w-5" }), label: "Casual Labour", to: "/casual-labour" },
   { icon: icons.reports({ className: "h-5 w-5" }), label: "Labour Ledger", to: "/labour-ledger" },
   { icon: icons.parties({ className: "h-5 w-5" }), label: "Parties", to: "/parties" },
   { icon: icons.reports({ className: "h-5 w-5" }), label: "Party Ledger", to: "/party-ledger" },
@@ -105,6 +112,7 @@ export const navigationItems: NavigationItem[] = [
   { icon: icons.attendance({ className: "h-5 w-5" }), label: "Attendance", to: "/attendance" },
   { icon: icons.attendance({ className: "h-5 w-5" }), label: "Monthly Attendance", to: "/monthly-attendance" },
   { icon: icons.payments({ className: "h-5 w-5" }), label: "Payments", to: "/payments" },
+  { icon: icons.payments({ className: "h-5 w-5" }), label: "Misc Expenses", to: "/miscellaneous-expenses" },
   { icon: icons.receivables({ className: "h-5 w-5" }), label: "Receivables", to: "/receivables" },
   { icon: icons.reports({ className: "h-5 w-5" }), label: "Site Receivables", to: "/site-receivables" },
   { icon: icons.reports({ className: "h-5 w-5" }), label: "Reports", to: "/reports" },

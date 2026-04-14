@@ -17,6 +17,7 @@ const receiptSchema = z.object({
     .optional()
     .or(z.literal("")),
   material: z.number().min(1, "Material is required."),
+  material_variant: z.number().min(0, "Variant is invalid.").optional(),
   notes: z
     .string()
     .max(600, "Notes must be 600 characters or fewer.")
@@ -36,6 +37,7 @@ const unitLabels: Record<string, { singular: string; plural: string }> = {
   kg: { singular: "kg", plural: "kg" },
   litre: { singular: "litre", plural: "litres" },
   meter: { singular: "meter", plural: "meters" },
+  other: { singular: "other", plural: "other" },
   piece: { singular: "piece", plural: "pieces" },
   ton: { singular: "ton", plural: "tons" },
 };
@@ -85,6 +87,17 @@ export function MaterialReceiptsPage() {
       columns={[
         { key: "site", header: "Site", accessor: (row) => row.site_name, sortValue: (row) => row.site_name },
         { key: "material", header: "Material", accessor: (row) => row.material_name, sortValue: (row) => row.material_name },
+        {
+          key: "variant",
+          header: "Variant",
+          accessor: (row) =>
+            row.material_variant_label
+              ? row.material_variant_size_mm
+                ? `${row.material_variant_label} (${row.material_variant_size_mm} mm)`
+                : row.material_variant_label
+              : "-",
+          sortValue: (row) => row.material_variant_label || "",
+        },
         { key: "unit", header: "Unit", accessor: (row) => getUnitLabel(row.material_unit), sortValue: (row) => row.material_unit },
         { key: "invoice", header: "Invoice", accessor: (row) => row.invoice_number || "-", sortValue: (row) => row.invoice_number || "" },
         { key: "date", header: "Date", accessor: (row) => row.date_display || row.date, sortValue: (row) => row.date },
@@ -97,6 +110,7 @@ export function MaterialReceiptsPage() {
         date: new Date().toISOString().slice(0, 10),
         invoice_number: "",
         material: 0,
+        material_variant: 0,
         notes: "",
         quantity_received: 0,
         quantity_used: 0,
@@ -122,6 +136,17 @@ export function MaterialReceiptsPage() {
           name: "material",
           options: references.materials.map((material) => ({ label: material.name, value: material.id })),
           required: true,
+          valueType: "number",
+        },
+        {
+          clearable: true,
+          kind: "select",
+          label: "Material Variant",
+          name: "material_variant",
+          options: references.materialVariants.map((variant) => ({
+            label: `${variant.material_name} | ${variant.label}${variant.size_mm ? ` (${variant.size_mm} mm)` : ""}`,
+            value: variant.id,
+          })),
           valueType: "number",
         },
         { kind: "date", label: "Receipt Date", name: "date", required: true },
@@ -180,6 +205,7 @@ export function MaterialReceiptsPage() {
         date: entity.date,
         invoice_number: entity.invoice_number || "",
         material: entity.material,
+        material_variant: entity.material_variant || 0,
         notes: entity.notes || "",
         quantity_received: entity.quantity_received,
         quantity_used: entity.quantity_used,
@@ -195,7 +221,17 @@ export function MaterialReceiptsPage() {
         { label: "Record ID", value: (row) => row.id, highlight: true },
         { label: "Site", value: (row) => row.site_name, highlight: true },
         { label: "Material", value: (row) => row.material_name, highlight: true },
+        {
+          label: "Material Variant",
+          value: (row) =>
+            row.material_variant_label
+              ? row.material_variant_size_mm
+                ? `${row.material_variant_label} (${row.material_variant_size_mm} mm)`
+                : row.material_variant_label
+              : "-",
+        },
         { label: "Material Unit", value: (row) => getUnitLabel(row.material_unit) },
+        { label: "Variant Unit Weight", value: (row) => row.material_variant_unit_weight },
         { label: "Quantity Received", value: (row) => getQuantityLabel(row.quantity_received, row.material_unit), highlight: true },
         { label: "Quantity Used", value: (row) => getQuantityLabel(row.quantity_used, row.material_unit) },
         { label: "Remaining Stock", value: (row) => getQuantityLabel(row.remaining_stock, row.material_unit), highlight: true },

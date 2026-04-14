@@ -2,16 +2,27 @@ import { useEffect, useState } from "react";
 
 import { useToast } from "../components/feedback/useToast";
 import { labourService } from "../services/labourService";
-import { materialsService } from "../services/materialsService";
+import {
+  materialVariantsService,
+  materialsService,
+} from "../services/materialsService";
 import { partiesService } from "../services/partiesService";
 import { sitesService } from "../services/sitesService";
 import { vendorsService } from "../services/vendorsService";
-import type { Labour, Material, Party, Site, Vendor } from "../types/erp.types";
+import type {
+  Labour,
+  Material,
+  MaterialVariant,
+  Party,
+  Site,
+  Vendor,
+} from "../types/erp.types";
 import { getErrorMessage } from "../utils/apiError";
 
 interface ReferenceState {
   labour: Labour[];
   materials: Material[];
+  materialVariants: MaterialVariant[];
   parties: Party[];
   sites: Site[];
   vendors: Vendor[];
@@ -22,6 +33,7 @@ export function useReferenceData() {
   const [data, setData] = useState<ReferenceState>({
     labour: [],
     materials: [],
+    materialVariants: [],
     parties: [],
     sites: [],
     vendors: [],
@@ -34,9 +46,10 @@ export function useReferenceData() {
       try {
         setIsLoading(true);
         setError("");
-        const [sites, materials, vendors, labour, parties] = await Promise.all([
+        const [sites, materials, materialVariants, vendors, labour, parties] = await Promise.all([
           sitesService.getOptions(),
           materialsService.getOptions(),
+          materialVariantsService.getOptions(),
           vendorsService.getOptions(),
           labourService.getOptions(),
           partiesService.getOptions(),
@@ -45,6 +58,7 @@ export function useReferenceData() {
         setData({
           labour,
           materials,
+          materialVariants,
           parties,
           sites,
           vendors,
