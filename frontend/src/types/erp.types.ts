@@ -614,6 +614,12 @@ export interface PartyLedgerEntry {
   credit: number;
   balance: number;
   date: string;
+  payment_mode?: PaymentMode | null;
+  reference_number?: string | null;
+  notes?: string | null;
+  sender_name?: string | null;
+  receiver_name?: string | null;
+  cheque_number?: string | null;
 }
 
 export interface PartyLedgerTotals {

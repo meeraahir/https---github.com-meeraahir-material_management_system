@@ -51,6 +51,12 @@ class PartyViewSet(viewsets.ModelViewSet):
                 'debit': invoice.amount,
                 'credit': 0,
                 'date': invoice.date,
+                'payment_mode': None,
+                'reference_number': None,
+                'notes': None,
+                'sender_name': None,
+                'receiver_name': None,
+                'cheque_number': None,
                 '_sort_id': invoice.id,
                 '_sort_priority': 0,
             })
@@ -63,6 +69,12 @@ class PartyViewSet(viewsets.ModelViewSet):
                 'debit': 0,
                 'credit': receipt.amount,
                 'date': receipt.date,
+                'payment_mode': receipt.payment_mode,
+                'reference_number': receipt.reference_number,
+                'notes': receipt.notes,
+                'sender_name': receipt.sender_name,
+                'receiver_name': receipt.receiver_name,
+                'cheque_number': receipt.cheque_number,
                 '_sort_id': receipt.id,
                 '_sort_priority': 1,
             })
@@ -80,6 +92,12 @@ class PartyViewSet(viewsets.ModelViewSet):
                 'credit': entry['credit'],
                 'balance': running_balance,
                 'date': entry['date'],
+                'payment_mode': entry['payment_mode'],
+                'reference_number': entry['reference_number'],
+                'notes': entry['notes'],
+                'sender_name': entry['sender_name'],
+                'receiver_name': entry['receiver_name'],
+                'cheque_number': entry['cheque_number'],
             })
         totals = {
             'total_amount': sum(item['debit'] for item in data),

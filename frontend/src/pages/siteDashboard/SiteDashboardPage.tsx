@@ -250,6 +250,25 @@ interface PartyPaymentHistoryRow {
   amount: number;
   date: string;
   id: string;
+  notes?: string;
+  paymentMethod?: string;
+  referenceNumber?: string;
+  receiverName?: string;
+  senderName?: string;
+}
+
+function normalizePaymentHistoryNote(note: string | null | undefined) {
+  const trimmedNote = note?.trim();
+
+  if (!trimmedNote) {
+    return undefined;
+  }
+
+  if (/^Auto-created from receivable/i.test(trimmedNote)) {
+    return undefined;
+  }
+
+  return trimmedNote;
 }
 
 function AddSectionButton({
@@ -307,6 +326,7 @@ export function SiteDashboardPage() {
   const [isPartyDetailsLoading, setIsPartyDetailsLoading] = useState(false);
   const [isReceivePaymentModalOpen, setIsReceivePaymentModalOpen] = useState(false);
   const [isVendorEntryModalOpen, setIsVendorEntryModalOpen] = useState(false);
+  const [localPartyPaymentHistory, setLocalPartyPaymentHistory] = useState<PartyPaymentHistoryRow[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isReceiptDetailsModalOpen, setIsReceiptDetailsModalOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<SelectedReceipt | null>(null);
@@ -326,7 +346,6 @@ export function SiteDashboardPage() {
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [editingReceivable, setEditingReceivable] = useState<Receivable | null>(null);
   const [partyDetailEntries, setPartyDetailEntries] = useState<Receivable[]>([]);
-  const [partyDetailLedgerEntries, setPartyDetailLedgerEntries] = useState<PartyLedgerEntry[]>([]);
   const [partyPaymentHistory, setPartyPaymentHistory] = useState<PartyPaymentHistoryRow[]>([]);
   const [paymentTarget, setPaymentTarget] = useState<Receivable | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -602,7 +621,32 @@ export function SiteDashboardPage() {
         amount: entry.credit,
         date: entry.date,
         id: String(entry.id),
+        notes: normalizePaymentHistoryNote(entry.notes),
+        paymentMethod: entry.payment_mode
+          ? entry.payment_mode
+              .split("_")
+              .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+              .join(" ")
+          : undefined,
+        referenceNumber: entry.reference_number || undefined,
+        receiverName: entry.receiver_name || undefined,
+        senderName: entry.sender_name || undefined,
       }));
+  }
+
+  function formatPaymentMethodLabel(value: ReceivePaymentFormValues["payment_mode"] | undefined) {
+    if (!value) {
+      return undefined;
+    }
+
+    if (value === "bank_transfer") {
+      return "Bank Transfer";
+    }
+
+    return value
+      .split("_")
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(" ");
   }
 
   async function loadPartyDetail(partyId: number, siteId: number, partyLabel: string) {
@@ -627,6 +671,9 @@ export function SiteDashboardPage() {
       const filteredLedgerEntries = [...ledger.transactions]
         .filter((entry) => entry.site === site.name)
         .sort((left, right) => right.date.localeCompare(left.date));
+      const persistedLocalHistory = localPartyPaymentHistory.filter((entry) =>
+        entry.id.startsWith(`local-${partyId}-${siteId}-`),
+      );
 
       setSelectedParty({
         partyId,
@@ -634,8 +681,19 @@ export function SiteDashboardPage() {
         siteId,
       });
       setPartyDetailEntries(filteredTransactions);
-      setPartyDetailLedgerEntries(filteredLedgerEntries);
-      setPartyPaymentHistory(buildPartyPaymentHistory(filteredLedgerEntries, site.name));
+      const mergedHistory = [
+        ...persistedLocalHistory,
+        ...buildPartyPaymentHistory(filteredLedgerEntries, site.name),
+      ].filter(
+        (entry, index, array) =>
+          array.findIndex(
+            (candidate) =>
+              candidate.amount === entry.amount &&
+              candidate.date === entry.date,
+          ) === index,
+      );
+
+      setPartyPaymentHistory(mergedHistory);
       setIsPartyDetailsModalOpen(true);
     } catch (loadError) {
       showError("Unable to load party details", getErrorMessage(loadError));
@@ -648,7 +706,6 @@ export function SiteDashboardPage() {
     setIsPartyDetailsModalOpen(false);
     setSelectedParty(null);
     setPartyDetailEntries([]);
-    setPartyDetailLedgerEntries([]);
     setPartyPaymentHistory([]);
     setPaymentTarget(null);
     setIsReceivePaymentModalOpen(false);
@@ -1320,32 +1377,63 @@ export function SiteDashboardPage() {
                 Loading payment history...
               </div>
             ) : partyPaymentHistory.length ? (
-              <div className="space-y-2">
-                {partyPaymentHistory.map((entry) => (
-                  <div
-                    className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-sm"
-                    key={entry.id}
-                  >
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+              <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border-collapse text-sm">
+                    <thead className="bg-[#F9FAFB]">
+                      <tr>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
                           Received Amount
-                        </p>
-                        <p className="mt-2 text-base font-semibold text-[#111111]">
-                          {formatCurrency(entry.amount)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
                           Receipt Date
-                        </p>
-                        <p className="mt-1 text-base font-semibold text-[#111111]">
-                          {formatDate(entry.date)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Method
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Reference Number
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Sender Name
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Receiver Name
+                        </th>
+                        <th className="min-w-[220px] px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Notes
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {partyPaymentHistory.map((entry) => (
+                        <tr className="border-t border-[#E5E7EB]" key={entry.id}>
+                          <td className="whitespace-nowrap px-4 py-3 font-medium text-[#111111]">
+                            {formatCurrency(entry.amount)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 font-medium text-[#111111]">
+                            {formatDate(entry.date)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
+                            {entry.paymentMethod || "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
+                            {entry.referenceNumber || "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
+                            {entry.senderName || "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
+                            {entry.receiverName || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-[#111111]">
+                            {entry.notes || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 text-sm text-[#6B7280]">
@@ -1368,6 +1456,17 @@ export function SiteDashboardPage() {
           }
 
           await receivablesService.receivePayment(paymentTarget.id, values);
+          const localEntry = {
+            amount: values.amount,
+            date: values.date,
+            id: `local-${selectedParty.partyId}-${selectedParty.siteId}-${paymentTarget.id}-${Date.now()}`,
+            notes: normalizePaymentHistoryNote(values.notes),
+            paymentMethod: formatPaymentMethodLabel(values.payment_mode),
+            referenceNumber: values.reference_number.trim() || undefined,
+            receiverName: values.receiver_name.trim() || undefined,
+            senderName: values.sender_name.trim() || undefined,
+          };
+          setLocalPartyPaymentHistory((currentValue) => [localEntry, ...currentValue]);
           setIsReceivePaymentModalOpen(false);
           setPaymentTarget(null);
           await loadPartyDetail(
