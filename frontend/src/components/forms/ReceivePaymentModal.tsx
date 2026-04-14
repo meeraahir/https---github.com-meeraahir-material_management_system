@@ -5,7 +5,6 @@ import { z } from "zod";
 import type { Receivable, ReceivePaymentFormValues } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
 import { createZodResolver } from "../../utils/zodResolver";
-import { getErrorMessage } from "../../utils/apiError";
 import { formatCurrency, formatDate } from "../../utils/format";
 import { useToast } from "../feedback/useToast";
 import { Modal } from "../modal/Modal";
@@ -29,7 +28,6 @@ const receivePaymentSchema = z.object({
     .string()
     .max(50, "Reference number must be 50 characters or fewer."),
   receiver_name: z.string().max(255, "Receiver name must be 255 characters or fewer."),
-  reference_number: z.string().max(50, "Reference number must be 50 characters or fewer."),
   sender_name: z.string().max(255, "Sender name must be 255 characters or fewer."),
 }).superRefine((value, context) => {
   if (value.payment_mode === "cash" && !value.sender_name.trim() && !value.receiver_name.trim()) {
@@ -230,23 +228,7 @@ export function ReceivePaymentModal({
         <form
           className="grid gap-4 md:grid-cols-2"
           id="receive-payment-form"
-          onSubmit={handleSubmit(async (values: ReceivePaymentFormValues) => {
-            if (values.amount > pendingAmount) {
-              setFormError("Received amount cannot exceed pending amount.");
-              return;
-            }
-
-            try {
-              setFormError("");
-              await onSubmit(values);
-              showSuccess(
-                "Payment received",
-                "Receivable balance has been updated successfully.",
-              );
-            } catch (error) {
-              setFormError(getErrorMessage(error));
-            }
-          })}
+          onSubmit={handleSubmit(submit)}
         >
           <Input
             error={errors.amount?.message}
