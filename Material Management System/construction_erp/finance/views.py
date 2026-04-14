@@ -1,7 +1,9 @@
+from decimal import Decimal
 from io import BytesIO
 
 from django.db.models import Sum, F, FloatField, Q
 from django.http import HttpResponse
+from core.export_utils import format_excel_export_value
 from core.pdf_utils import build_pdf_response
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
@@ -32,6 +34,46 @@ class PartyViewSet(viewsets.ModelViewSet):
     def _date_range(self):
         return self.request.query_params.get('date_from'), self.request.query_params.get('date_to')
 
+    def _receivable_status(self, received_amount, pending_amount):
+        if pending_amount <= 0:
+            return 'Received'
+        if received_amount > 0:
+            return 'Partial'
+        return 'Pending'
+
+    def _invoice_status(self, invoice):
+        received_amount = invoice.receipts_total()
+        pending_amount = invoice.pending_amount()
+        return self._receivable_status(received_amount, pending_amount)
+
+    def _receivables_export_rows(self):
+        invoices = Transaction.objects.select_related('party', 'site').all().order_by('date', 'id')
+        date_from, date_to = self._date_range()
+
+        if date_from:
+            invoices = invoices.filter(date__gte=date_from)
+        if date_to:
+            invoices = invoices.filter(date__lte=date_to)
+
+        rows = []
+        for invoice in invoices:
+            received_amount = invoice.receipts_total()
+            pending_amount = invoice.amount - Decimal(str(received_amount or 0))
+            rows.append({
+                'id': invoice.id,
+                'party_id': invoice.party_id,
+                'party_name': invoice.party.name,
+                'site_name': invoice.site.name,
+                'phase_name': invoice.phase_name,
+                'amount': invoice.amount,
+                'received_amount': received_amount,
+                'pending_amount': pending_amount,
+                'status': self._receivable_status(received_amount, pending_amount),
+                'date': invoice.date,
+            })
+
+        return rows
+
     @action(detail=True, methods=['get'], url_path='ledger')
     def ledger(self, request, pk=None):
         party = self.get_object()
@@ -53,6 +95,8 @@ class PartyViewSet(viewsets.ModelViewSet):
                 'id': f'invoice-{invoice.id}',
                 'entry_type': 'invoice',
                 'site': invoice.site.name,
+                'phase_name': invoice.phase_name,
+                'status': self._invoice_status(invoice),
                 'debit': invoice.amount,
                 'credit': 0,
                 'date': invoice.date,
@@ -71,6 +115,8 @@ class PartyViewSet(viewsets.ModelViewSet):
                 'id': f'receipt-{receipt.id}',
                 'entry_type': 'receipt',
                 'site': receipt.site.name,
+                'phase_name': receipt.invoice.phase_name if receipt.invoice_id else None,
+                'status': self._invoice_status(receipt.invoice) if receipt.invoice_id else 'Pending',
                 'debit': 0,
                 'credit': receipt.amount,
                 'date': receipt.date,
@@ -93,6 +139,8 @@ class PartyViewSet(viewsets.ModelViewSet):
                 'id': entry['id'],
                 'entry_type': entry['entry_type'],
                 'site': entry['site'],
+                'phase_name': entry['phase_name'],
+                'status': entry['status'],
                 'debit': entry['debit'],
                 'credit': entry['credit'],
                 'balance': running_balance,
@@ -115,7 +163,7 @@ class PartyViewSet(viewsets.ModelViewSet):
     def export_ledger(self, request, pk=None):
         ledger_data = self.ledger(request, pk).data
         rows = ledger_data['transactions']
-        return self._export_report(rows, f"party_{ledger_data['party']}_ledger", ['id', 'entry_type', 'site', 'debit', 'credit', 'balance', 'date'])
+        return self._export_report(rows, f"party_{ledger_data['party']}_ledger")
 
     @action(detail=True, methods=['get'], url_path='ledger/pdf')
     def export_ledger_pdf(self, request, pk=None):
@@ -227,8 +275,12 @@ class PartyViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='reports/receivables/export')
     def export_receivables_report(self, request):
-        report_data = self.receivables_report(request).data
-        return self._export_report(report_data, 'finance_receivables_report', ['party_id', 'party_name', 'total_amount', 'received_amount', 'pending_amount'])
+        report_data = self._receivables_export_rows()
+        return self._export_report(
+            report_data,
+            'finance_receivables_report',
+            ['id', 'party_id', 'party_name', 'site_name', 'phase_name', 'amount', 'received_amount', 'pending_amount', 'status', 'date'],
+        )
 
     @action(detail=False, methods=['get'], url_path='reports/site-wise/export')
     def export_site_wise_report(self, request):
@@ -242,8 +294,12 @@ class PartyViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='reports/receivables/pdf')
     def export_receivables_report_pdf(self, request):
-        report_data = self.receivables_report(request).data
-        return self._export_pdf(report_data, 'finance_receivables_report')
+        report_data = self._receivables_export_rows()
+        return self._export_pdf(
+            report_data,
+            'finance_receivables_report',
+            ['id', 'party_id', 'party_name', 'site_name', 'phase_name', 'amount', 'received_amount', 'pending_amount', 'status', 'date'],
+        )
 
     @action(detail=False, methods=['get'], url_path='reports/site-wise/pdf')
     def export_site_wise_report_pdf(self, request):
@@ -269,7 +325,7 @@ class PartyViewSet(viewsets.ModelViewSet):
                 headers = list(report_data[0].keys())
             sheet.append(headers)
             for row in report_data:
-                sheet.append([row.get(key, '') for key in headers])
+                sheet.append([format_excel_export_value(row.get(key, '')) for key in headers])
         else:
             sheet.append(['No data available'])
 

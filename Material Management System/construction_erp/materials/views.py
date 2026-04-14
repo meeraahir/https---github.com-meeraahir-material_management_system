@@ -1,8 +1,9 @@
 from io import BytesIO
 from numbers import Number
 
-from django.db.models import Sum, F, FloatField
+from django.db.models import Sum, F, FloatField, Max
 from django.http import HttpResponse
+from core.export_utils import format_excel_export_value
 from core.pdf_utils import build_pdf_response
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
@@ -83,7 +84,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
             formatted_value = f'{value:,.2f}'
             return formatted_value.rstrip('0').rstrip('.')
 
-        return value
+        return format_excel_export_value(value)
 
     def _format_export_rows(self, report_data):
         return [
@@ -108,6 +109,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
                 total_quantity_used=Sum('quantity_used', output_field=FloatField()),
+                latest_receipt_date=Max('date'),
                 material_amount=Sum(
                     F('quantity_received') * F('cost_per_unit'),
                     output_field=FloatField(),
@@ -132,6 +134,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
                 'material_variant_id': item['material_variant__id'],
                 'material_variant_label': item['material_variant__label'],
                 'material_variant_size_mm': item['material_variant__size_mm'],
+                'latest_receipt_date': item['latest_receipt_date'],
                 'cost_per_unit': (
                     (item['material_amount'] or 0) / item['total_quantity_received']
                     if item['total_quantity_received']
@@ -153,6 +156,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
                 total_quantity_used=Sum('quantity_used', output_field=FloatField()),
+                latest_receipt_date=Max('date'),
                 total_cost=Sum(
                     F('quantity_received') * F('cost_per_unit') + F('transport_cost'),
                     output_field=FloatField(),
@@ -168,6 +172,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
             {
                 'site_id': item['site__id'],
                 'site_name': item['site__name'],
+                'latest_receipt_date': item['latest_receipt_date'],
                 'total_quantity_received': item['total_quantity_received'],
                 'total_quantity_used': item['total_quantity_used'],
                 'remaining_stock': item['remaining_stock'],
@@ -209,6 +214,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
             .annotate(
                 total_quantity_received=Sum('quantity_received', output_field=FloatField()),
                 total_quantity_used=Sum('quantity_used', output_field=FloatField()),
+                latest_receipt_date=Max('date'),
                 material_amount=Sum(
                     F('quantity_received') * F('cost_per_unit'),
                     output_field=FloatField(),
@@ -233,6 +239,7 @@ class MaterialStockViewSet(viewsets.ModelViewSet):
                 'material_variant_id': item['material_variant__id'],
                 'material_variant_label': item['material_variant__label'],
                 'material_variant_size_mm': item['material_variant__size_mm'],
+                'latest_receipt_date': item['latest_receipt_date'],
                 'cost_per_unit': (
                     (item['material_amount'] or 0) / item['total_quantity_received']
                     if item['total_quantity_received']

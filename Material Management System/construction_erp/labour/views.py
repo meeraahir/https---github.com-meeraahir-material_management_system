@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import Sum, F, FloatField, Count, Q, Case, When, Value
 from django.db.models.functions import TruncWeek, TruncMonth
 from django.http import HttpResponse
+from core.export_utils import format_excel_export_value
 from core.pdf_utils import build_pdf_response
 from rest_framework import status, viewsets, filters
 from rest_framework.decorators import action
@@ -594,7 +595,7 @@ class LabourViewSet(viewsets.ModelViewSet):
                 headers = list(report_data[0].keys())
             sheet.append(headers)
             for row in report_data:
-                sheet.append([row.get(key, '') for key in headers])
+                sheet.append([format_excel_export_value(row.get(key, '')) for key in headers])
         else:
             sheet.append(['No data available'])
 
