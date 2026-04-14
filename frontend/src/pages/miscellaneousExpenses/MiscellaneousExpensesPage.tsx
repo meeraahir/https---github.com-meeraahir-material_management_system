@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
-import { useReferenceData } from "../../hooks/useReferenceData";
 import { useAuth } from "../../hooks/useAuth";
 import { miscellaneousExpensesService } from "../../services/miscellaneousExpensesService";
 import type {
@@ -13,11 +12,9 @@ import { getCrudPermissions } from "../../utils/permissions";
 const miscellaneousExpenseSchema = z.object({
   amount: z.number().gt(0, "Amount must be greater than zero."),
   date: z.string().min(1, "Date is required."),
-  labour: z.number().min(0, "Labour is invalid."),
   notes: z.string().max(1000, "Notes must be 1000 characters or fewer."),
   paid_to_name: z.string().max(255, "Paid to name must be 255 characters or fewer."),
   payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
-  site: z.number().min(0, "Site is invalid."),
   title: z
     .string()
     .trim()
@@ -27,7 +24,6 @@ const miscellaneousExpenseSchema = z.object({
 
 export function MiscellaneousExpensesPage() {
   const { user } = useAuth();
-  const references = useReferenceData();
   const permissions = getCrudPermissions(user);
 
   return (
@@ -43,16 +39,10 @@ export function MiscellaneousExpensesPage() {
           sortValue: (row) => row.title,
         },
         {
-          key: "site_name",
-          header: "Site",
-          accessor: (row) => row.site_name || "-",
-          sortValue: (row) => row.site_name || "",
-        },
-        {
           key: "paid_to_name",
           header: "Paid To",
-          accessor: (row) => row.paid_to_name || row.labour_name || "-",
-          sortValue: (row) => row.paid_to_name || row.labour_name || "",
+          accessor: (row) => row.paid_to_name || "-",
+          sortValue: (row) => row.paid_to_name || "",
         },
         {
           key: "payment_mode",
@@ -77,17 +67,14 @@ export function MiscellaneousExpensesPage() {
       defaultValues={{
         amount: 0,
         date: new Date().toISOString().slice(0, 10),
-        labour: 0,
         notes: "",
         paid_to_name: "",
         payment_mode: "cash",
-        site: 0,
         title: "",
       }}
       description="Track miscellaneous site and cash expenses that sit outside standard vendor and labour flows."
       emptyDescription="No miscellaneous expenses are available."
       emptyTitle="No miscellaneous expenses found"
-      externalError={references.error}
       fields={[
         {
           kind: "text",
@@ -96,28 +83,6 @@ export function MiscellaneousExpensesPage() {
           name: "title",
           placeholder: "Diesel, transport, tea, tools...",
           required: true,
-        },
-        {
-          clearable: true,
-          kind: "select",
-          label: "Site",
-          name: "site",
-          options: references.sites.map((site) => ({
-            label: site.name,
-            value: site.id,
-          })),
-          valueType: "number",
-        },
-        {
-          clearable: true,
-          kind: "select",
-          label: "Labour",
-          name: "labour",
-          options: references.labour.map((labour) => ({
-            label: labour.name,
-            value: labour.id,
-          })),
-          valueType: "number",
         },
         {
           kind: "text",
@@ -166,11 +131,9 @@ export function MiscellaneousExpensesPage() {
       getEditValues={(entity) => ({
         amount: entity.amount,
         date: entity.date,
-        labour: entity.labour || 0,
         notes: entity.notes || "",
         paid_to_name: entity.paid_to_name || "",
         payment_mode: entity.payment_mode,
-        site: entity.site || 0,
         title: entity.title,
       })}
       getId={(entity) => entity.id}
@@ -181,8 +144,6 @@ export function MiscellaneousExpensesPage() {
       viewFields={[
         { label: "Record ID", value: (row) => row.id, highlight: true },
         { label: "Title", value: (row) => row.title, highlight: true },
-        { label: "Site", value: (row) => row.site_name },
-        { label: "Labour", value: (row) => row.labour_name },
         { label: "Paid To Name", value: (row) => row.paid_to_name, highlight: true },
         { label: "Amount", value: (row) => row.amount, highlight: true },
         { label: "Date", value: (row) => row.date },

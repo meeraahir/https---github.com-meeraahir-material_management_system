@@ -6,6 +6,7 @@ from rest_framework import serializers
 from finance.models import (
     ClientReceipt,
     MiscellaneousExpense,
+    OwnerPayout,
     PAYMENT_MODE_BANK_TRANSFER,
     PAYMENT_MODE_CASH,
     PAYMENT_MODE_CHECK,
@@ -377,11 +378,15 @@ class OwnerDashboardSerializer(PersonalAdminDashboardSerializer):
         cash_paid_for_miscellaneous_expenses = self._as_decimal(
             MiscellaneousExpense.objects.filter(payment_mode=PAYMENT_MODE_CASH).aggregate(total=Sum('amount'))['total']
         )
+        cash_paid_for_owner_payments = self._as_decimal(
+            OwnerPayout.objects.filter(payment_mode=PAYMENT_MODE_CASH).aggregate(total=Sum('amount'))['total']
+        )
         total_cash_outflow = (
             cash_paid_to_vendors
             + cash_paid_to_employees
             + cash_paid_to_casual_labour
             + cash_paid_for_miscellaneous_expenses
+            + cash_paid_for_owner_payments
         )
         cash_available = total_cash_received - total_cash_outflow
 
@@ -440,6 +445,7 @@ class OwnerDashboardSerializer(PersonalAdminDashboardSerializer):
                 'cash_paid_to_employees': cash_paid_to_employees,
                 'cash_paid_to_casual_labour': cash_paid_to_casual_labour,
                 'cash_paid_for_miscellaneous_expenses': cash_paid_for_miscellaneous_expenses,
+                'cash_paid_for_owner_payments': cash_paid_for_owner_payments,
                 'total_cash_outflow': total_cash_outflow,
                 'cash_available': cash_available,
                 'has_negative_cash_balance': cash_available < 0,

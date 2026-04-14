@@ -4,13 +4,7 @@ import type {
   MiscellaneousExpenseFormValues,
 } from "../types/erp.types";
 
-type MiscellaneousExpensePayload = Omit<
-  MiscellaneousExpenseFormValues,
-  "labour" | "site"
-> & {
-  labour?: number | null;
-  site?: number | null;
-};
+type MiscellaneousExpensePayload = MiscellaneousExpenseFormValues;
 
 const baseService = createCrudService<
   MiscellaneousExpense,
@@ -22,10 +16,8 @@ function normalizePayload(
 ): MiscellaneousExpensePayload {
   return {
     ...payload,
-    labour: payload.labour && payload.labour > 0 ? payload.labour : null,
     notes: payload.notes.trim() || "",
     paid_to_name: payload.paid_to_name.trim() || "",
-    site: payload.site && payload.site > 0 ? payload.site : null,
     title: payload.title.trim(),
   };
 }

@@ -19,6 +19,11 @@ const DashboardPage = lazy(() =>
     default: module.DashboardPage,
   })),
 );
+const OwnerDashboardPage = lazy(() =>
+  import("../pages/ownerDashboard/OwnerDashboardPage").then((module) => ({
+    default: module.OwnerDashboardPage,
+  })),
+);
 const SitesPage = lazy(() =>
   import("../pages/sites/SitesPage").then((module) => ({ default: module.SitesPage })),
 );
@@ -173,6 +178,7 @@ export function AppRoutes() {
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/owner-dashboard" element={<OwnerDashboardPage />} />
             <Route path="/sites" element={<SitesPage />} />
             <Route path="/sites/:siteId/dashboard" element={<SiteDashboardPage />} />
             <Route path="/sites/:siteId/dashboard/materials/:materialId" element={<SiteMaterialDetailPage />} />

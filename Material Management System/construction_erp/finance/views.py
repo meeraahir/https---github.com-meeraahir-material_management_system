@@ -11,8 +11,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from openpyxl import Workbook
 
 from sites.permissions import IsAdminOrReadOnly
-from .models import ClientReceipt, MiscellaneousExpense, Party, Transaction
-from .serializers import MiscellaneousExpenseSerializer, PartySerializer, TransactionSerializer
+from .models import ClientReceipt, MiscellaneousExpense, OwnerPayout, Party, Transaction
+from .serializers import (
+    MiscellaneousExpenseSerializer,
+    OwnerPayoutSerializer,
+    PartySerializer,
+    TransactionSerializer,
+)
 from .utils import normalize_receipt_style_invoices
 
 
@@ -338,5 +343,14 @@ class MiscellaneousExpenseViewSet(viewsets.ModelViewSet):
     serializer_class = MiscellaneousExpenseSerializer
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['site', 'labour', 'date', 'payment_mode']
-    search_fields = ['title', 'paid_to_name', 'notes', 'site__name', 'labour__name']
+    filterset_fields = ['date', 'payment_mode']
+    search_fields = ['title', 'paid_to_name', 'notes']
+
+
+class OwnerPayoutViewSet(viewsets.ModelViewSet):
+    queryset = OwnerPayout.objects.all().order_by('-date', '-id')
+    serializer_class = OwnerPayoutSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['date', 'payment_mode']
+    search_fields = ['sender_name', 'receiver_name', 'reference_number', 'remarks']

@@ -19,6 +19,7 @@ export interface NavigationGroup {
 
 export const navigationPrimaryItems: NavigationItem[] = [
   { icon: icons.dashboard({ className: "h-5 w-5" }), label: "Dashboard", to: "/dashboard" },
+  { icon: icons.dashboard({ className: "h-5 w-5" }), label: "Owner Dashboard", to: "/owner-dashboard" },
   { icon: icons.sites({ className: "h-5 w-5" }), label: "Sites", to: "/sites" },
 ];
 
@@ -71,7 +72,6 @@ export const navigationGroups: NavigationGroup[] = [
     id: "finance",
     items: [
       { icon: icons.payments({ className: "h-4 w-4" }), label: "Payments", to: "/payments" },
-      { icon: icons.payments({ className: "h-4 w-4" }), label: "Misc Expenses", to: "/miscellaneous-expenses" },
       { icon: icons.receivables({ className: "h-4 w-4" }), label: "Receivables", to: "/receivables" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Party Ledger", to: "/party-ledger" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Site Receivables", to: "/site-receivables" },

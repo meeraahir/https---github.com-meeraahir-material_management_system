@@ -273,6 +273,29 @@ export interface VendorPaymentFormValues {
   remarks: string;
 }
 
+export interface OwnerPayout {
+  id: number;
+  amount: number;
+  date: string;
+  payment_mode: PaymentMode;
+  sender_name: string | null;
+  receiver_name: string | null;
+  cheque_number: string | null;
+  reference_number: string | null;
+  remarks: string | null;
+}
+
+export interface OwnerPayoutFormValues {
+  amount: number;
+  date: string;
+  payment_mode: PaymentMode;
+  sender_name: string;
+  receiver_name: string;
+  cheque_number: string;
+  reference_number: string;
+  remarks: string;
+}
+
 export interface Attendance {
   id: number;
   labour: number;
@@ -437,10 +460,6 @@ export interface CasualLabourEntryFormValues {
 export interface MiscellaneousExpense {
   id: number;
   title: string;
-  site: number | null;
-  site_name: string | null;
-  labour: number | null;
-  labour_name: string | null;
   paid_to_name: string | null;
   amount: number;
   date: string;
@@ -450,8 +469,6 @@ export interface MiscellaneousExpense {
 
 export interface MiscellaneousExpenseFormValues {
   title: string;
-  site: number;
-  labour: number;
   paid_to_name: string;
   amount: number;
   date: string;
@@ -731,6 +748,7 @@ export interface OwnerDashboardData {
     cash_paid_to_employees: number;
     cash_paid_to_casual_labour: number;
     cash_paid_for_miscellaneous_expenses: number;
+    cash_paid_for_owner_payments: number;
     total_cash_outflow: number;
     cash_available: number;
     has_negative_cash_balance: boolean;
