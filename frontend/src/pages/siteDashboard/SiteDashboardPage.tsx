@@ -8,6 +8,7 @@ import { useToast } from "../../components/feedback/useToast";
 import { EntityFormModal } from "../../components/forms/EntityFormModal";
 import { StatCard } from "../../components/layout/StatCard";
 import { ConfirmDialog } from "../../components/modal/ConfirmDialog";
+import { Modal } from "../../components/modal/Modal";
 import { DataTable } from "../../components/table/DataTable";
 import { Button } from "../../components/ui/Button";
 import { useReferenceData } from "../../hooks/useReferenceData";
@@ -154,6 +155,13 @@ interface DeleteTarget {
   label: string;
 }
 
+interface SelectedReceipt {
+  materialId: number;
+  receipt: Receipt;
+  receiptId: number;
+  siteId: number;
+}
+
 function AddSectionButton({
   ariaLabel,
   onClick,
@@ -207,6 +215,8 @@ export function SiteDashboardPage() {
   const [isPartyEntryModalOpen, setIsPartyEntryModalOpen] = useState(false);
   const [isVendorEntryModalOpen, setIsVendorEntryModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isReceiptDetailsModalOpen, setIsReceiptDetailsModalOpen] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<SelectedReceipt | null>(null);
 
   const [materials, setMaterials] = useState<Material[]>(references.materials);
   const [vendors, setVendors] = useState<Vendor[]>(references.vendors);
@@ -442,6 +452,21 @@ export function SiteDashboardPage() {
 
   function addLabourOption(labour: Labour) {
     setLabours((currentValue) => upsertById(currentValue, labour));
+  }
+
+  function handleMaterialRowClick(row: Receipt) {
+    setSelectedReceipt({
+      materialId: row.material,
+      receipt: row,
+      receiptId: row.id,
+      siteId: row.site,
+    });
+    setIsReceiptDetailsModalOpen(true);
+  }
+
+  function handleReceiptDetailsClose() {
+    setIsReceiptDetailsModalOpen(false);
+    setSelectedReceipt(null);
   }
 
   async function handleExport(format: "excel" | "pdf") {
@@ -731,7 +756,7 @@ export function SiteDashboardPage() {
               hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.id}
-              onRowClick={(row) => navigate(`/sites/${site.id}/dashboard/materials/${row.material}`)}
+              onRowClick={handleMaterialRowClick}
               page={1}
               searchValue=""
               totalCount={receipts.length}
@@ -968,6 +993,102 @@ export function SiteDashboardPage() {
         siteId={site.id}
         siteName={site.name}
       />
+
+      <Modal
+        onClose={handleReceiptDetailsClose}
+        open={isReceiptDetailsModalOpen && Boolean(selectedReceipt)}
+        size="md"
+        title={selectedReceipt?.receipt.material_name || "Material Receipt Details"}
+      >
+        {selectedReceipt ? (
+          <div className="space-y-5">
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Material Name
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {selectedReceipt.receipt.material_name}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Receipt Date
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {formatDate(selectedReceipt.receipt.date_display || selectedReceipt.receipt.date)}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Received Quantity
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {selectedReceipt.receipt.quantity_received}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Used Quantity
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {selectedReceipt.receipt.quantity_used}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Remaining Quantity
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {selectedReceipt.receipt.remaining_stock}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Cost Per Unit
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {formatCurrency(selectedReceipt.receipt.cost_per_unit)}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Transport Cost
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {formatCurrency(selectedReceipt.receipt.transport_cost)}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Total Cost
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {formatCurrency(selectedReceipt.receipt.total_cost)}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4 sm:col-span-2">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Invoice
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {selectedReceipt.receipt.invoice_number || "-"}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F9FAFB] p-4 sm:col-span-2">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Notes
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-[#111111]">
+                    {selectedReceipt.receipt.notes?.trim() || "-"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       <SiteVendorEntryModal
         materials={materials}

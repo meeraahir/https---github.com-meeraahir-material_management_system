@@ -14,7 +14,7 @@ export function Navbar({ onLogout, onMenuClick, user }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="app-topbar sticky top-0 z-20 border-b border-[#E5E7EB] bg-white/95 px-5 py-4 shadow-sm backdrop-blur-xl">
+    <header className="app-topbar sticky top-0 z-20 border-b border-[#E5E7EB] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur-xl sm:px-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <button

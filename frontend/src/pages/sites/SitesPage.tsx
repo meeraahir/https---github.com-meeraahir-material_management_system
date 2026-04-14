@@ -24,7 +24,7 @@ export function SitesPage() {
       ]}
       createLabel="Add Site"
       defaultValues={siteDefaultValues}
-      description="Manage all construction sites linked to operational records."
+      description=""
       emptyDescription="No sites have been created yet."
       emptyTitle="No sites found"
       fields={siteFormFields}
@@ -37,10 +37,11 @@ export function SitesPage() {
       onRowDoubleClick={(row) => navigate(`/sites/${row.id}/dashboard`)}
       rowActionsDisplay="icon"
       schema={siteSchema}
+      searchLabel=""
       searchPlaceholder="Search by site name or location"
       service={sitesService}
       showViewAction={false}
-      title="Sites"
+      title=""
     />
   );
 }

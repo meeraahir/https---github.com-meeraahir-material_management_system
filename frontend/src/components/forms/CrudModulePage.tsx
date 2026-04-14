@@ -41,6 +41,7 @@ interface CrudModulePageProps<TEntity, TFormValues extends FieldValues> {
   refreshKey?: number;
   rowActionsDisplay?: "icon" | "text";
   schema: z.ZodType<TFormValues>;
+  searchLabel?: string;
   searchPlaceholder: string;
   service: CrudService<TEntity, TFormValues>;
   showViewAction?: boolean;
@@ -68,6 +69,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
   refreshKey,
   rowActionsDisplay = "text",
   schema,
+  searchLabel = "Search",
   searchPlaceholder,
   service,
   showViewAction = true,
@@ -139,7 +141,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
         description={description}
         search={
           <Input
-            label="Search"
+            label={searchLabel}
             placeholder={searchPlaceholder}
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}

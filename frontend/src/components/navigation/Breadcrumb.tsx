@@ -29,13 +29,13 @@ export function Breadcrumb() {
   return (
     <div className="group min-w-0">
       <div className="flex items-center gap-3">
-        <div className="hidden h-10 w-1 rounded-full bg-gradient-to-b from-blue-500 via-cyan-400 to-emerald-400 shadow-lg shadow-blue-500/20 sm:block" />
+        <div className="hidden h-10 w-0.5 rounded-full bg-[#FF6B4A]/80 sm:block" />
         <div className="min-w-0">
-          <p className="app-topbar-eyebrow text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-blue-500/90 dark:text-blue-300">
+          <p className="app-topbar-eyebrow text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-[#6B7280]">
             ERP Workspace
           </p>
           <h1
-            className="app-topbar-title mt-1 truncate bg-gradient-to-r from-slate-950 via-blue-700 to-cyan-600 bg-clip-text text-2xl font-black tracking-tight text-transparent dark:from-slate-950 dark:via-blue-700 dark:to-cyan-600"
+            className="app-topbar-title mt-1 truncate text-2xl font-bold tracking-tight text-[#111111]"
             title={activeLabel}
           >
             {activeLabel}

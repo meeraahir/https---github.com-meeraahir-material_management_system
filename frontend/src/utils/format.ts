@@ -1,7 +1,7 @@
-const currencyFormatter = new Intl.NumberFormat("en-IN", {
-  currency: "INR",
-  maximumFractionDigits: 0,
-  style: "currency",
+const currencyNumberFormatter = new Intl.NumberFormat("en-IN", {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 0,
+  useGrouping: false,
 });
 
 const compactNumberFormatter = new Intl.NumberFormat("en-IN", {
@@ -11,6 +11,8 @@ const compactNumberFormatter = new Intl.NumberFormat("en-IN", {
 
 const numberFormatter = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
+  minimumFractionDigits: 0,
+  useGrouping: false,
 });
 
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
@@ -20,7 +22,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-IN", {
 });
 
 export function formatCurrency(value: number | null | undefined): string {
-  return currencyFormatter.format(value ?? 0);
+  return `\u20B9${currencyNumberFormatter.format(value ?? 0)}`;
 }
 
 export function formatCompactNumber(value: number | null | undefined): string {
