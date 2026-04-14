@@ -30,8 +30,6 @@ export const navigationGroups: NavigationGroup[] = [
     id: "inventory",
     items: [
       { icon: icons.materials({ className: "h-4 w-4" }), label: "Materials", to: "/materials" },
-      { icon: icons.materials({ className: "h-4 w-4" }), label: "Material Variants", to: "/material-variants" },
-      { icon: icons.reports({ className: "h-4 w-4" }), label: "Variant Prices", to: "/material-variant-prices" },
       { icon: icons.receipts({ className: "h-4 w-4" }), label: "Material Receipts", to: "/material-receipts" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Material Usage", to: "/material-usage" },
     ],
@@ -58,8 +56,8 @@ export const navigationGroups: NavigationGroup[] = [
     id: "workforce",
     items: [
       { icon: icons.labour({ className: "h-4 w-4" }), label: "Labour", to: "/labour" },
-      { icon: icons.labour({ className: "h-4 w-4" }), label: "Casual Labour", to: "/casual-labour" },
       { icon: icons.attendance({ className: "h-4 w-4" }), label: "Attendance", to: "/attendance" },
+      { icon: icons.payments({ className: "h-4 w-4" }), label: "Labour Payments", to: "/payments" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Labour Ledger", to: "/labour-ledger" },
       { icon: icons.attendance({ className: "h-4 w-4" }), label: "Monthly Attendance", to: "/monthly-attendance" },
     ],
@@ -71,7 +69,7 @@ export const navigationGroups: NavigationGroup[] = [
     icon: icons.payments({ className: "h-5 w-5" }),
     id: "finance",
     items: [
-      { icon: icons.payments({ className: "h-4 w-4" }), label: "Payments", to: "/payments" },
+      { icon: icons.parties({ className: "h-4 w-4" }), label: "Parties", to: "/parties" },
       { icon: icons.receivables({ className: "h-4 w-4" }), label: "Receivables", to: "/receivables" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Party Ledger", to: "/party-ledger" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Site Receivables", to: "/site-receivables" },
@@ -84,7 +82,6 @@ export const navigationGroups: NavigationGroup[] = [
     icon: icons.reports({ className: "h-5 w-5" }),
     id: "analytics",
     items: [
-      { icon: icons.parties({ className: "h-4 w-4" }), label: "Parties", to: "/parties" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Reports", to: "/reports" },
     ],
     label: "Analytics",
@@ -111,7 +108,7 @@ export const navigationItems: NavigationItem[] = [
   { icon: icons.reports({ className: "h-5 w-5" }), label: "Vendor Dues", to: "/vendor-dues" },
   { icon: icons.attendance({ className: "h-5 w-5" }), label: "Attendance", to: "/attendance" },
   { icon: icons.attendance({ className: "h-5 w-5" }), label: "Monthly Attendance", to: "/monthly-attendance" },
-  { icon: icons.payments({ className: "h-5 w-5" }), label: "Payments", to: "/payments" },
+  { icon: icons.payments({ className: "h-5 w-5" }), label: "Labour Payments", to: "/payments" },
   { icon: icons.payments({ className: "h-5 w-5" }), label: "Misc Expenses", to: "/miscellaneous-expenses" },
   { icon: icons.receivables({ className: "h-5 w-5" }), label: "Receivables", to: "/receivables" },
   { icon: icons.reports({ className: "h-5 w-5" }), label: "Site Receivables", to: "/site-receivables" },
