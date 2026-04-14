@@ -56,6 +56,7 @@ export interface TextFieldConfig<
 > extends BaseFieldConfig<TFormValues> {
   kind: "text" | "email" | "number" | "date";
   digitsOnly?: boolean;
+  emptyValue?: "undefined" | "zero";
   inputMode?:
     | "decimal"
     | "email"

@@ -97,7 +97,7 @@ function getMaterialVariantLabel(row: {
 
 const receiptSchema = z
   .object({
-    cost_per_unit: z.number().min(0, "Cost per unit must be zero or more."),
+    cost_per_unit: z.number().min(0, "Cost per unit must be zero or more.").optional(),
     date: z.string().min(1, "Receipt date is required."),
     invoice_number: z.string().optional().or(z.literal("")),
     material: z.number().min(1, "Material is required."),
@@ -1987,7 +1987,7 @@ export function SiteDashboardPage() {
                 transport_cost: editingReceipt.transport_cost,
               }
             : {
-                cost_per_unit: 0,
+                cost_per_unit: undefined,
                 date: new Date().toISOString().slice(0, 10),
                 invoice_number: "",
                 material: 0,
@@ -2029,7 +2029,15 @@ export function SiteDashboardPage() {
           { kind: "date", label: "Receipt Date", name: "date", required: true },
           { kind: "number", label: "Quantity Received", min: 0, name: "quantity_received", required: true, valueType: "number" },
           { kind: "number", label: "Quantity Used", min: 0, name: "quantity_used", required: true, valueType: "number" },
-          { kind: "number", label: "Cost Per Unit", min: 0, name: "cost_per_unit", required: true, valueType: "number" },
+          {
+            kind: "number",
+            emptyValue: "undefined",
+            label: "Cost Per Unit",
+            min: 0,
+            name: "cost_per_unit",
+            step: 0.01,
+            valueType: "number",
+          },
           { kind: "number", label: "Transport Cost", min: 0, name: "transport_cost", required: true, valueType: "number" },
           { kind: "textarea", label: "Notes", name: "notes", placeholder: "Transport, batch, or delivery notes", rows: 4, wrapperClassName: "md:col-span-2" },
         ]}
