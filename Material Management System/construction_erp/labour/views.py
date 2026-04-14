@@ -1,4 +1,5 @@
-from datetime import date
+from calendar import monthrange
+from datetime import date, timedelta
 from io import BytesIO
 
 from django.db import transaction
@@ -137,33 +138,60 @@ class LabourViewSet(viewsets.ModelViewSet):
             .values('month_start')
             .annotate(
                 present_days=Count('id', filter=Q(present=True)),
-                total_days=Count('id'),
+                has_today_record=Count('id', filter=Q(date=date.today())),
             )
             .order_by('month_start')
         )
 
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+
+        def _month_scope(month_start, has_today_record=False):
+            normalized_month_start = month_start.date() if hasattr(month_start, 'date') else month_start
+            last_day = monthrange(normalized_month_start.year, normalized_month_start.month)[1]
+            scope_start = normalized_month_start
+            scope_end = date(normalized_month_start.year, normalized_month_start.month, last_day)
+
+            if date_from:
+                scope_start = max(scope_start, date_from)
+            if date_to:
+                scope_end = min(scope_end, date_to)
+
+            if scope_end >= today:
+                scope_end = today if has_today_record else yesterday
+
+            if scope_end < scope_start:
+                return normalized_month_start, 0
+
+            total_days = (scope_end - scope_start).days + 1
+            return normalized_month_start, total_days
+
         monthly_rows = []
         for item in data:
             present_days = int(item['present_days'] or 0)
-            total_days = int(item['total_days'] or 0)
             month_start = item['month_start']
+            normalized_month_start, total_days = _month_scope(
+                month_start,
+                has_today_record=bool(item['has_today_record']),
+            )
             monthly_rows.append({
-                'month': month_start.strftime('%Y-%m'),
-                'month_start': month_start.date() if hasattr(month_start, 'date') else month_start,
+                'month': normalized_month_start.strftime('%Y-%m'),
+                'month_start': normalized_month_start,
                 'present_days': present_days,
-                'absent_days': total_days - present_days,
+                'absent_days': max(total_days - present_days, 0),
                 'total_days': total_days,
                 'total_wage': present_days * labour.per_day_wage,
             })
 
         if year and month and not monthly_rows:
             month_start = date(year, month, 1)
+            normalized_month_start, total_days = _month_scope(month_start)
             monthly_rows.append({
-                'month': month_start.strftime('%Y-%m'),
-                'month_start': month_start,
+                'month': normalized_month_start.strftime('%Y-%m'),
+                'month_start': normalized_month_start,
                 'present_days': 0,
-                'absent_days': 0,
-                'total_days': 0,
+                'absent_days': total_days,
+                'total_days': total_days,
                 'total_wage': 0,
             })
 
