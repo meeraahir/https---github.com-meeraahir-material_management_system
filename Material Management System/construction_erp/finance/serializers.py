@@ -1,15 +1,39 @@
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import serializers
 
 from core.payment_details import validate_payment_details
 from .utils import apply_receipt_style_entry
-from .models import ClientReceipt, MiscellaneousExpense, Party, Transaction
+from .models import ClientReceipt, MiscellaneousExpense, OwnerPayout, Party, Transaction
+
+
+def _raise_drf_validation_error(exc):
+    if hasattr(exc, 'message_dict'):
+        raise serializers.ValidationError(exc.message_dict)
+    raise serializers.ValidationError({'non_field_errors': exc.messages})
 
 
 class PartySerializer(serializers.ModelSerializer):
     class Meta:
         model = Party
         fields = '__all__'
+
+    def create(self, validated_data):
+        try:
+            return Party.objects.create(**validated_data)
+        except ValidationError as exc:
+            _raise_drf_validation_error(exc)
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        try:
+            instance.save()
+        except ValidationError as exc:
+            _raise_drf_validation_error(exc)
+
+        return instance
 
 
 class TransactionSerializer(serializers.ModelSerializer):
@@ -248,18 +272,11 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class MiscellaneousExpenseSerializer(serializers.ModelSerializer):
-    site_name = serializers.SerializerMethodField(read_only=True)
-    labour_name = serializers.SerializerMethodField(read_only=True)
-
     class Meta:
         model = MiscellaneousExpense
         fields = [
             'id',
             'title',
-            'site',
-            'site_name',
-            'labour',
-            'labour_name',
             'paid_to_name',
             'amount',
             'date',
@@ -267,17 +284,70 @@ class MiscellaneousExpenseSerializer(serializers.ModelSerializer):
             'notes',
         ]
 
-    def get_site_name(self, obj):
-        return obj.site.name if obj.site else None
+    def create(self, validated_data):
+        try:
+            return MiscellaneousExpense.objects.create(**validated_data)
+        except ValidationError as exc:
+            _raise_drf_validation_error(exc)
 
-    def get_labour_name(self, obj):
-        return obj.labour.name if obj.labour else None
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        try:
+            instance.save()
+        except ValidationError as exc:
+            _raise_drf_validation_error(exc)
+
+        return instance
+
+
+class OwnerPayoutSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OwnerPayout
+        fields = [
+            'id',
+            'amount',
+            'date',
+            'payment_mode',
+            'sender_name',
+            'receiver_name',
+            'cheque_number',
+            'reference_number',
+            'remarks',
+        ]
 
     def validate(self, attrs):
-        labour = attrs.get('labour', getattr(self.instance, 'labour', None))
-        paid_to_name = attrs.get('paid_to_name', getattr(self.instance, 'paid_to_name', None))
+        payment_mode = attrs.get('payment_mode', getattr(self.instance, 'payment_mode', 'cash'))
 
-        if labour and (paid_to_name is None or not str(paid_to_name).strip()):
-            attrs['paid_to_name'] = labour.name
+        payment_details = validate_payment_details(
+            payment_mode=payment_mode,
+            sender_name=attrs.get('sender_name', getattr(self.instance, 'sender_name', None)),
+            receiver_name=attrs.get('receiver_name', getattr(self.instance, 'receiver_name', None)),
+            cheque_number=attrs.get('cheque_number', getattr(self.instance, 'cheque_number', None)),
+        )
+        attrs['sender_name'] = payment_details['sender_name']
+        attrs['receiver_name'] = payment_details['receiver_name']
+        attrs['cheque_number'] = payment_details['cheque_number']
+
+        if payment_details['errors']:
+            raise serializers.ValidationError(payment_details['errors'])
 
         return attrs
+
+    def create(self, validated_data):
+        try:
+            return OwnerPayout.objects.create(**validated_data)
+        except ValidationError as exc:
+            _raise_drf_validation_error(exc)
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        try:
+            instance.save()
+        except ValidationError as exc:
+            _raise_drf_validation_error(exc)
+
+        return instance

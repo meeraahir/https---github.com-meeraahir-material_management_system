@@ -163,3 +163,51 @@ class MiscellaneousExpense(models.Model):
 
         if errors:
             raise ValidationError(errors)
+
+
+class OwnerPayout(models.Model):
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    payment_mode = models.CharField(max_length=20, choices=PAYMENT_MODE_CHOICES, default=PAYMENT_MODE_CASH)
+    sender_name = models.CharField(max_length=255, blank=True, null=True)
+    receiver_name = models.CharField(max_length=255, blank=True, null=True)
+    cheque_number = models.CharField(max_length=50, blank=True, null=True)
+    reference_number = models.CharField(max_length=50, blank=True, null=True)
+    remarks = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+
+    def __str__(self):
+        label = self.receiver_name or self.sender_name or 'Owner payout'
+        return f'{label} - {self.amount} on {self.date}'
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        errors = {}
+        self.reference_number = normalize_optional_text(self.reference_number)
+        self.sender_name = normalize_optional_text(self.sender_name)
+        self.receiver_name = normalize_optional_text(self.receiver_name)
+        self.cheque_number = normalize_optional_text(self.cheque_number)
+
+        if self.amount is None:
+            errors['amount'] = 'Payment amount is required.'
+        elif self.amount <= 0:
+            errors['amount'] = 'Payment amount must be greater than zero.'
+
+        payment_details = validate_payment_details(
+            payment_mode=self.payment_mode,
+            sender_name=self.sender_name,
+            receiver_name=self.receiver_name,
+            cheque_number=self.cheque_number,
+        )
+        self.sender_name = payment_details['sender_name']
+        self.receiver_name = payment_details['receiver_name']
+        self.cheque_number = payment_details['cheque_number']
+        errors.update(payment_details['errors'])
+
+        if errors:
+            raise ValidationError(errors)

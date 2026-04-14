@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ClientReceipt, MiscellaneousExpense, Party, Transaction
+from .models import ClientReceipt, MiscellaneousExpense, OwnerPayout, Party, Transaction
 
 
 @admin.register(Party)
@@ -35,6 +35,22 @@ class ClientReceiptAdmin(admin.ModelAdmin):
 
 @admin.register(MiscellaneousExpense)
 class MiscellaneousExpenseAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'site', 'labour', 'paid_to_name', 'amount', 'payment_mode', 'date')
-    list_filter = ('site', 'payment_mode', 'date')
-    search_fields = ('title', 'paid_to_name', 'labour__name', 'site__name', 'notes')
+    list_display = ('id', 'title', 'paid_to_name', 'amount', 'payment_mode', 'date')
+    list_filter = ('payment_mode', 'date')
+    search_fields = ('title', 'paid_to_name', 'notes')
+
+
+@admin.register(OwnerPayout)
+class OwnerPayoutAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'amount',
+        'payment_mode',
+        'sender_name',
+        'receiver_name',
+        'cheque_number',
+        'reference_number',
+        'date',
+    )
+    list_filter = ('payment_mode', 'date')
+    search_fields = ('sender_name', 'receiver_name', 'cheque_number', 'reference_number', 'remarks')
