@@ -1234,7 +1234,7 @@ export function SiteLabourPaymentModal({
   const calculationRequestRef = useRef(0);
   const lastCalculationKeyRef = useRef("");
   const labourWageMap = useMemo(
-    () => new Map(labours.map((labour) => [labour.id, labour.per_day_wage])),
+    () => new Map(labours.map((labour) => [labour.id, Number(labour.per_day_wage) || 0])),
     [labours],
   );
   const {
@@ -1321,7 +1321,9 @@ export function SiteLabourPaymentModal({
     }
 
     if (!periodStart || !periodEnd) {
-      const defaultWageTotal = Number((labourWageMap.get(labourId) || 0).toFixed(2));
+      const defaultWageTotal = Number(
+        (Number(labourWageMap.get(labourId) || 0) || 0).toFixed(2),
+      );
 
       if (
         lastCalculationKeyRef.current === calculationKey &&
@@ -1383,7 +1385,7 @@ export function SiteLabourPaymentModal({
           (row) => row.present && row.site === siteId,
         ).length;
         const totalAmount = Number(
-          (presentDays * (labourWageMap.get(labourId) || 0)).toFixed(2),
+          (presentDays * (Number(labourWageMap.get(labourId) || 0) || 0)).toFixed(2),
         );
 
         if (currentTotal !== totalAmount) {

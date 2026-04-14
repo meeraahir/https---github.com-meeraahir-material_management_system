@@ -329,6 +329,49 @@ function AddSectionButton({
   );
 }
 
+function EmphasisAmount({
+  tone,
+  value,
+}: {
+  tone: "danger" | "neutral" | "success" | "warning";
+  value: number;
+}) {
+  const toneClasses = {
+    success: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    warning: "border-amber-200 bg-amber-50 text-amber-700",
+    danger: "border-rose-200 bg-rose-50 text-rose-700",
+    neutral: "border-slate-200 bg-slate-50 text-slate-700",
+  } as const;
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClasses[tone]}`}
+    >
+      {formatCurrency(value)}
+    </span>
+  );
+}
+
+function LabourQuickActionButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      className="h-9 rounded-xl border-[#E5E7EB] bg-white px-3 text-[#374151] shadow-none hover:border-[#D1D5DB] hover:bg-[#F9FAFB]"
+      onClick={onClick}
+      size="sm"
+      type="button"
+      variant="secondary"
+    >
+      {label}
+    </Button>
+  );
+}
+
 function upsertById<TEntity extends { id: number }>(
   items: TEntity[],
   nextItem: TEntity,
@@ -527,7 +570,7 @@ export function SiteDashboardPage() {
     [labours],
   );
   const labourWageMap = useMemo(
-    () => new Map(labours.map((labour) => [labour.id, labour.per_day_wage])),
+    () => new Map(labours.map((labour) => [labour.id, Number(labour.per_day_wage) || 0])),
     [labours],
   );
   const selectedPartyRecord = useMemo(
@@ -1200,25 +1243,32 @@ export function SiteDashboardPage() {
                 {
                   key: "payment_mode",
                   header: "Payment Mode",
-                  accessor: (row) => row.payment_mode || "-",
+                  accessor: (row) =>
+                    row.payment_mode ? (
+                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                        {row.payment_mode}
+                      </span>
+                    ) : (
+                      "-"
+                    ),
                   sortValue: (row) => row.payment_mode || "",
                 },
                 {
                   key: "total_amount",
                   header: "Total Amount",
-                  accessor: (row) => row.total_amount,
+                  accessor: (row) => <EmphasisAmount tone="neutral" value={row.total_amount} />,
                   sortValue: (row) => row.total_amount,
                 },
                 {
                   key: "paid_amount",
                   header: "Paid Amount",
-                  accessor: (row) => row.paid_amount,
+                  accessor: (row) => <EmphasisAmount tone="success" value={row.paid_amount} />,
                   sortValue: (row) => row.paid_amount,
                 },
                 {
                   key: "pending_amount",
                   header: "Pending Amount",
-                  accessor: (row) => row.pending_amount,
+                  accessor: (row) => <EmphasisAmount tone="warning" value={row.pending_amount} />,
                   sortValue: (row) => row.pending_amount,
                 },
               ]}
@@ -1257,7 +1307,7 @@ export function SiteDashboardPage() {
                 {
                   key: "amount",
                   header: "Amount",
-                  accessor: (row) => row.amount,
+                  accessor: (row) => <EmphasisAmount tone="neutral" value={row.amount} />,
                   sortValue: (row) => row.amount,
                 },
                 {
@@ -1269,13 +1319,17 @@ export function SiteDashboardPage() {
                 {
                   key: "received_amount",
                   header: "Received Amount",
-                  accessor: (row) => row.current_received_amount ?? 0,
+                  accessor: (row) => (
+                    <EmphasisAmount tone="success" value={row.current_received_amount ?? 0} />
+                  ),
                   sortValue: (row) => row.current_received_amount ?? 0,
                 },
                 {
                   key: "pending_amount",
                   header: "Pending Amount",
-                  accessor: (row) => row.pending_amount ?? row.amount,
+                  accessor: (row) => (
+                    <EmphasisAmount tone="warning" value={row.pending_amount ?? row.amount} />
+                  ),
                   sortValue: (row) => row.pending_amount ?? row.amount,
                 },
                 {
@@ -1334,19 +1388,19 @@ export function SiteDashboardPage() {
                 {
                   key: "total_amount",
                   header: "Total Amount",
-                  accessor: (row) => row.total_amount,
+                  accessor: (row) => <EmphasisAmount tone="neutral" value={row.total_amount} />,
                   sortValue: (row) => row.total_amount,
                 },
                 {
                   key: "paid_amount",
                   header: "Paid Amount",
-                  accessor: (row) => row.paid_amount,
+                  accessor: (row) => <EmphasisAmount tone="success" value={row.paid_amount} />,
                   sortValue: (row) => row.paid_amount,
                 },
                 {
                   key: "pending_amount",
                   header: "Pending Amount",
-                  accessor: (row) => row.pending_amount,
+                  accessor: (row) => <EmphasisAmount tone="warning" value={row.pending_amount} />,
                   sortValue: (row) => row.pending_amount,
                 },
                 {
@@ -1364,34 +1418,19 @@ export function SiteDashboardPage() {
               emptyDescription="No labour payments are available for this site."
               emptyTitle="No Labour Payments"
               headerActions={
-                <div className="flex items-center gap-2">
-                  <Button
-                    className="h-9 rounded-xl px-3"
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                  <LabourQuickActionButton
+                    label="Casual Labour"
                     onClick={() => setIsCasualLabourBrowserOpen(true)}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    Casual Labour
-                  </Button>
-                  <Button
-                    className="h-9 rounded-xl px-3"
+                  />
+                  <LabourQuickActionButton
+                    label="Regular Labour"
                     onClick={() => setIsRegularLabourBrowserOpen(true)}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    Regular Labour
-                  </Button>
-                  <Button
-                    className="h-9 rounded-xl px-3"
+                  />
+                  <LabourQuickActionButton
+                    label="Labour Attendance"
                     onClick={() => setIsLabourAttendanceModalOpen(true)}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    Labour Attendance
-                  </Button>
+                  />
                   <AddSectionButton
                     ariaLabel="Add Labour Payment"
                     onClick={() => setIsLabourPaymentModalOpen(true)}

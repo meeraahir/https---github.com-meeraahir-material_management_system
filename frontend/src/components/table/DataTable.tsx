@@ -19,6 +19,7 @@ interface DataTableProps<T> {
   emptyDescription: string;
   emptyTitle: string;
   headerActions?: ReactNode;
+  headerDescription?: string;
   headerTitle?: string;
   hidePagination?: boolean;
   isLoading?: boolean;
@@ -191,6 +192,7 @@ export function DataTable<T>({
   emptyDescription,
   emptyTitle,
   headerActions,
+  headerDescription,
   headerTitle,
   hidePagination = false,
   isLoading = false,
@@ -254,7 +256,7 @@ export function DataTable<T>({
   const paginatedRows = clientPagination
     ? rows.slice((page - 1) * pageSize, page * pageSize)
     : rows;
-  const showHeader = Boolean(headerTitle || headerActions);
+  const showHeader = Boolean(headerTitle || headerDescription || headerActions);
   const isRowInteractive = Boolean(onRowClick || onRowDoubleClick);
   const headerCellClassName = compact
     ? "px-3 py-2.5 text-[0.76rem]"
@@ -269,9 +271,18 @@ export function DataTable<T>({
         <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-5 py-4">
           <div className="min-w-0">
             {headerTitle ? (
-              <h3 className="text-base font-semibold text-[#111111]">
-                {headerTitle}
-              </h3>
+              <div>
+                <h3 className="text-base font-semibold text-[#111111]">
+                  {headerTitle}
+                </h3>
+                {headerDescription ? (
+                  <p className="mt-1 text-sm font-medium text-[#6B7280]">
+                    {headerDescription}
+                  </p>
+                ) : null}
+              </div>
+            ) : headerDescription ? (
+              <p className="text-sm font-medium text-[#6B7280]">{headerDescription}</p>
             ) : null}
           </div>
           {headerActions ? (
