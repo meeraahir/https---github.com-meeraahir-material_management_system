@@ -138,6 +138,8 @@ export function VendorsPage() {
         { kind: "text", label: "Bank Name", maxLength: 80, name: "bank_name", placeholder: "Optional bank name" },
         {
           kind: "text",
+          digitsOnly: true,
+          inputMode: "numeric",
           label: "Account Number",
           maxLength: 18,
           minLength: 9,
@@ -165,6 +167,8 @@ export function VendorsPage() {
         },
         {
           kind: "text",
+          digitsOnly: true,
+          inputMode: "numeric",
           label: "Aadhar Number",
           maxLength: 12,
           minLength: 12,
