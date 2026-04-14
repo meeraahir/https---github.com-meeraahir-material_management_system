@@ -13,6 +13,7 @@ export interface TableColumn<T> {
 export interface TableAction<T> {
   ariaLabel?: string;
   disabled?: (row: T) => boolean;
+  display?: "icon" | "text";
   icon?: ReactNode;
   label: string;
   onClick: (row: T) => void;

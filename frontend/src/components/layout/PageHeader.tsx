@@ -9,9 +9,7 @@ interface PageHeaderProps {
 
 export function PageHeader({
   actions,
-  description: _description,
   search,
-  title: _title,
 }: PageHeaderProps) {
   const hasVisibleContent = Boolean(search || actions);
 

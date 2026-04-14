@@ -147,7 +147,7 @@ export function SiteLabourDetailPage() {
             <DetailMetricCard accentClassName="border-cyan-200 bg-cyan-50/70" label="Per Day Wage" value={formatCurrency(labour?.per_day_wage)} />
           </DetailMetricGrid>
 
-          <DetailSection description="Basic labour information and site context." title="Overview">
+          <DetailSection hideHeader title="Overview">
             <DetailInfoGrid
               items={[
                 { label: "Labour Name", value: labour?.name || summary?.labour_name || "-" },

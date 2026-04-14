@@ -56,20 +56,24 @@ export function DetailMetricCard({
 export function DetailSection({
   children,
   description,
+  hideHeader = false,
   title,
 }: {
   children: ReactNode;
   description?: string;
+  hideHeader?: boolean;
   title: string;
 }) {
   return (
     <section className="rounded-[2rem] border border-blue-100 bg-white/95 p-5 shadow-md shadow-blue-950/5">
-      <div className="mb-4">
-        <h2 className="text-lg font-black text-slate-950">{title}</h2>
-        {description ? (
-          <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
-        ) : null}
-      </div>
+      {!hideHeader ? (
+        <div className="mb-4">
+          <h2 className="text-lg font-black text-slate-950">{title}</h2>
+          {description ? (
+            <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+          ) : null}
+        </div>
+      ) : null}
       {children}
     </section>
   );

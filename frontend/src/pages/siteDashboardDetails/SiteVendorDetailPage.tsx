@@ -160,7 +160,7 @@ export function SiteVendorDetailPage() {
             <DetailMetricCard accentClassName="border-cyan-200 bg-cyan-50/70" label="Payment Entries" value={formatNumber(payments.length)} />
           </DetailMetricGrid>
 
-          <DetailSection description="Vendor master information available in the current frontend data flow." title="Overview">
+          <DetailSection hideHeader title="Overview">
             <DetailInfoGrid
               items={[
                 { label: "Vendor Name", value: vendor?.name || summary?.vendor_name || "-" },

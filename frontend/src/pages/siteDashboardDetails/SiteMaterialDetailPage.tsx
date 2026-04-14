@@ -150,7 +150,7 @@ export function SiteMaterialDetailPage() {
             <DetailMetricCard accentClassName="border-cyan-200 bg-cyan-50/70" label="Total Cost" value={formatCurrency(summary?.total_cost ?? receipts.reduce((total, entry) => total + entry.total_cost, 0))} />
           </DetailMetricGrid>
 
-          <DetailSection description="Quick reference for the selected material in this site context." title="Overview">
+          <DetailSection hideHeader title="Overview">
             <DetailInfoGrid
               items={[
                 { label: "Material Name", value: material?.name || summary?.material__name || "-" },

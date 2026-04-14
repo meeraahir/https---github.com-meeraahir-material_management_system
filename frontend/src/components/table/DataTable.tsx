@@ -333,9 +333,11 @@ export function DataTable<T>({
                   })}
                 </dl>
                 {actions?.length ? (
-                  <div className="mt-4 flex flex-wrap justify-end gap-2">
-                    {actions.map((action) => (
-                      actionsDisplay === "icon" ? (
+                        <div className="mt-4 flex flex-wrap justify-end gap-2">
+                    {actions.map((action) => {
+                      const resolvedDisplay = action.display ?? actionsDisplay;
+
+                      return resolvedDisplay === "icon" ? (
                         <button
                           aria-label={action.ariaLabel ?? action.label}
                           className={clsx(
@@ -369,8 +371,8 @@ export function DataTable<T>({
                         >
                           {action.label}
                         </Button>
-                      )
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : null}
               </article>
@@ -493,8 +495,10 @@ export function DataTable<T>({
                         actionsDisplay === "icon" ? (compact ? "w-24" : "w-28") : "w-44",
                       )}>
                         <div className="flex flex-nowrap justify-start gap-2">
-                          {actions.map((action) => (
-                            actionsDisplay === "icon" ? (
+                          {actions.map((action) => {
+                            const resolvedDisplay = action.display ?? actionsDisplay;
+
+                            return resolvedDisplay === "icon" ? (
                               <button
                                 aria-label={action.ariaLabel ?? action.label}
                                 className={clsx(
@@ -528,8 +532,8 @@ export function DataTable<T>({
                               >
                                 {action.label}
                               </Button>
-                            )
-                          ))}
+                            );
+                          })}
                         </div>
                       </td>
                     ) : null}

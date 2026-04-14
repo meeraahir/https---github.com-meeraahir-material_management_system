@@ -109,6 +109,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
     ...(canEdit
       ? [{
           ariaLabel: "Edit",
+          display: "icon" as const,
           icon: icons.pencil({ className: "h-4 w-4" }),
           label: "Edit",
           onClick: openEdit,
@@ -119,6 +120,7 @@ export function CrudModulePage<TEntity, TFormValues extends FieldValues>({
       ? [
           {
             ariaLabel: "Delete",
+            display: "icon" as const,
             icon: icons.trash({ className: "h-4 w-4" }),
             label: "Delete",
             onClick: setDeleteTarget,

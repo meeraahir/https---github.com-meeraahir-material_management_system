@@ -143,7 +143,7 @@ export function SitePartyDetailPage() {
             <DetailMetricCard accentClassName="border-cyan-200 bg-cyan-50/70" label="Receivable Entries" value={formatNumber(receivables.length)} />
           </DetailMetricGrid>
 
-          <DetailSection description="Basic party information available from the current frontend flow." title="Overview">
+          <DetailSection hideHeader title="Overview">
             <DetailInfoGrid
               items={[
                 { label: "Party Name", value: party?.name || summary?.party__name || "-" },
