@@ -26,17 +26,17 @@ interface VendorLedgerSummaryRow {
   date: string;
   description: string | null;
   id: number;
-  invoice: string;
   material: string;
   movements: VendorLedgerMovement[];
   paidAmount: number;
   pendingAmount: number;
+  purchaseLabel: string;
   site: string;
   status: "Paid" | "Partial" | "Pending";
 }
 
-function getInvoiceLabel(purchase: Purchase) {
-  return purchase.invoice_number || `Purchase #${purchase.id}`;
+function getPurchaseLabel(purchase: Purchase) {
+  return `Purchase #${purchase.id}`;
 }
 
 function getPaymentReference(payment: VendorPayment) {
@@ -76,7 +76,7 @@ function buildPurchaseMovements(purchase: Purchase, payments: VendorPayment[]) {
       debit: purchase.total_amount,
       description: purchase.description,
       id: `purchase-${purchase.id}`,
-      reference: getInvoiceLabel(purchase),
+      reference: getPurchaseLabel(purchase),
       type: "purchase" as const,
     },
     ...payments
@@ -133,11 +133,11 @@ function buildSummaryRows(
         date: purchase.date,
         description: purchase.description,
         id: purchase.id,
-        invoice: getInvoiceLabel(purchase),
         material: purchase.material_name || "-",
         movements,
         paidAmount: purchase.paid_amount,
         pendingAmount: purchase.pending_amount,
+        purchaseLabel: getPurchaseLabel(purchase),
         site: purchase.site_name,
         status: getStatus(purchase.paid_amount, purchase.pending_amount),
       };
@@ -172,13 +172,13 @@ function MovementDetailsModal({
       onClose={onClose}
       open={Boolean(row)}
       size="xl"
-      title={row ? `${row.invoice} Movement` : "Vendor Ledger Movement"}
+      title={row ? `${row.purchaseLabel} Movement` : "Vendor Ledger Movement"}
     >
       {row ? (
         <div className="space-y-5">
           <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 dark:border-blue-900/70 dark:from-blue-950/30 dark:via-slate-950 dark:to-cyan-950/20">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-600 dark:text-blue-300">
-              Invoice Summary
+              Purchase Summary
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div>
@@ -283,10 +283,10 @@ export function VendorLedgerPage() {
             sortValue: (row) => row.date,
           },
           {
-            key: "invoice",
-            header: "Invoice",
-            accessor: (row) => row.invoice,
-            sortValue: (row) => row.invoice,
+            key: "purchase",
+            header: "Purchase",
+            accessor: (row) => row.purchaseLabel,
+            sortValue: (row) => row.purchaseLabel,
           },
           {
             key: "site",
@@ -331,8 +331,8 @@ export function VendorLedgerPage() {
             sortValue: (row) => row.status,
           },
         ]}
-        description="View invoice-wise vendor bill, paid amount, and pending balance. Use View for detailed purchase and payment movement."
-        emptyDescription="Select a vendor and load the ledger to view invoice-wise vendor balance."
+        description="View purchase-wise vendor bill, paid amount, and pending balance. Use View for detailed purchase and payment movement."
+        emptyDescription="Select a vendor and load the ledger to view purchase-wise vendor balance."
         entityLabel="Vendor"
         entityOptions={references.vendors.map((vendor) => ({
           label: `${vendor.name} (${vendor.phone})`,

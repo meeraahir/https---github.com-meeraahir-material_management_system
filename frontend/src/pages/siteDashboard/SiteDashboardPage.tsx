@@ -96,11 +96,7 @@ const receiptSchema = z
   .object({
     cost_per_unit: z.number().min(0, "Cost per unit must be zero or more."),
     date: z.string().min(1, "Receipt date is required."),
-    invoice_number: z
-      .string()
-      .max(50, "Invoice number must be 50 characters or fewer.")
-      .optional()
-      .or(z.literal("")),
+    invoice_number: z.string().optional().or(z.literal("")),
     material: z.number().min(1, "Material is required."),
     material_variant: z.number().min(0, "Variant is invalid.").optional(),
     notes: z
@@ -123,7 +119,7 @@ const purchaseSchema = z
     cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer."),
     date: z.string().min(1, "Date is required."),
     description: z.string().max(300, "Description must be 300 characters or fewer."),
-    invoice_number: z.string().max(60, "Invoice number must be 60 characters or fewer."),
+    invoice_number: z.string(),
     material: z.number().min(0, "Material is invalid."),
     paid_amount: z.number().min(0, "Paid amount must be zero or more."),
     payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
@@ -164,7 +160,7 @@ const purchaseSchema = z
 const receivableSchema = z
   .object({
     amount: z.number().gt(0, "Amount must be greater than zero."),
-    date: z.string().min(1, "Invoice date is required."),
+    date: z.string().min(1, "Date is required."),
     description: z.string().max(1000, "Description must be 1000 characters or fewer."),
     party: z.number().min(1, "Party is required."),
     phase_name: z.string().max(255, "Phase name must be 255 characters or fewer."),
@@ -179,7 +175,7 @@ const receivableSchema = z
     if ((value.received_amount ?? 0) > value.amount) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Received amount cannot exceed invoice amount.",
+        message: "Received amount cannot exceed total amount.",
         path: ["received_amount"],
       });
     }
@@ -1095,12 +1091,6 @@ export function SiteDashboardPage() {
                   sortValue: (row) => row.material_name,
                 },
                 {
-                  key: "invoice",
-                  header: "Invoice",
-                  accessor: (row) => row.invoice_number || "-",
-                  sortValue: (row) => row.invoice_number || "",
-                },
-                {
                   key: "variant",
                   header: "Variant",
                   accessor: (row) => getMaterialVariantLabel(row),
@@ -1168,12 +1158,6 @@ export function SiteDashboardPage() {
                   header: "Vendor",
                   accessor: (row) => row.vendor_name,
                   sortValue: (row) => row.vendor_name,
-                },
-                {
-                  key: "invoice",
-                  header: "Invoice",
-                  accessor: (row) => row.invoice_number || "-",
-                  sortValue: (row) => row.invoice_number || "",
                 },
                 {
                   key: "material",
@@ -1887,14 +1871,6 @@ export function SiteDashboardPage() {
                 </div>
                 <div className="rounded-xl bg-[#F9FAFB] p-4 sm:col-span-2">
                   <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
-                    Invoice
-                  </p>
-                  <p className="mt-2 text-base font-semibold text-[#111111]">
-                    {selectedReceipt.receipt.invoice_number || "-"}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-[#F9FAFB] p-4 sm:col-span-2">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
                     Notes
                   </p>
                   <p className="mt-2 text-base font-semibold text-[#111111]">
@@ -2010,7 +1986,6 @@ export function SiteDashboardPage() {
             valueType: "number",
           },
           { kind: "date", label: "Receipt Date", name: "date", required: true },
-          { kind: "text", label: "Invoice Number", maxLength: 50, name: "invoice_number", placeholder: "Optional invoice reference" },
           { kind: "number", label: "Quantity Received", min: 0, name: "quantity_received", required: true, valueType: "number" },
           { kind: "number", label: "Quantity Used", min: 0, name: "quantity_used", required: true, valueType: "number" },
           { kind: "number", label: "Cost Per Unit", min: 0, name: "cost_per_unit", required: true, valueType: "number" },
@@ -2094,7 +2069,6 @@ export function SiteDashboardPage() {
             valueType: "number",
           },
           { kind: "date", label: "Date", name: "date", required: true },
-          { kind: "text", label: "Invoice Number", maxLength: 60, name: "invoice_number", placeholder: "Invoice reference" },
           { kind: "textarea", label: "Description", name: "description", placeholder: "Purchase notes", rows: 5 },
           { kind: "number", label: "Total Amount", min: 0, name: "total_amount", required: true, valueType: "number" },
           { kind: "number", label: "Initial Paid Amount", min: 0, name: "paid_amount", required: true, valueType: "number" },
@@ -2172,13 +2146,13 @@ export function SiteDashboardPage() {
           },
           { kind: "number", label: "Amount", min: 0, name: "amount", required: true, valueType: "number" },
           { kind: "text", label: "Phase Name", maxLength: 255, name: "phase_name", placeholder: "Plaster Work, Slab, Brickwork..." },
-          { kind: "date", label: "Invoice Date", name: "date", required: true },
+          { kind: "date", label: "Date", name: "date", required: true },
           { kind: "number", label: "Received Amount", min: 0, name: "received_amount", required: true, valueType: "number" },
           { kind: "select", label: "Receipt Payment Mode", name: "receipt_payment_mode", options: paymentModeOptions },
           { kind: "text", label: "Receipt Sender Name", maxLength: 255, name: "receipt_sender_name", placeholder: "Who sent the receipt payment" },
           { kind: "text", label: "Receipt Receiver Name", maxLength: 255, name: "receipt_receiver_name", placeholder: "Who received the receipt payment" },
           { kind: "text", label: "Receipt Cheque Number", maxLength: 50, name: "receipt_cheque_number", placeholder: "Required for check receipts" },
-          { kind: "textarea", label: "Description", name: "description", placeholder: "Invoice or work description", rows: 4, wrapperClassName: "md:col-span-2" },
+          { kind: "textarea", label: "Description", name: "description", placeholder: "Work description", rows: 4, wrapperClassName: "md:col-span-2" },
         ]}
         onClose={() => setEditingReceivable(null)}
         onSubmit={async (values) => {

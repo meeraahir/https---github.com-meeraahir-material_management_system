@@ -92,9 +92,7 @@ export function MaterialUsagePage() {
           filters.material ? receipt.material === filters.material : true,
         )
         .map((receipt) => ({
-          label: `${receipt.site_name} | ${receipt.material_name} | ${
-            receipt.invoice_number || `Receipt #${receipt.id}`
-          }`,
+          label: `${receipt.site_name} | ${receipt.material_name} | Receipt #${receipt.id}`,
           value: receipt.id,
         })),
     [filters.material, filters.site, receipts],
@@ -218,10 +216,8 @@ export function MaterialUsagePage() {
           {
             key: "receipt",
             header: "Receipt",
-            accessor: (row) =>
-              row.receipt_invoice_number || `Receipt #${row.receipt}`,
-            sortValue: (row) =>
-              row.receipt_invoice_number || `Receipt #${row.receipt}`,
+            accessor: (row) => `Receipt #${row.receipt}`,
+            sortValue: (row) => row.receipt,
           },
           {
             key: "receipt_date",

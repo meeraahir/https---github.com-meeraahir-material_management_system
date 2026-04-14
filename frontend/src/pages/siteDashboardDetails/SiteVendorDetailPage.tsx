@@ -113,7 +113,7 @@ export function SiteVendorDetailPage() {
           amount: entry.total_amount,
           date: entry.date,
           id: `purchase-${entry.id}`,
-          reference: entry.invoice_number || `Purchase #${entry.id}`,
+          reference: `Purchase #${entry.id}`,
           type: "Purchase" as const,
         })),
         ...payments.map((entry) => ({
@@ -178,7 +178,6 @@ export function SiteVendorDetailPage() {
               clientPagination
               columns={[
                 { key: "date", header: "Date", accessor: (row) => formatDate(row.date), sortValue: (row) => row.date },
-                { key: "invoice", header: "Invoice", accessor: (row) => row.invoice_number || "-", sortValue: (row) => row.invoice_number || "" },
                 { key: "material", header: "Material", accessor: (row) => row.material_name || "-", sortValue: (row) => row.material_name || "" },
                 { key: "total", header: "Total Amount", accessor: (row) => row.total_amount, sortValue: (row) => row.total_amount },
                 { key: "paid", header: "Paid", accessor: (row) => row.paid_amount, sortValue: (row) => row.paid_amount },
@@ -202,7 +201,7 @@ export function SiteVendorDetailPage() {
               clientPagination
               columns={[
                 { key: "date", header: "Date", accessor: (row) => formatDate(row.date), sortValue: (row) => row.date },
-                { key: "purchase", header: "Purchase Ref", accessor: (row) => row.purchase_invoice_number || `Purchase #${row.purchase}`, sortValue: (row) => row.purchase_invoice_number || row.purchase },
+                { key: "purchase", header: "Purchase Ref", accessor: (row) => `Purchase #${row.purchase}`, sortValue: (row) => row.purchase },
                 { key: "amount", header: "Amount", accessor: (row) => row.amount, sortValue: (row) => row.amount },
                 { key: "reference", header: "Reference", accessor: (row) => row.reference_number || "-", sortValue: (row) => row.reference_number || "" },
                 { key: "remarks", header: "Remarks", accessor: (row) => row.remarks || "-", sortValue: (row) => row.remarks || "" },
