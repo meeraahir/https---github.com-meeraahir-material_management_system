@@ -1,7 +1,7 @@
 const currencyNumberFormatter = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
   minimumFractionDigits: 0,
-  useGrouping: false,
+  useGrouping: true,
 });
 
 const compactNumberFormatter = new Intl.NumberFormat("en-IN", {
