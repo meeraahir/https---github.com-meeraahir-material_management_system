@@ -7,6 +7,10 @@ import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { useToast } from "../../components/feedback/useToast";
 import { EntityFormModal } from "../../components/forms/EntityFormModal";
 import { ReceivePaymentModal } from "../../components/forms/ReceivePaymentModal";
+import {
+  VendorPaymentModal,
+  type VendorPaymentModalValues,
+} from "../../components/forms/VendorPaymentModal";
 import { StatCard } from "../../components/layout/StatCard";
 import { ConfirmDialog } from "../../components/modal/ConfirmDialog";
 import { Modal } from "../../components/modal/Modal";
@@ -20,9 +24,11 @@ import { paymentsService } from "../../services/paymentsService";
 import { receivablesService } from "../../services/receivablesService";
 import { reportsService } from "../../services/reportsService";
 import { siteDashboardService } from "../../services/sitesService";
+import { vendorPaymentsService } from "../../services/vendorPaymentsService";
 import { vendorPurchasesService } from "../../services/vendorPurchasesService";
 import type {
   Material,
+  PaginatedResponse,
   Party,
   Payment,
   PaymentFormValues,
@@ -37,6 +43,7 @@ import type {
   SiteDashboardData,
   Labour,
   Vendor,
+  VendorPayment,
 } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
 import { formatCurrency, formatDate } from "../../utils/format";
@@ -247,6 +254,13 @@ interface SelectedPartyContext {
   siteId: number;
 }
 
+interface SelectedVendorContext {
+  purchaseId: number | null;
+  siteId: number;
+  vendorId: number;
+  vendorLabel: string;
+}
+
 interface PartyPaymentHistoryRow {
   amount: number;
   date: string;
@@ -256,6 +270,28 @@ interface PartyPaymentHistoryRow {
   referenceNumber?: string;
   receiverName?: string;
   senderName?: string;
+}
+
+async function fetchAllPaginatedResults<TEntity>(
+  path: string,
+  params?: Record<string, number | string | undefined>,
+) {
+  const items: TEntity[] = [];
+  let nextUrl: string | null = path;
+  let nextParams = params;
+
+  while (nextUrl) {
+    const response: { data: PaginatedResponse<TEntity> } = await apiClient.get<
+      PaginatedResponse<TEntity>
+    >(nextUrl, {
+      params: nextParams,
+    });
+    items.push(...response.data.results);
+    nextUrl = response.data.next;
+    nextParams = undefined;
+  }
+
+  return items;
 }
 
 function normalizePaymentHistoryNote(note: string | null | undefined) {
@@ -327,7 +363,10 @@ export function SiteDashboardPage() {
   const [isPartyEntryModalOpen, setIsPartyEntryModalOpen] = useState(false);
   const [isPartyDetailsLoading, setIsPartyDetailsLoading] = useState(false);
   const [isReceivePaymentModalOpen, setIsReceivePaymentModalOpen] = useState(false);
+  const [isVendorDetailsLoading, setIsVendorDetailsLoading] = useState(false);
+  const [isVendorDetailsModalOpen, setIsVendorDetailsModalOpen] = useState(false);
   const [isVendorEntryModalOpen, setIsVendorEntryModalOpen] = useState(false);
+  const [isVendorPaymentModalOpen, setIsVendorPaymentModalOpen] = useState(false);
   const [localPartyPaymentHistory, setLocalPartyPaymentHistory] = useState<PartyPaymentHistoryRow[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isReceiptDetailsModalOpen, setIsReceiptDetailsModalOpen] = useState(false);
@@ -350,6 +389,9 @@ export function SiteDashboardPage() {
   const [partyDetailEntries, setPartyDetailEntries] = useState<Receivable[]>([]);
   const [partyPaymentHistory, setPartyPaymentHistory] = useState<PartyPaymentHistoryRow[]>([]);
   const [paymentTarget, setPaymentTarget] = useState<Receivable | null>(null);
+  const [selectedVendor, setSelectedVendor] = useState<SelectedVendorContext | null>(null);
+  const [vendorDetailEntries, setVendorDetailEntries] = useState<Purchase[]>([]);
+  const [vendorPaymentHistory, setVendorPaymentHistory] = useState<VendorPayment[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [selectedParty, setSelectedParty] = useState<SelectedPartyContext | null>(null);
 
@@ -484,6 +526,10 @@ export function SiteDashboardPage() {
     () => parties.find((party) => party.id === selectedParty?.partyId) ?? null,
     [parties, selectedParty],
   );
+  const selectedVendorRecord = useMemo(
+    () => vendors.find((vendor) => vendor.id === selectedVendor?.vendorId) ?? null,
+    [selectedVendor, vendors],
+  );
   const selectedPartyTotals = useMemo(
     () => ({
       pending: partyDetailEntries.reduce(
@@ -504,6 +550,29 @@ export function SiteDashboardPage() {
       null,
     [partyDetailEntries],
   );
+  const selectedVendorTotals = useMemo(
+    () => ({
+      paid: vendorDetailEntries.reduce((total, entry) => total + entry.paid_amount, 0),
+      pending: vendorDetailEntries.reduce((total, entry) => total + entry.pending_amount, 0),
+      total: vendorDetailEntries.reduce((total, entry) => total + entry.total_amount, 0),
+    }),
+    [vendorDetailEntries],
+  );
+  const selectedVendorPaymentTarget = useMemo(() => {
+    if (!vendorDetailEntries.length) {
+      return null;
+    }
+
+    const requestedPurchase = selectedVendor?.purchaseId
+      ? vendorDetailEntries.find((entry) => entry.id === selectedVendor.purchaseId) ?? null
+      : null;
+
+    if (requestedPurchase && requestedPurchase.pending_amount > 0) {
+      return requestedPurchase;
+    }
+
+    return vendorDetailEntries.find((entry) => entry.pending_amount > 0) ?? null;
+  }, [selectedVendor, vendorDetailEntries]);
 
   const syncAutoCalculatedTotal = useCallback(
     async ({
@@ -651,6 +720,46 @@ export function SiteDashboardPage() {
       .join(" ");
   }
 
+  async function loadVendorDetail(
+    vendorId: number,
+    siteId: number,
+    vendorLabel: string,
+    purchaseId: number | null,
+  ) {
+    setIsVendorDetailsLoading(true);
+
+    try {
+      const [sitePurchases, sitePayments] = await Promise.all([
+        fetchAllPaginatedResults<Purchase>("/vendors/transactions/", {
+          site: siteId,
+          vendor: vendorId,
+        }),
+        fetchAllPaginatedResults<VendorPayment>("/vendors/payments/", {
+          site: siteId,
+          vendor: vendorId,
+        }),
+      ]);
+
+      setSelectedVendor({
+        purchaseId,
+        siteId,
+        vendorId,
+        vendorLabel,
+      });
+      setVendorDetailEntries(
+        [...sitePurchases].sort((left, right) => right.date.localeCompare(left.date)),
+      );
+      setVendorPaymentHistory(
+        [...sitePayments].sort((left, right) => right.date.localeCompare(left.date)),
+      );
+      setIsVendorDetailsModalOpen(true);
+    } catch (loadError) {
+      showError("Unable to load vendor details", getErrorMessage(loadError));
+    } finally {
+      setIsVendorDetailsLoading(false);
+    }
+  }
+
   async function loadPartyDetail(partyId: number, siteId: number, partyLabel: string) {
     setIsPartyDetailsLoading(true);
 
@@ -719,6 +828,19 @@ export function SiteDashboardPage() {
       row.site,
       partyNameMap.get(row.party) || `Party ${row.party}`,
     );
+  }
+
+  function handleVendorDetailsClose() {
+    setIsVendorDetailsModalOpen(false);
+    setIsVendorDetailsLoading(false);
+    setIsVendorPaymentModalOpen(false);
+    setSelectedVendor(null);
+    setVendorDetailEntries([]);
+    setVendorPaymentHistory([]);
+  }
+
+  function handleVendorRowClick(row: Purchase) {
+    void loadVendorDetail(row.vendor, row.site, row.vendor_name, row.id);
   }
 
   function handleMaterialRowClick(row: Receipt) {
@@ -1104,7 +1226,7 @@ export function SiteDashboardPage() {
               hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.id}
-              onRowClick={(row) => navigate(`/sites/${site.id}/dashboard/vendors/${row.vendor}`)}
+              onRowClick={handleVendorRowClick}
               page={1}
               searchValue=""
               totalCount={purchases.length}
@@ -1359,7 +1481,7 @@ export function SiteDashboardPage() {
                   </p>
                 </div>
                 <Button
-                  className="min-w-[132px] rounded-xl px-4 py-2 text-sm"
+                  className="payment-btn"
                   disabled={!firstPendingReceivable}
                   onClick={() => {
                     setPaymentTarget(firstPendingReceivable);
@@ -1488,8 +1610,189 @@ export function SiteDashboardPage() {
           refreshDashboardData();
         }}
         open={isReceivePaymentModalOpen}
-        partyLabel={selectedParty?.partyLabel}
-        siteLabel={site.name}
+      />
+
+      <Modal
+        onClose={handleVendorDetailsClose}
+        open={isVendorDetailsModalOpen}
+        size="xl"
+        title={selectedVendor?.vendorLabel || "Vendor Details"}
+      >
+        <div className="space-y-5">
+          <section className="grid gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Vendor
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#111111]">
+                {selectedVendor?.vendorLabel || "-"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Site
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#111111]">
+                {site.name}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Phone
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#111111]">
+                {selectedVendorRecord?.phone || "-"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Remaining Payable
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#111111]">
+                {formatCurrency(selectedVendorTotals.pending)}
+              </p>
+            </div>
+          </section>
+
+          <section className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Total Payable
+              </p>
+              <p className="mt-2 text-lg font-semibold text-[#111111]">
+                {formatCurrency(selectedVendorTotals.total)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Paid Amount
+              </p>
+              <p className="mt-2 text-lg font-semibold text-[#111111]">
+                {formatCurrency(selectedVendorTotals.paid)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Remaining Payable
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-[#111111]">
+                    {formatCurrency(selectedVendorTotals.pending)}
+                  </p>
+                </div>
+                <Button
+                  className="payment-btn"
+                  disabled={!selectedVendorPaymentTarget}
+                  onClick={() => setIsVendorPaymentModalOpen(Boolean(selectedVendorPaymentTarget))}
+                  size="sm"
+                  type="button"
+                >
+                  Make Payment
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-base font-semibold text-[#111111]">
+                Payment History
+              </h3>
+              <p className="mt-1 text-sm text-[#6B7280]">
+                Only payments made for this vendor on the selected site are shown here.
+              </p>
+            </div>
+            {isVendorDetailsLoading ? (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 text-sm text-[#6B7280]">
+                Loading payment history...
+              </div>
+            ) : vendorPaymentHistory.length ? (
+              <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border-collapse text-sm">
+                    <thead className="bg-[#F9FAFB]">
+                      <tr>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Paid Amount
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Payment Date
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Payment Method
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Reference Number
+                        </th>
+                        <th className="min-w-[220px] px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
+                          Notes
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vendorPaymentHistory.map((entry) => (
+                        <tr className="border-t border-[#E5E7EB]" key={entry.id}>
+                          <td className="whitespace-nowrap px-4 py-3 font-medium text-[#111111]">
+                            {formatCurrency(entry.amount)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 font-medium text-[#111111]">
+                            {formatDate(entry.date)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
+                            {formatPaymentMethodLabel(entry.payment_mode)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
+                            {entry.reference_number || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-[#111111]">
+                            {entry.remarks || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 text-sm text-[#6B7280]">
+                No site-specific vendor payment history is available yet.
+              </div>
+            )}
+          </section>
+        </div>
+      </Modal>
+
+      <VendorPaymentModal
+        onClose={() => setIsVendorPaymentModalOpen(false)}
+        onSubmit={async (values: VendorPaymentModalValues) => {
+          if (!selectedVendorPaymentTarget || !selectedVendor) {
+            return;
+          }
+
+          await vendorPaymentsService.create({
+            amount: values.amount,
+            cheque_number: "",
+            date: values.date,
+            payment_mode: values.payment_mode,
+            purchase: selectedVendorPaymentTarget.id,
+            receiver_name: "",
+            reference_number: values.reference_number,
+            remarks: values.notes,
+            sender_name: "",
+          });
+
+          setIsVendorPaymentModalOpen(false);
+          await loadVendorDetail(
+            selectedVendor.vendorId,
+            selectedVendor.siteId,
+            selectedVendor.vendorLabel,
+            selectedVendorPaymentTarget.id,
+          );
+          refreshDashboardData();
+        }}
+        open={isVendorPaymentModalOpen}
+        purchase={selectedVendorPaymentTarget}
       />
 
       <Modal

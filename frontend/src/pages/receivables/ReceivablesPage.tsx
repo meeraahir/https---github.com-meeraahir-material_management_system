@@ -303,12 +303,6 @@ export function ReceivablesPage() {
           setRefreshKey((currentValue) => currentValue + 1);
         }}
         open={Boolean(paymentTarget)}
-        partyLabel={
-          paymentTarget ? partyNameMap.get(paymentTarget.party) : undefined
-        }
-        siteLabel={
-          paymentTarget ? siteNameMap.get(paymentTarget.site) : undefined
-        }
       />
     </>
   );
