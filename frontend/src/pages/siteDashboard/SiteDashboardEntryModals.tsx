@@ -1320,7 +1320,48 @@ export function SiteLabourPaymentModal({
     const currentTotal = Number(selectedTotalAmount) || 0;
     const calculationKey = `${labourId}|${siteId}|${periodStart}|${periodEnd}`;
 
-    if (!labourId || !periodStart || !periodEnd || periodEnd < periodStart) {
+    if (!labourId) {
+      if (lastCalculationKeyRef.current === calculationKey && currentTotal === 0) {
+        return;
+      }
+
+      lastCalculationKeyRef.current = calculationKey;
+
+      if (currentTotal !== 0) {
+        setValue("total_amount", 0, {
+          shouldDirty: false,
+          shouldTouch: false,
+          shouldValidate: true,
+        });
+      }
+
+      return;
+    }
+
+    if (!periodStart || !periodEnd) {
+      const defaultWageTotal = Number((labourWageMap.get(labourId) || 0).toFixed(2));
+
+      if (
+        lastCalculationKeyRef.current === calculationKey &&
+        currentTotal === defaultWageTotal
+      ) {
+        return;
+      }
+
+      lastCalculationKeyRef.current = calculationKey;
+
+      if (currentTotal !== defaultWageTotal) {
+        setValue("total_amount", defaultWageTotal, {
+          shouldDirty: false,
+          shouldTouch: false,
+          shouldValidate: true,
+        });
+      }
+
+      return;
+    }
+
+    if (periodEnd < periodStart) {
       if (lastCalculationKeyRef.current === calculationKey && currentTotal === 0) {
         return;
       }
