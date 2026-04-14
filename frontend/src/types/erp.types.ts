@@ -28,12 +28,67 @@ export interface SiteFormValues {
   description: string;
 }
 
-export type MaterialUnit = "bag" | "kg" | "ton" | "meter" | "litre" | "piece";
+export type PaymentMode =
+  | "cash"
+  | "check"
+  | "bank_transfer"
+  | "upi"
+  | "other";
+
+export type MaterialUnit =
+  | "bag"
+  | "kg"
+  | "ton"
+  | "meter"
+  | "litre"
+  | "piece"
+  | "other";
+
+export interface MaterialVariant {
+  id: number;
+  material: number;
+  material_name: string;
+  material_unit: string;
+  label: string;
+  size_mm: number | null;
+  unit_weight: number | null;
+  is_active: boolean;
+  current_price: number | null;
+  current_price_date: string | null;
+}
+
+export interface MaterialVariantFormValues {
+  is_active: boolean;
+  label: string;
+  material: number;
+  size_mm: number;
+  unit_weight: number;
+}
+
+export interface MaterialVariantPrice {
+  id: number;
+  variant: number;
+  variant_label: string;
+  variant_size_mm: number | null;
+  material_id: number;
+  material_name: string;
+  date: string;
+  price_per_unit: number;
+  notes: string | null;
+}
+
+export interface MaterialVariantPriceFormValues {
+  date: string;
+  notes: string;
+  price_per_unit: number;
+  variant: number;
+}
 
 export interface Material {
   id: number;
   name: string;
   unit: MaterialUnit;
+  variants?: MaterialVariant[];
 }
 
 export interface MaterialFormValues {
@@ -77,9 +132,11 @@ export interface Labour {
   name: string;
   phone: string;
   per_day_wage: number;
+  labour_type?: string | null;
 }
 
 export interface LabourFormValues {
+  labour_type?: string;
   name: string;
   phone: string;
   per_day_wage: number;
@@ -103,6 +160,10 @@ export interface Receipt {
   material: number;
   material_name: string;
   material_unit: string;
+  material_variant?: number | null;
+  material_variant_label?: string | null;
+  material_variant_size_mm?: number | null;
+  material_variant_unit_weight?: number | null;
   quantity_received: number;
   quantity_used: number;
   cost_per_unit: number;
@@ -120,6 +181,8 @@ export interface MaterialUsage {
   receipt: number;
   receipt_date: string;
   receipt_invoice_number: string | null;
+  receipt_material_variant_label?: string | null;
+  receipt_material_variant_size_mm?: number | null;
   site: number;
   site_name: string;
   material: number;
@@ -132,6 +195,7 @@ export interface MaterialUsage {
 export interface ReceiptFormValues {
   site: number;
   material: number;
+  material_variant?: number;
   quantity_received: number;
   quantity_used: number;
   cost_per_unit: number;
@@ -153,6 +217,10 @@ export interface Purchase {
   description: string | null;
   total_amount: number;
   paid_amount: number;
+  payment_mode?: PaymentMode;
+  sender_name?: string | null;
+  receiver_name?: string | null;
+  cheque_number?: string | null;
   date: string;
   pending_amount: number;
 }
@@ -165,6 +233,10 @@ export interface PurchaseFormValues {
   description: string;
   total_amount: number;
   paid_amount: number;
+  payment_mode: PaymentMode;
+  sender_name: string;
+  receiver_name: string;
+  cheque_number: string;
   date: string;
 }
 
@@ -181,6 +253,10 @@ export interface VendorPayment {
   site_name: string;
   amount: number;
   date: string;
+  payment_mode?: PaymentMode;
+  sender_name?: string | null;
+  receiver_name?: string | null;
+  cheque_number?: string | null;
   reference_number: string | null;
   remarks: string | null;
 }
@@ -189,6 +265,10 @@ export interface VendorPaymentFormValues {
   purchase: number;
   amount: number;
   date: string;
+  payment_mode: PaymentMode;
+  sender_name: string;
+  receiver_name: string;
+  cheque_number: string;
   reference_number: string;
   remarks: string;
 }
@@ -244,6 +324,8 @@ export interface Receivable {
   party: number;
   site: number;
   amount: number;
+  phase_name?: string | null;
+  description?: string | null;
   received: boolean;
   date: string;
   current_received_amount?: number;
@@ -255,8 +337,14 @@ export interface ReceivableFormValues {
   party: number;
   site: number;
   amount: number;
+  phase_name: string;
+  description: string;
   date: string;
   received_amount?: number;
+  receipt_payment_mode?: PaymentMode;
+  receipt_sender_name?: string;
+  receipt_receiver_name?: string;
+  receipt_cheque_number?: string;
 }
 
 export interface DashboardStats {
@@ -328,6 +416,49 @@ export interface SiteDashboardData {
   finance_summary: SiteDashboardFinanceSummary[];
 }
 
+export interface CasualLabourEntry {
+  id: number;
+  labour_name: string;
+  labour_type: string;
+  site: number;
+  site_name: string;
+  date: string;
+  paid_amount: number;
+}
+
+export interface CasualLabourEntryFormValues {
+  labour_name: string;
+  labour_type: string;
+  site: number;
+  date: string;
+  paid_amount: number;
+}
+
+export interface MiscellaneousExpense {
+  id: number;
+  title: string;
+  site: number | null;
+  site_name: string | null;
+  labour: number | null;
+  labour_name: string | null;
+  paid_to_name: string | null;
+  amount: number;
+  date: string;
+  payment_mode: PaymentMode;
+  notes: string | null;
+}
+
+export interface MiscellaneousExpenseFormValues {
+  title: string;
+  site: number;
+  labour: number;
+  paid_to_name: string;
+  amount: number;
+  date: string;
+  payment_mode: PaymentMode;
+  notes: string;
+}
+
 export type ReportModuleKey =
   | "dashboard"
   | "materials"
@@ -356,6 +487,9 @@ export interface MaterialWiseReportRow {
   material_id: number;
   material_name: string;
   material_unit?: string;
+  material_variant_id?: number | null;
+  material_variant_label?: string | null;
+  material_variant_size_mm?: number | null;
   cost_per_unit?: number;
   transport_cost?: number;
   total_quantity_received: number;
@@ -497,6 +631,117 @@ export interface PartyLedger {
 export interface ReceivePaymentFormValues {
   amount: number;
   date: string;
+  payment_mode: PaymentMode;
+  sender_name: string;
+  receiver_name: string;
+  cheque_number: string;
   reference_number: string;
   notes: string;
+}
+
+export interface PersonalAdminDashboardSummary {
+  total_sites: number;
+  currently_working_sites: number;
+  receivable_from_parties: number;
+  payment_received: number;
+  payment_pending: number;
+  vendor_payment_paid: number;
+  vendor_payment_pending: number;
+  employee_payment_paid: number;
+  employee_payment_pending: number;
+  miscellaneous_expense_paid: number;
+  cash_receipts: number;
+  check_receipts: number;
+  bank_transfer_receipts: number;
+  upi_receipts: number;
+  other_receipts: number;
+  cash_receipts_on_selected_date: number;
+  check_receipts_on_selected_date: number;
+  receipt_payment_mode_breakdown: Record<PaymentMode, number>;
+  total_cash_payment: number;
+  total_outgoing_payment: number;
+  cash_payment_on_selected_date: number;
+  outgoing_payment_on_selected_date: number;
+  employee_payment_on_selected_date: number;
+  miscellaneous_expense_on_selected_date: number;
+}
+
+export interface PersonalAdminSiteOverview {
+  site_id: number;
+  site_name: string;
+  location: string;
+  is_currently_working: boolean;
+  present_workers_on_selected_date: number;
+  total_receivable: number;
+  received_amount: number;
+  pending_amount: number;
+  cash_received_amount: number;
+  check_received_amount: number;
+  bank_transfer_received_amount: number;
+  upi_received_amount: number;
+  other_received_amount: number;
+  vendor_paid_amount: number;
+  employee_paid_amount: number;
+  employee_pending_amount: number;
+  miscellaneous_expense_amount: number;
+}
+
+export interface PersonalAdminDashboardData {
+  user_id: number;
+  user_name: string;
+  title: string;
+  selected_date: string;
+  summary: PersonalAdminDashboardSummary;
+  site_overview: PersonalAdminSiteOverview[];
+  party_receivables: Array<{
+    party_id: number;
+    party_name: string;
+    total_receivable: number;
+    received_amount: number;
+    pending_amount: number;
+  }>;
+  employee_payments_on_selected_date: Array<Record<string, unknown>>;
+  miscellaneous_expenses_on_selected_date: Array<Record<string, unknown>>;
+  recent_receipts: Array<Record<string, unknown>>;
+  recent_vendor_payments: Array<Record<string, unknown>>;
+  recent_employee_payments: Array<Record<string, unknown>>;
+  recent_miscellaneous_expenses: Array<Record<string, unknown>>;
+}
+
+export interface OwnerDashboardData {
+  user_id: number;
+  user_name: string;
+  title: string;
+  site_activity_date: string;
+  summary: {
+    total_sites: number;
+    active_sites: number;
+    inactive_sites: number;
+    payment_pending_from_clients: number;
+    payment_pending_to_vendors: number;
+    payment_pending_to_employees: number;
+    total_cash_received: number;
+    cash_paid_to_vendors: number;
+    cash_paid_to_employees: number;
+    cash_paid_to_casual_labour: number;
+    cash_paid_for_miscellaneous_expenses: number;
+    total_cash_outflow: number;
+    cash_available: number;
+    has_negative_cash_balance: boolean;
+  };
+  notifications: Array<{
+    type: string;
+    severity: string;
+    message: string;
+    cash_available: number;
+  }>;
+  site_overview: Array<{
+    site_id: number;
+    site_name: string;
+    location: string;
+    is_active: boolean;
+    payment_pending_from_clients: number;
+    payment_pending_to_vendors: number;
+    payment_pending_to_employees: number;
+  }>;
 }

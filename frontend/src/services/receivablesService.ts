@@ -17,7 +17,12 @@ const baseService = createCrudService<Receivable, ReceivablePayload>(
 function normalizePayload(payload: ReceivableFormValues): ReceivablePayload {
   return {
     ...payload,
+    description: payload.description.trim(),
+    phase_name: payload.phase_name.trim(),
     received: false,
+    receipt_cheque_number: payload.receipt_cheque_number?.trim() || undefined,
+    receipt_receiver_name: payload.receipt_receiver_name?.trim() || undefined,
+    receipt_sender_name: payload.receipt_sender_name?.trim() || undefined,
   };
 }
 
@@ -29,7 +34,12 @@ export const receivablesService = {
   async receivePayment(id: number, payload: ReceivePaymentFormValues) {
     const response = await apiClient.post<Receivable>(
       `/finance/transactions/${id}/receive-payment/`,
-      payload,
+      {
+        ...payload,
+        cheque_number: payload.cheque_number.trim() || undefined,
+        receiver_name: payload.receiver_name.trim() || undefined,
+        sender_name: payload.sender_name.trim() || undefined,
+      },
     );
 
     return response.data;

@@ -3,6 +3,10 @@ import { createCrudService } from "./crudService";
 import type {
   Material,
   MaterialFormValues,
+  MaterialVariant,
+  MaterialVariantFormValues,
+  MaterialVariantPrice,
+  MaterialVariantPriceFormValues,
   MaterialUsage,
   PaginatedResponse,
 } from "../types/erp.types";
@@ -11,6 +15,16 @@ import { ensurePaginatedResponse } from "../utils/pagination";
 export const materialsService = createCrudService<Material, MaterialFormValues>(
   "/materials/",
 );
+
+export const materialVariantsService = createCrudService<
+  MaterialVariant,
+  MaterialVariantFormValues
+>("/materials/variants/");
+
+export const materialVariantPricesService = createCrudService<
+  MaterialVariantPrice,
+  MaterialVariantPriceFormValues
+>("/materials/variant-prices/");
 
 interface MaterialUsageListParams {
   date?: string;

@@ -12,7 +12,7 @@ const materialSchema = z.object({
     .trim()
     .min(2, "Material name must be at least 2 characters.")
     .max(60, "Material name must be 60 characters or fewer."),
-  unit: z.enum(["bag", "kg", "ton", "meter", "litre", "piece"]),
+  unit: z.enum(["bag", "kg", "ton", "meter", "litre", "piece", "other"]),
 });
 
 export function MaterialsPage() {
@@ -27,6 +27,12 @@ export function MaterialsPage() {
       columns={[
         { key: "name", header: "Material", accessor: (row) => row.name, sortValue: (row) => row.name },
         { key: "unit", header: "Unit", accessor: (row) => row.unit, sortValue: (row) => row.unit },
+        {
+          key: "variants",
+          header: "Variants",
+          accessor: (row) => row.variants?.length ?? 0,
+          sortValue: (row) => row.variants?.length ?? 0,
+        },
       ]}
       createLabel="Add Material"
       defaultValues={{ name: "", unit: "bag" }}
@@ -54,6 +60,7 @@ export function MaterialsPage() {
             { label: "Meter", value: "meter" },
             { label: "Litre", value: "litre" },
             { label: "Piece", value: "piece" },
+            { label: "Other", value: "other" },
           ],
           required: true,
         },
@@ -68,6 +75,7 @@ export function MaterialsPage() {
         { label: "Record ID", value: (row) => row.id, highlight: true },
         { label: "Material Name", value: (row) => row.name, highlight: true },
         { label: "Unit", value: (row) => row.unit },
+        { label: "Variant Count", value: (row) => row.variants?.length ?? 0 },
       ]}
     />
   );

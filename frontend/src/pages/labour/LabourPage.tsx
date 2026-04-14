@@ -7,6 +7,11 @@ import type { Labour, LabourFormValues } from "../../types/erp.types";
 import { getCrudPermissions } from "../../utils/permissions";
 
 const labourSchema = z.object({
+  labour_type: z
+    .string()
+    .max(100, "Labour type must be 100 characters or fewer.")
+    .optional()
+    .or(z.literal("")),
   name: z
     .string()
     .trim()
@@ -30,11 +35,17 @@ export function LabourPage() {
       canEdit={permissions.canEdit}
       columns={[
         { key: "name", header: "Labour", accessor: (row) => row.name, sortValue: (row) => row.name },
+        {
+          key: "labour_type",
+          header: "Type",
+          accessor: (row) => row.labour_type || "-",
+          sortValue: (row) => row.labour_type || "",
+        },
         { key: "phone", header: "Phone", accessor: (row) => row.phone, sortValue: (row) => row.phone },
         { key: "wage", header: "Per Day Wage", accessor: (row) => row.per_day_wage, sortValue: (row) => row.per_day_wage },
       ]}
       createLabel="Add Labour"
-      defaultValues={{ name: "", per_day_wage: 0, phone: "" }}
+      defaultValues={{ labour_type: "", name: "", per_day_wage: 0, phone: "" }}
       description="Track workers, contact details, and their daily wage values."
       emptyDescription="No labour records are available."
       emptyTitle="No labour found"
@@ -47,6 +58,13 @@ export function LabourPage() {
           name: "name",
           placeholder: "Worker name",
           required: true,
+        },
+        {
+          kind: "text",
+          label: "Labour Type",
+          maxLength: 100,
+          name: "labour_type",
+          placeholder: "Mason, Helper, Carpenter...",
         },
         {
           kind: "text",
@@ -70,6 +88,7 @@ export function LabourPage() {
         },
       ]}
       getEditValues={(entity) => ({
+        labour_type: entity.labour_type || "",
         name: entity.name,
         per_day_wage: entity.per_day_wage,
         phone: entity.phone,
@@ -82,6 +101,7 @@ export function LabourPage() {
       viewFields={[
         { label: "Record ID", value: (row) => row.id, highlight: true },
         { label: "Labour Name", value: (row) => row.name, highlight: true },
+        { label: "Labour Type", value: (row) => row.labour_type },
         { label: "Phone", value: (row) => row.phone },
         { label: "Per Day Wage", value: (row) => row.per_day_wage },
       ]}

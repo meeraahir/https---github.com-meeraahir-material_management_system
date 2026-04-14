@@ -27,6 +27,16 @@ const MaterialsPage = lazy(() =>
     default: module.MaterialsPage,
   })),
 );
+const MaterialVariantsPage = lazy(() =>
+  import("../pages/materialVariants/MaterialVariantsPage").then((module) => ({
+    default: module.MaterialVariantsPage,
+  })),
+);
+const MaterialVariantPricesPage = lazy(() =>
+  import("../pages/materialVariantPrices/MaterialVariantPricesPage").then((module) => ({
+    default: module.MaterialVariantPricesPage,
+  })),
+);
 const MaterialUsagePage = lazy(() =>
   import("../pages/materialUsage/MaterialUsagePage").then((module) => ({
     default: module.MaterialUsagePage,
@@ -42,6 +52,11 @@ const VendorLedgerPage = lazy(() =>
 );
 const LabourPage = lazy(() =>
   import("../pages/labour/LabourPage").then((module) => ({ default: module.LabourPage })),
+);
+const CasualLabourPage = lazy(() =>
+  import("../pages/casualLabour/CasualLabourPage").then((module) => ({
+    default: module.CasualLabourPage,
+  })),
 );
 const LabourLedgerPage = lazy(() =>
   import("../pages/labourLedger/LabourLedgerPage").then((module) => ({
@@ -96,6 +111,11 @@ const PaymentsPage = lazy(() =>
 const ReceivablesPage = lazy(() =>
   import("../pages/receivables/ReceivablesPage").then((module) => ({
     default: module.ReceivablesPage,
+  })),
+);
+const MiscellaneousExpensesPage = lazy(() =>
+  import("../pages/miscellaneousExpenses/MiscellaneousExpensesPage").then((module) => ({
+    default: module.MiscellaneousExpensesPage,
   })),
 );
 const ReceivablesSiteReportPage = lazy(() =>
@@ -160,11 +180,14 @@ export function AppRoutes() {
             <Route path="/sites/:siteId/dashboard/parties/:partyId" element={<SitePartyDetailPage />} />
             <Route path="/sites/:siteId/dashboard/labours/:labourId" element={<SiteLabourDetailPage />} />
             <Route path="/materials" element={<MaterialsPage />} />
+            <Route path="/material-variants" element={<MaterialVariantsPage />} />
+            <Route path="/material-variant-prices" element={<MaterialVariantPricesPage />} />
             <Route path="/material-usage" element={<MaterialUsagePage />} />
             <Route path="/vendors" element={<VendorsPage />} />
             <Route path="/vendor-ledger" element={<VendorLedgerPage />} />
             <Route path="/vendor-dues" element={<VendorPendingReportPage />} />
             <Route path="/labour" element={<LabourPage />} />
+            <Route path="/casual-labour" element={<CasualLabourPage />} />
             <Route path="/labour-ledger" element={<LabourLedgerPage />} />
             <Route path="/monthly-attendance" element={<LabourAttendanceReportPage />} />
             <Route path="/parties" element={<PartiesPage />} />
@@ -175,6 +198,7 @@ export function AppRoutes() {
             <Route path="/attendance" element={<AttendancePage />} />
             <Route path="/payments" element={<PaymentsPage />} />
             <Route path="/receivables" element={<ReceivablesPage />} />
+            <Route path="/miscellaneous-expenses" element={<MiscellaneousExpensesPage />} />
             <Route path="/site-receivables" element={<ReceivablesSiteReportPage />} />
             <Route path="/reports" element={<ReportsPage />} />
           </Route>
