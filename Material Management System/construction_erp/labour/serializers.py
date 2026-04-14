@@ -232,6 +232,11 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
     def get_site_name(self, obj):
         return obj.site.name if obj.site else None
 
+    def _raise_as_drf_validation_error(self, exc: ValidationError):
+        if hasattr(exc, 'message_dict'):
+            raise serializers.ValidationError(exc.message_dict)
+        raise serializers.ValidationError({'non_field_errors': exc.messages})
+
     def _sync_payment_history(self, wage_entry, desired_paid_amount, payment_date):
         current_paid_amount = wage_entry.payments_total()
 
@@ -299,7 +304,10 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
                 wage_entry.total_amount = total_amount
                 wage_entry.date = validated_data.get('date', wage_entry.date)
                 wage_entry.notes = validated_data.get('notes', wage_entry.notes)
-                wage_entry.full_clean()
+                try:
+                    wage_entry.full_clean()
+                except ValidationError as exc:
+                    self._raise_as_drf_validation_error(exc)
                 wage_entry.save()
 
                 if payment_amount > 0:
@@ -316,7 +324,10 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
                 return wage_entry
 
             wage_entry = LabourPayment(**validated_data)
-            wage_entry.full_clean()
+            try:
+                wage_entry.full_clean()
+            except ValidationError as exc:
+                self._raise_as_drf_validation_error(exc)
             wage_entry.save()
             self._sync_payment_history(wage_entry, payment_amount, validated_data.get('date'))
             return wage_entry
@@ -328,7 +339,10 @@ class LabourPaymentSerializer(serializers.ModelSerializer):
         with transaction.atomic():
             for attr, value in validated_data.items():
                 setattr(instance, attr, value)
-            instance.full_clean()
+            try:
+                instance.full_clean()
+            except ValidationError as exc:
+                self._raise_as_drf_validation_error(exc)
             instance.save()
             self._sync_payment_history(instance, desired_paid_amount, validated_data.get('date', instance.date))
             return instance
