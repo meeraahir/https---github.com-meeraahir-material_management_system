@@ -79,7 +79,6 @@ export function ReceivePaymentModal({
     handleSubmit,
     register,
     reset,
-    watch,
   } = useForm<ReceivePaymentFormValues>({
     defaultValues: {
       amount: pendingAmount,
@@ -93,8 +92,6 @@ export function ReceivePaymentModal({
     mode: "onChange",
     resolver: createZodResolver(receivePaymentSchema),
   });
-
-  const paymentMode = watch("payment_mode");
 
   useEffect(() => {
     if (!open) {
