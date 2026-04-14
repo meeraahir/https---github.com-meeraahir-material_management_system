@@ -1446,3 +1446,891 @@ Negative cash example:
 - For export endpoints, handle response as `blob`.
 - For 401 responses, refresh token and retry once.
 - For finance and labour modules, prefer the dedicated action endpoints and computed fields instead of reproducing totals on the frontend.
+
+## Backend Coverage Addendum
+
+This section adds backend APIs currently available but not listed above. Existing content above is unchanged.
+
+## Additional Common Responses
+
+### Detail, update, and delete behavior
+
+- `GET /resource/{id}/` returns the same serializer object used by list/create for that resource.
+- `PUT /resource/{id}/` and `PATCH /resource/{id}/` return the updated object.
+- `DELETE /resource/{id}/` returns `204 No Content`.
+
+### Common error detail response
+
+```json
+{
+  "detail": "You do not have permission to perform this action."
+}
+```
+
+## Additional Site APIs
+
+### Get site detail
+
+`GET /sites/{site_id}/`
+
+Response:
+
+```json
+{
+  "id": 1,
+  "name": "Project A",
+  "location": "Mumbai",
+  "description": "Residential tower"
+}
+```
+
+### Update site
+
+- `PUT /sites/{site_id}/`
+- `PATCH /sites/{site_id}/`
+
+Response shape is the same as `GET /sites/{site_id}/`.
+
+### Delete site
+
+`DELETE /sites/{site_id}/`
+
+Response:
+
+```text
+204 No Content
+```
+
+### Site dashboard chart
+
+`GET /sites/{site_id}/dashboard/chart/`
+
+Response shape is the same as `GET /sites/{site_id}/dashboard/`.
+
+## Additional Materials APIs
+
+### Additional material unit value
+
+Backend also allows:
+
+- `other`
+
+### Get, update, and delete material
+
+- `GET /materials/{material_id}/`
+- `PUT /materials/{material_id}/`
+- `PATCH /materials/{material_id}/`
+- `DELETE /materials/{material_id}/`
+
+Detail/update response:
+
+```json
+{
+  "id": 1,
+  "name": "Cement",
+  "unit": "bag",
+  "variants": []
+}
+```
+
+### Material variants
+
+#### List variants
+
+`GET /materials/variants/`
+
+Response:
+
+```json
+{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "material": 1,
+      "material_name": "Steel",
+      "material_unit": "kg",
+      "label": "8mm",
+      "size_mm": 8.0,
+      "unit_weight": 0.395,
+      "is_active": true,
+      "current_price": 72.5,
+      "current_price_date": "2026-04-09"
+    }
+  ]
+}
+```
+
+#### Create variant
+
+`POST /materials/variants/`
+
+Request:
+
+```json
+{
+  "material": 1,
+  "label": "8mm",
+  "size_mm": 8,
+  "unit_weight": 0.395,
+  "is_active": true
+}
+```
+
+Response shape is the same as the variant object above.
+
+#### Variant detail, update, delete
+
+- `GET /materials/variants/{variant_id}/`
+- `PUT /materials/variants/{variant_id}/`
+- `PATCH /materials/variants/{variant_id}/`
+- `DELETE /materials/variants/{variant_id}/`
+
+### Material variant daily prices
+
+#### List variant prices
+
+`GET /materials/variant-prices/`
+
+Common filters:
+
+- `variant=<variant_id>`
+- `date=YYYY-MM-DD`
+- `variant__material=<material_id>`
+
+Response:
+
+```json
+{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "variant": 1,
+      "variant_label": "8mm",
+      "variant_size_mm": 8.0,
+      "material_id": 1,
+      "material_name": "Steel",
+      "date": "2026-04-09",
+      "price_per_unit": 72.5,
+      "notes": "Market rate"
+    }
+  ]
+}
+```
+
+#### Create variant price
+
+`POST /materials/variant-prices/`
+
+Request:
+
+```json
+{
+  "variant": 1,
+  "date": "2026-04-09",
+  "price_per_unit": 72.5,
+  "notes": "Market rate"
+}
+```
+
+Response shape is the same as the variant price object above.
+
+#### Variant price detail, update, delete
+
+- `GET /materials/variant-prices/{price_id}/`
+- `PUT /materials/variant-prices/{price_id}/`
+- `PATCH /materials/variant-prices/{price_id}/`
+- `DELETE /materials/variant-prices/{price_id}/`
+
+### Material stock detail, update, and delete
+
+- `GET /materials/stocks/{stock_id}/`
+- `PUT /materials/stocks/{stock_id}/`
+- `PATCH /materials/stocks/{stock_id}/`
+- `DELETE /materials/stocks/{stock_id}/`
+
+Actual stock serializer fields also include variant metadata and formatted date:
+
+```json
+{
+  "id": 1,
+  "site": 1,
+  "site_name": "Project A",
+  "material": 1,
+  "material_name": "Steel",
+  "material_unit": "kg",
+  "material_variant": 1,
+  "material_variant_label": "8mm",
+  "material_variant_size_mm": 8.0,
+  "material_variant_unit_weight": 0.395,
+  "quantity_received": 100.0,
+  "quantity_used": 20.0,
+  "cost_per_unit": 72.5,
+  "transport_cost": 500.0,
+  "invoice_number": "INV-1002",
+  "notes": "Steel delivery",
+  "date": "2026-04-09",
+  "date_display": "9 April 2026",
+  "total_cost": 7750.0,
+  "remaining_stock": 80.0
+}
+```
+
+### Create material usage
+
+`POST /materials/usages/`
+
+Request:
+
+```json
+{
+  "receipt": 1,
+  "site": 1,
+  "material": 1,
+  "quantity": 20,
+  "date": "2026-04-10",
+  "notes": "Column work"
+}
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "receipt": 1,
+  "receipt_date": "2026-04-09",
+  "receipt_invoice_number": "INV-1002",
+  "receipt_material_variant_label": "8mm",
+  "receipt_material_variant_size_mm": 8.0,
+  "site": 1,
+  "site_name": "Project A",
+  "material": 1,
+  "material_name": "Steel",
+  "quantity": 20.0,
+  "date": "2026-04-10",
+  "notes": "Column work"
+}
+```
+
+### Material usage detail, update, delete
+
+- `GET /materials/usages/{usage_id}/`
+- `PUT /materials/usages/{usage_id}/`
+- `PATCH /materials/usages/{usage_id}/`
+- `DELETE /materials/usages/{usage_id}/`
+
+### Actual material-wise report item shape
+
+Backend report rows also include variant and cost breakdown fields:
+
+```json
+[
+  {
+    "material_id": 1,
+    "material_name": "Steel",
+    "material_unit": "kg",
+    "material_variant_id": 1,
+    "material_variant_label": "8mm",
+    "material_variant_size_mm": 8.0,
+    "cost_per_unit": 72.5,
+    "transport_cost": 500.0,
+    "total_quantity_received": 100.0,
+    "total_quantity_used": 20.0,
+    "remaining_stock": 80.0,
+    "total_cost": 7750.0
+  }
+]
+```
+
+### Site-wise material report response
+
+`GET /materials/reports/site-wise/`
+
+Response:
+
+```json
+[
+  {
+    "site_id": 1,
+    "site_name": "Project A",
+    "total_quantity_received": 100.0,
+    "total_quantity_used": 20.0,
+    "remaining_stock": 80.0,
+    "total_cost": 7750.0
+  }
+]
+```
+
+### Site-specific material report response
+
+`GET /materials/reports/site/{site_id}/`
+
+Response shape is the same as the material-wise report item shape above.
+
+## Additional Vendors APIs
+
+### Vendor transaction payment modes
+
+Allowed values:
+
+- `cash`
+- `check`
+- `bank_transfer`
+- `upi`
+- `other`
+
+### Get, update, and delete vendor
+
+- `GET /vendors/{vendor_id}/`
+- `PUT /vendors/{vendor_id}/`
+- `PATCH /vendors/{vendor_id}/`
+- `DELETE /vendors/{vendor_id}/`
+
+Response shape is the same as the vendor object used in `GET /vendors/`.
+
+### Vendor transaction detail, update, delete
+
+- `GET /vendors/transactions/{transaction_id}/`
+- `PUT /vendors/transactions/{transaction_id}/`
+- `PATCH /vendors/transactions/{transaction_id}/`
+- `DELETE /vendors/transactions/{transaction_id}/`
+
+Response shape is the same as the transaction object used in `GET /vendors/transactions/`.
+
+### Vendor payments
+
+#### List vendor payments
+
+`GET /vendors/payments/`
+
+Common filters:
+
+- `purchase=<transaction_id>`
+- `vendor=<vendor_id>`
+- `site=<site_id>`
+- `date=YYYY-MM-DD`
+- `payment_mode=cash|check|bank_transfer|upi|other`
+
+Response:
+
+```json
+{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "purchase": 1,
+      "purchase_invoice_number": "PUR-001",
+      "purchase_total_amount": 25000.0,
+      "purchase_pending_amount": 15000.0,
+      "pending_after_payment": 15000.0,
+      "vendor": 1,
+      "vendor_name": "ABC Suppliers",
+      "site": 1,
+      "site_name": "Project A",
+      "amount": 10000.0,
+      "date": "2026-04-09",
+      "payment_mode": "cash",
+      "sender_name": "Admin User",
+      "receiver_name": "ABC Suppliers",
+      "cheque_number": null,
+      "reference_number": "PAY-1001",
+      "remarks": "Advance payment"
+    }
+  ]
+}
+```
+
+#### Create vendor payment
+
+`POST /vendors/payments/`
+
+Request:
+
+```json
+{
+  "purchase": 1,
+  "amount": 10000,
+  "date": "2026-04-09",
+  "payment_mode": "cash",
+  "sender_name": "Admin User",
+  "receiver_name": "ABC Suppliers",
+  "reference_number": "PAY-1001",
+  "remarks": "Advance payment"
+}
+```
+
+Response shape is the same as the vendor payment object above.
+
+#### Vendor payment detail, update, delete
+
+- `GET /vendors/payments/{payment_id}/`
+- `PUT /vendors/payments/{payment_id}/`
+- `PATCH /vendors/payments/{payment_id}/`
+- `DELETE /vendors/payments/{payment_id}/`
+
+### Vendor site-wise report response
+
+`GET /vendors/reports/site-wise/`
+
+Response:
+
+```json
+[
+  {
+    "site_id": 1,
+    "site_name": "Project A",
+    "total_amount": 50000.0,
+    "paid_amount": 20000.0,
+    "pending_amount": 30000.0
+  }
+]
+```
+
+### Vendor site-specific report response
+
+`GET /vendors/reports/site/{site_id}/`
+
+Response shape is the same as the summary report item:
+
+```json
+[
+  {
+    "vendor_id": 1,
+    "vendor_name": "ABC Suppliers",
+    "total_amount": 50000.0,
+    "paid_amount": 20000.0,
+    "pending_amount": 30000.0
+  }
+]
+```
+
+## Additional Labour APIs
+
+### Get, update, and delete labour
+
+- `GET /labour/{labour_id}/`
+- `PUT /labour/{labour_id}/`
+- `PATCH /labour/{labour_id}/`
+- `DELETE /labour/{labour_id}/`
+
+Response:
+
+```json
+{
+  "id": 1,
+  "name": "Raj Kumar",
+  "phone": "9876543210",
+  "per_day_wage": 500.0,
+  "labour_type": "Mason"
+}
+```
+
+### Attendance detail, update, delete
+
+- `GET /labour/attendance/{attendance_id}/`
+- `PUT /labour/attendance/{attendance_id}/`
+- `PATCH /labour/attendance/{attendance_id}/`
+- `DELETE /labour/attendance/{attendance_id}/`
+
+Response shape is the same as the attendance object used in `GET /labour/attendance/`.
+
+### Casual labour entries
+
+#### List casual labour entries
+
+`GET /labour/casual-labour/`
+
+Filters:
+
+- `site=<site_id>`
+- `date=YYYY-MM-DD`
+- `labour_type=<type>`
+
+Response:
+
+```json
+{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "labour_name": "Ramesh",
+      "labour_type": "Helper",
+      "site": 1,
+      "site_name": "Project A",
+      "date": "2026-04-09",
+      "paid_amount": 900.0
+    }
+  ]
+}
+```
+
+#### Create casual labour entry
+
+`POST /labour/casual-labour/`
+
+Request:
+
+```json
+{
+  "labour_name": "Ramesh",
+  "labour_type": "Helper",
+  "site": 1,
+  "date": "2026-04-09",
+  "paid_amount": 900
+}
+```
+
+Response shape is the same as the casual labour object above.
+
+#### Casual labour detail, update, delete
+
+- `GET /labour/casual-labour/{entry_id}/`
+- `PUT /labour/casual-labour/{entry_id}/`
+- `PATCH /labour/casual-labour/{entry_id}/`
+- `DELETE /labour/casual-labour/{entry_id}/`
+
+### Labour payment detail, update, delete
+
+- `GET /labour/payments/{payment_id}/`
+- `PUT /labour/payments/{payment_id}/`
+- `PATCH /labour/payments/{payment_id}/`
+- `DELETE /labour/payments/{payment_id}/`
+
+Response shape is the same as the labour payment object used in `GET /labour/payments/`.
+
+### Labour site-wise report response
+
+`GET /labour/reports/site-wise/`
+
+Response:
+
+```json
+[
+  {
+    "site_id": 1,
+    "site_name": "Project A",
+    "present_count": 5,
+    "total_days": 6,
+    "absent_count": 1,
+    "total_wage": 2500.0,
+    "paid_amount": 1000.0,
+    "pending_amount": 1500.0
+  }
+]
+```
+
+### Labour site-specific report response
+
+`GET /labour/reports/site/{site_id}/`
+
+Response:
+
+```json
+[
+  {
+    "labour_id": 1,
+    "labour_name": "Raj Kumar",
+    "present_count": 5,
+    "total_days": 6,
+    "absent_count": 1,
+    "total_wage": 2500.0,
+    "paid_amount": 1000.0,
+    "pending_amount": 1500.0
+  }
+]
+```
+
+## Additional Finance APIs
+
+### Finance payment modes
+
+Allowed values:
+
+- `cash`
+- `check`
+- `bank_transfer`
+- `upi`
+- `other`
+
+### Get, update, and delete party
+
+- `GET /finance/{party_id}/`
+- `PUT /finance/{party_id}/`
+- `PATCH /finance/{party_id}/`
+- `DELETE /finance/{party_id}/`
+
+Response:
+
+```json
+{
+  "id": 1,
+  "name": "Client ABC",
+  "contact": "9876543210"
+}
+```
+
+### Finance transaction detail, update, delete
+
+- `GET /finance/transactions/{transaction_id}/`
+- `PUT /finance/transactions/{transaction_id}/`
+- `PATCH /finance/transactions/{transaction_id}/`
+- `DELETE /finance/transactions/{transaction_id}/`
+
+Response shape is the same as the transaction object used in `GET /finance/transactions/`.
+
+### Receive payment additional supported fields
+
+`POST /finance/transactions/{transaction_id}/receive-payment/`
+
+Backend also supports:
+
+- `payment_mode`
+- `sender_name`
+- `receiver_name`
+- `cheque_number`
+
+Extended request example:
+
+```json
+{
+  "amount": 25000,
+  "date": "2026-04-10",
+  "payment_mode": "check",
+  "sender_name": "Client ABC",
+  "receiver_name": "Admin User",
+  "cheque_number": "CHK-0091",
+  "reference_number": "RCPT-1001",
+  "notes": "Part payment"
+}
+```
+
+### Miscellaneous expenses
+
+#### List miscellaneous expenses
+
+`GET /finance/miscellaneous-expenses/`
+
+Filters:
+
+- `site=<site_id>`
+- `labour=<labour_id>`
+- `date=YYYY-MM-DD`
+- `payment_mode=cash|check|bank_transfer|upi|other`
+
+Response:
+
+```json
+{
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "title": "Diesel",
+      "site": 1,
+      "site_name": "Project A",
+      "labour": null,
+      "labour_name": null,
+      "paid_to_name": "Fuel Station",
+      "amount": 3500.0,
+      "date": "2026-04-09",
+      "payment_mode": "cash",
+      "notes": "Generator diesel"
+    }
+  ]
+}
+```
+
+#### Create miscellaneous expense
+
+`POST /finance/miscellaneous-expenses/`
+
+Request:
+
+```json
+{
+  "title": "Diesel",
+  "site": 1,
+  "labour": null,
+  "paid_to_name": "Fuel Station",
+  "amount": 3500,
+  "date": "2026-04-09",
+  "payment_mode": "cash",
+  "notes": "Generator diesel"
+}
+```
+
+Response shape is the same as the miscellaneous expense object above.
+
+#### Miscellaneous expense detail, update, delete
+
+- `GET /finance/miscellaneous-expenses/{expense_id}/`
+- `PUT /finance/miscellaneous-expenses/{expense_id}/`
+- `PATCH /finance/miscellaneous-expenses/{expense_id}/`
+- `DELETE /finance/miscellaneous-expenses/{expense_id}/`
+
+### Finance site-wise report response
+
+`GET /finance/reports/site-wise/`
+
+Response:
+
+```json
+[
+  {
+    "site_id": 1,
+    "site_name": "Project A",
+    "total_amount": 50000.0,
+    "received_amount": 20000.0,
+    "pending_amount": 30000.0
+  }
+]
+```
+
+### Finance site-specific report response
+
+`GET /finance/reports/site/{site_id}/`
+
+Response shape is the same as the receivables report item:
+
+```json
+[
+  {
+    "party_id": 1,
+    "party_name": "Client ABC",
+    "total_amount": 50000.0,
+    "received_amount": 20000.0,
+    "pending_amount": 30000.0
+  }
+]
+```
+
+## Additional Core Dashboard APIs
+
+### Personal admin dashboard
+
+`GET /core/dashboard/personal-admin/`
+
+Supports optional:
+
+- `date=YYYY-MM-DD`
+
+Response:
+
+```json
+{
+  "user_id": 1,
+  "user_name": "Admin User",
+  "title": "Personal Admin Dashboard",
+  "selected_date": "2026-04-14",
+  "summary": {
+    "total_sites": 2,
+    "currently_working_sites": 1,
+    "receivable_from_parties": 50000.0,
+    "payment_received": 20000.0,
+    "payment_pending": 30000.0,
+    "vendor_payment_paid": 15000.0,
+    "vendor_payment_pending": 10000.0,
+    "employee_payment_paid": 8000.0,
+    "employee_payment_pending": 4000.0,
+    "miscellaneous_expense_paid": 3500.0,
+    "cash_receipts": 12000.0,
+    "check_receipts": 8000.0,
+    "bank_transfer_receipts": 0.0,
+    "upi_receipts": 0.0,
+    "other_receipts": 0.0,
+    "cash_receipts_on_selected_date": 5000.0,
+    "check_receipts_on_selected_date": 0.0,
+    "receipt_payment_mode_breakdown": {
+      "cash": 12000.0,
+      "check": 8000.0,
+      "bank_transfer": 0.0,
+      "upi": 0.0,
+      "other": 0.0
+    },
+    "total_cash_payment": 26500.0,
+    "total_outgoing_payment": 26500.0,
+    "cash_payment_on_selected_date": 4500.0,
+    "outgoing_payment_on_selected_date": 4500.0,
+    "employee_payment_on_selected_date": 1000.0,
+    "miscellaneous_expense_on_selected_date": 500.0
+  },
+  "site_overview": [
+    {
+      "site_id": 1,
+      "site_name": "Project A",
+      "location": "Mumbai",
+      "is_currently_working": true,
+      "present_workers_on_selected_date": 5,
+      "total_receivable": 50000.0,
+      "received_amount": 20000.0,
+      "pending_amount": 30000.0,
+      "cash_received_amount": 12000.0,
+      "check_received_amount": 8000.0,
+      "bank_transfer_received_amount": 0.0,
+      "upi_received_amount": 0.0,
+      "other_received_amount": 0.0,
+      "vendor_paid_amount": 15000.0,
+      "employee_paid_amount": 8000.0,
+      "employee_pending_amount": 4000.0,
+      "miscellaneous_expense_amount": 3500.0
+    }
+  ],
+  "party_receivables": [
+    {
+      "party_id": 1,
+      "party_name": "Client ABC",
+      "total_receivable": 50000.0,
+      "received_amount": 20000.0,
+      "pending_amount": 30000.0
+    }
+  ],
+  "employee_payments_on_selected_date": [],
+  "miscellaneous_expenses_on_selected_date": [],
+  "recent_receipts": [],
+  "recent_vendor_payments": [],
+  "recent_employee_payments": [],
+  "recent_miscellaneous_expenses": []
+}
+```
+
+## Additional Router-Exposed Backend Aliases
+
+These endpoints are also currently exposed by the backend router and return the same payload as the mapped report endpoints.
+
+- `GET /vendors/vendors/chart/summary/` -> same as `GET /vendors/reports/summary/`
+- `GET /vendors/vendors/chart/pending/` -> same as `GET /vendors/reports/pending/`
+- `GET /labour/labours/chart/wage/` -> same as `GET /labour/reports/wage/`
+- `GET /labour/labours/chart/attendance/` -> same as `GET /labour/reports/attendance-summary/`
+- `GET /labour/labours/chart/payment/` -> same as `GET /labour/reports/payment-summary/`
+- `GET /finance/parties/chart/receivables/` -> same as `GET /finance/reports/receivables/`
+
+### Labour attendance quick summary alias
+
+`GET /labour/labours/{labour_id}/attendance-report/`
+
+Response:
+
+```json
+{
+  "labour": "Raj Kumar",
+  "total_days": 6,
+  "present": 5,
+  "absent": 1,
+  "per_day_wage": 500.0,
+  "total_wage": 2500.0
+}
+```
