@@ -68,6 +68,8 @@ export function LabourPage() {
         },
         {
           kind: "text",
+          digitsOnly: true,
+          inputMode: "numeric",
           label: "Phone",
           maxLength: 15,
           minLength: 10,

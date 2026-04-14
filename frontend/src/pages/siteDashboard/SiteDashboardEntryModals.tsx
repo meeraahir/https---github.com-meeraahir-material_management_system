@@ -960,12 +960,12 @@ export function SiteVendorEntryModal({
           { kind: "email", label: "Email", maxLength: 120, name: "email", placeholder: "Optional email" },
           { kind: "textarea", label: "Address", name: "address", placeholder: "Full address", required: true, rows: 4 },
           { kind: "text", label: "Bank Name", maxLength: 80, name: "bank_name", placeholder: "Optional bank name" },
-          { kind: "text", label: "Account Number", maxLength: 18, minLength: 9, name: "bank_account_number", pattern: "[0-9]{9,18}", placeholder: "Optional account number" },
+          { kind: "text", digitsOnly: true, inputMode: "numeric", label: "Account Number", maxLength: 18, minLength: 9, name: "bank_account_number", pattern: "[0-9]{9,18}", placeholder: "Optional account number" },
           { kind: "text", label: "IFSC Code", maxLength: 11, minLength: 11, name: "ifsc_code", placeholder: "Optional IFSC code" },
           { kind: "text", label: "Tax Identifier", maxLength: 60, name: "tax_identifier", placeholder: "Optional tax ID" },
           { kind: "text", label: "License Number", maxLength: 60, name: "license_number", placeholder: "Optional license number" },
           { kind: "text", label: "PAN Number", maxLength: 10, minLength: 10, name: "pan_number", placeholder: "Optional PAN number" },
-          { kind: "text", label: "Aadhar Number", maxLength: 12, minLength: 12, name: "aadhar_number", pattern: "[0-9]{12}", placeholder: "Optional Aadhar number" },
+          { kind: "text", digitsOnly: true, inputMode: "numeric", label: "Aadhar Number", maxLength: 12, minLength: 12, name: "aadhar_number", pattern: "[0-9]{12}", placeholder: "Optional Aadhar number" },
           { kind: "textarea", label: "Document Details", name: "document_details", placeholder: "Supporting documents or notes", rows: 5 },
         ]}
         onClose={() => setIsVendorModalOpen(false)}
@@ -1522,7 +1522,7 @@ export function SiteLabourPaymentModal({
         fields={[
           { kind: "text", label: "Labour Name", maxLength: 80, minLength: 2, name: "name", placeholder: "Worker name", required: true },
           { kind: "text", label: "Labour Type", maxLength: 100, name: "labour_type", placeholder: "Mason, Helper, Carpenter..." },
-          { kind: "text", label: "Phone", maxLength: 15, minLength: 10, name: "phone", pattern: "[0-9]{10,15}", placeholder: "Contact number", required: true },
+          { kind: "text", digitsOnly: true, inputMode: "numeric", label: "Phone", maxLength: 15, minLength: 10, name: "phone", pattern: "[0-9]{10,15}", placeholder: "Contact number", required: true },
           { kind: "number", label: "Per Day Wage", min: 0, name: "per_day_wage", placeholder: "500", required: true, step: 1, valueType: "number" },
         ]}
         onClose={() => setIsLabourModalOpen(false)}
@@ -1706,7 +1706,7 @@ export function SiteLabourEntryModal({
         fields={[
           { kind: "text", label: "Labour Name", maxLength: 80, minLength: 2, name: "name", placeholder: "Worker name", required: true },
           { kind: "text", label: "Labour Type", maxLength: 100, name: "labour_type", placeholder: "Mason, Helper, Carpenter..." },
-          { kind: "text", label: "Phone", maxLength: 15, minLength: 10, name: "phone", pattern: "[0-9]{10,15}", placeholder: "Contact number", required: true },
+          { kind: "text", digitsOnly: true, inputMode: "numeric", label: "Phone", maxLength: 15, minLength: 10, name: "phone", pattern: "[0-9]{10,15}", placeholder: "Contact number", required: true },
           { kind: "number", label: "Per Day Wage", min: 0, name: "per_day_wage", placeholder: "500", required: true, step: 1, valueType: "number" },
         ]}
         onClose={() => setIsLabourModalOpen(false)}
