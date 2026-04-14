@@ -6,16 +6,19 @@ import { icons } from "../../assets/icons";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { useToast } from "../../components/feedback/useToast";
 import { EntityFormModal } from "../../components/forms/EntityFormModal";
+import { ReceivePaymentModal } from "../../components/forms/ReceivePaymentModal";
 import { StatCard } from "../../components/layout/StatCard";
 import { ConfirmDialog } from "../../components/modal/ConfirmDialog";
 import { Modal } from "../../components/modal/Modal";
 import { DataTable } from "../../components/table/DataTable";
 import { Button } from "../../components/ui/Button";
+import { apiClient } from "../../api/client";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { attendanceReportsService } from "../../services/attendanceService";
 import { materialReceiptsService } from "../../services/materialReceiptsService";
 import { paymentsService } from "../../services/paymentsService";
 import { receivablesService } from "../../services/receivablesService";
+import { reportsService } from "../../services/reportsService";
 import { siteDashboardService } from "../../services/sitesService";
 import { vendorPurchasesService } from "../../services/vendorPurchasesService";
 import type {
@@ -23,10 +26,12 @@ import type {
   Party,
   Payment,
   PaymentFormValues,
+  PartyLedgerEntry,
   Purchase,
   PurchaseFormValues,
   Receipt,
   ReceiptFormValues,
+  ReceivePaymentFormValues,
   Receivable,
   ReceivableFormValues,
   SiteDashboardData,
@@ -235,6 +240,18 @@ interface SelectedReceipt {
   siteId: number;
 }
 
+interface SelectedPartyContext {
+  partyId: number;
+  partyLabel: string;
+  siteId: number;
+}
+
+interface PartyPaymentHistoryRow {
+  amount: number;
+  date: string;
+  id: string;
+}
+
 function AddSectionButton({
   ariaLabel,
   onClick,
@@ -285,7 +302,10 @@ export function SiteDashboardPage() {
   const [isLabourPaymentModalOpen, setIsLabourPaymentModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isMaterialReceiptModalOpen, setIsMaterialReceiptModalOpen] = useState(false);
+  const [isPartyDetailsModalOpen, setIsPartyDetailsModalOpen] = useState(false);
   const [isPartyEntryModalOpen, setIsPartyEntryModalOpen] = useState(false);
+  const [isPartyDetailsLoading, setIsPartyDetailsLoading] = useState(false);
+  const [isReceivePaymentModalOpen, setIsReceivePaymentModalOpen] = useState(false);
   const [isVendorEntryModalOpen, setIsVendorEntryModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isReceiptDetailsModalOpen, setIsReceiptDetailsModalOpen] = useState(false);
@@ -305,7 +325,12 @@ export function SiteDashboardPage() {
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [editingReceivable, setEditingReceivable] = useState<Receivable | null>(null);
+  const [partyDetailEntries, setPartyDetailEntries] = useState<Receivable[]>([]);
+  const [partyDetailLedgerEntries, setPartyDetailLedgerEntries] = useState<PartyLedgerEntry[]>([]);
+  const [partyPaymentHistory, setPartyPaymentHistory] = useState<PartyPaymentHistoryRow[]>([]);
+  const [paymentTarget, setPaymentTarget] = useState<Receivable | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [selectedParty, setSelectedParty] = useState<SelectedPartyContext | null>(null);
 
   useEffect(() => {
     setMaterials(references.materials);
@@ -434,6 +459,30 @@ export function SiteDashboardPage() {
     () => new Map(labours.map((labour) => [labour.id, labour.per_day_wage])),
     [labours],
   );
+  const selectedPartyRecord = useMemo(
+    () => parties.find((party) => party.id === selectedParty?.partyId) ?? null,
+    [parties, selectedParty],
+  );
+  const selectedPartyTotals = useMemo(
+    () => ({
+      pending: partyDetailEntries.reduce(
+        (total, entry) => total + (entry.pending_amount ?? entry.amount),
+        0,
+      ),
+      received: partyDetailEntries.reduce(
+        (total, entry) => total + (entry.current_received_amount ?? 0),
+        0,
+      ),
+      total: partyDetailEntries.reduce((total, entry) => total + entry.amount, 0),
+    }),
+    [partyDetailEntries],
+  );
+  const firstPendingReceivable = useMemo(
+    () =>
+      partyDetailEntries.find((entry) => (entry.pending_amount ?? entry.amount) > 0) ??
+      null,
+    [partyDetailEntries],
+  );
 
   const syncAutoCalculatedTotal = useCallback(
     async ({
@@ -536,6 +585,81 @@ export function SiteDashboardPage() {
 
   function addLabourOption(labour: Labour) {
     setLabours((currentValue) => upsertById(currentValue, labour));
+  }
+
+  function buildPartyPaymentHistory(
+    ledgerEntries: PartyLedgerEntry[],
+    siteLabel: string,
+  ) {
+    return ledgerEntries
+      .filter(
+        (entry) =>
+          entry.site === siteLabel &&
+          ((typeof entry.credit === "number" && entry.credit > 0) ||
+            String(entry.entry_type).toLowerCase().includes("receipt")),
+      )
+      .map((entry) => ({
+        amount: entry.credit,
+        date: entry.date,
+        id: String(entry.id),
+      }));
+  }
+
+  async function loadPartyDetail(partyId: number, siteId: number, partyLabel: string) {
+    setIsPartyDetailsLoading(true);
+
+    try {
+      const [partyTransactionsResponse, ledger] = await Promise.all([
+        apiClient.get<{ results: Receivable[] }>("/finance/transactions/", {
+          params: {
+            party: partyId,
+            site: siteId,
+          },
+        }),
+        reportsService.getPartyLedger(partyId),
+      ]);
+
+      const filteredTransactions = Array.isArray(partyTransactionsResponse.data?.results)
+        ? [...partyTransactionsResponse.data.results].sort((left, right) =>
+            right.date.localeCompare(left.date),
+          )
+        : [];
+      const filteredLedgerEntries = [...ledger.transactions]
+        .filter((entry) => entry.site === site.name)
+        .sort((left, right) => right.date.localeCompare(left.date));
+
+      setSelectedParty({
+        partyId,
+        partyLabel,
+        siteId,
+      });
+      setPartyDetailEntries(filteredTransactions);
+      setPartyDetailLedgerEntries(filteredLedgerEntries);
+      setPartyPaymentHistory(buildPartyPaymentHistory(filteredLedgerEntries, site.name));
+      setIsPartyDetailsModalOpen(true);
+    } catch (loadError) {
+      showError("Unable to load party details", getErrorMessage(loadError));
+    } finally {
+      setIsPartyDetailsLoading(false);
+    }
+  }
+
+  function handlePartyDetailsClose() {
+    setIsPartyDetailsModalOpen(false);
+    setSelectedParty(null);
+    setPartyDetailEntries([]);
+    setPartyDetailLedgerEntries([]);
+    setPartyPaymentHistory([]);
+    setPaymentTarget(null);
+    setIsReceivePaymentModalOpen(false);
+  }
+
+  function handlePartyRowClick(row: Receivable) {
+    void loadPartyDetail(
+      row.party,
+      row.site,
+      partyNameMap.get(row.party) || `Party ${row.party}`,
+    );
   }
 
   function handleMaterialRowClick(row: Receipt) {
@@ -990,7 +1114,7 @@ export function SiteDashboardPage() {
               hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.id}
-              onRowClick={(row) => navigate(`/sites/${site.id}/dashboard/parties/${row.party}`)}
+              onRowClick={handlePartyRowClick}
               page={1}
               searchValue=""
               totalCount={receivables.length}
@@ -1095,6 +1219,167 @@ export function SiteDashboardPage() {
         open={isMaterialReceiptModalOpen}
         siteId={site.id}
         siteName={site.name}
+      />
+
+      <Modal
+        onClose={handlePartyDetailsClose}
+        open={isPartyDetailsModalOpen}
+        size="xl"
+        title={selectedParty?.partyLabel || "Party Details"}
+      >
+        <div className="space-y-5">
+          <section className="grid gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Party
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#111111]">
+                {selectedParty?.partyLabel || "-"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Site
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#111111]">
+                {site.name}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Contact
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#111111]">
+                {selectedPartyRecord?.contact || "-"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Remaining Balance
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#111111]">
+                {formatCurrency(selectedPartyTotals.pending)}
+              </p>
+            </div>
+          </section>
+
+          <section className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Site Receivables
+              </p>
+              <p className="mt-2 text-lg font-semibold text-[#111111]">
+                {formatCurrency(selectedPartyTotals.total)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                Payment Received
+              </p>
+              <p className="mt-2 text-lg font-semibold text-[#111111]">
+                {formatCurrency(selectedPartyTotals.received)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Pending Collection
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-[#111111]">
+                    {formatCurrency(selectedPartyTotals.pending)}
+                  </p>
+                </div>
+                <Button
+                  className="min-w-[132px] rounded-xl px-4 py-2 text-sm"
+                  disabled={!firstPendingReceivable}
+                  onClick={() => {
+                    setPaymentTarget(firstPendingReceivable);
+                    setIsReceivePaymentModalOpen(Boolean(firstPendingReceivable));
+                  }}
+                  size="sm"
+                  type="button"
+                >
+                  Receive Payment
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-base font-semibold text-[#111111]">
+                Payment History
+              </h3>
+              <p className="mt-1 text-sm text-[#6B7280]">
+                Only site-specific receipt entries are shown here.
+              </p>
+            </div>
+            {isPartyDetailsLoading ? (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 text-sm text-[#6B7280]">
+                Loading payment history...
+              </div>
+            ) : partyPaymentHistory.length ? (
+              <div className="space-y-2">
+                {partyPaymentHistory.map((entry) => (
+                  <div
+                    className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-sm"
+                    key={entry.id}
+                  >
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                          Received Amount
+                        </p>
+                        <p className="mt-2 text-base font-semibold text-[#111111]">
+                          {formatCurrency(entry.amount)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                          Receipt Date
+                        </p>
+                        <p className="mt-1 text-base font-semibold text-[#111111]">
+                          {formatDate(entry.date)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 text-sm text-[#6B7280]">
+                No site-specific receipt history is available yet.
+              </div>
+            )}
+          </section>
+        </div>
+      </Modal>
+
+      <ReceivePaymentModal
+        item={paymentTarget}
+        onClose={() => {
+          setIsReceivePaymentModalOpen(false);
+          setPaymentTarget(null);
+        }}
+        onSubmit={async (values: ReceivePaymentFormValues) => {
+          if (!paymentTarget || !selectedParty) {
+            return;
+          }
+
+          await receivablesService.receivePayment(paymentTarget.id, values);
+          setIsReceivePaymentModalOpen(false);
+          setPaymentTarget(null);
+          await loadPartyDetail(
+            selectedParty.partyId,
+            selectedParty.siteId,
+            selectedParty.partyLabel,
+          );
+          refreshDashboardData();
+        }}
+        open={isReceivePaymentModalOpen}
+        partyLabel={selectedParty?.partyLabel}
+        siteLabel={site.name}
       />
 
       <Modal

@@ -4,7 +4,6 @@ import { z } from "zod";
 
 import type { Receivable, ReceivePaymentFormValues } from "../../types/erp.types";
 import { createZodResolver } from "../../utils/zodResolver";
-import { formatCurrency, formatDate } from "../../utils/format";
 import { getErrorMessage } from "../../utils/apiError";
 import { useToast } from "../feedback/useToast";
 import { Modal } from "../modal/Modal";
@@ -14,12 +13,15 @@ import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { Textarea } from "../ui/Textarea";
 
+const today = new Date().toISOString().slice(0, 10);
+
 const receivePaymentSchema = z.object({
   amount: z.number().gt(0, "Received amount must be greater than zero."),
   cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer."),
   date: z.string().min(1, "Receipt date is required."),
   payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
   notes: z.string().max(600, "Notes must be 600 characters or fewer."),
+  payment_mode: z.string().min(1, "Payment method is required."),
   reference_number: z
     .string()
     .max(50, "Reference number must be 50 characters or fewer."),
@@ -57,17 +59,13 @@ export function ReceivePaymentModal({
   onClose,
   onSubmit,
   open,
-  partyLabel,
-  siteLabel,
+  partyLabel: _partyLabel,
+  siteLabel: _siteLabel,
 }: ReceivePaymentModalProps) {
   const { showSuccess } = useToast();
   const [formError, setFormError] = useState("");
   const pendingAmount = useMemo(
     () => item?.pending_amount ?? item?.amount ?? 0,
-    [item],
-  );
-  const currentReceivedAmount = useMemo(
-    () => item?.current_received_amount ?? 0,
     [item],
   );
   const {
@@ -119,24 +117,18 @@ export function ReceivePaymentModal({
   return (
     <Modal
       footer={
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs leading-5 text-slate-600 dark:text-slate-600">
-            Pending amount is {formatCurrency(pendingAmount)}. Saving will update
-            the receivable balance.
-          </p>
-          <div className="flex justify-end gap-3">
-            <Button onClick={handleClose} type="button" variant="secondary">
-              Cancel
-            </Button>
-            <Button
-              disabled={!isValid || pendingAmount <= 0}
-              form="receive-payment-form"
-              isLoading={isSubmitting}
-              type="submit"
-            >
-              Save Receipt
-            </Button>
-          </div>
+        <div className="flex justify-end gap-3">
+          <Button onClick={handleClose} type="button" variant="secondary">
+            Cancel
+          </Button>
+          <Button
+            disabled={!isValid || pendingAmount <= 0}
+            form="receive-payment-form"
+            isLoading={isSubmitting}
+            type="submit"
+          >
+            Save Receipt
+          </Button>
         </div>
       }
       onClose={handleClose}
@@ -221,18 +213,18 @@ export function ReceivePaymentModal({
               return;
             }
 
-            try {
-              setFormError("");
-              await onSubmit(values);
-              showSuccess(
-                "Payment received",
-                "Receivable balance has been updated successfully.",
-              );
-            } catch (error) {
-              setFormError(getErrorMessage(error));
-            }
-          })}
-        >
+          try {
+            setFormError("");
+            await onSubmit(values);
+            showSuccess(
+              "Payment received",
+              "Receivable balance has been updated successfully.",
+            );
+          } catch (error) {
+            setFormError(getErrorMessage(error));
+          }
+        })}
+      >
           <Input
             error={errors.amount?.message}
             label="Received Amount"
@@ -292,10 +284,6 @@ export function ReceivePaymentModal({
             placeholder="Receipt, UTR, cheque, or voucher reference"
             {...register("reference_number")}
           />
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm leading-6 text-amber-800 dark:border-amber-200 dark:bg-amber-50/80 dark:text-amber-800">
-            You can record a partial or full payment for this invoice. The amount
-            cannot be greater than the pending balance.
-          </div>
           <div className="md:col-span-2">
             <Textarea
               error={errors.notes?.message}
@@ -308,8 +296,7 @@ export function ReceivePaymentModal({
           <div className="md:col-span-2">
             <FormError message={formError} />
           </div>
-        </form>
-      </div>
+      </form>
     </Modal>
   );
 }
