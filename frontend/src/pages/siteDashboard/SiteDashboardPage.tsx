@@ -482,12 +482,20 @@ export function SiteDashboardPage() {
         (total, row) => total + row.pending_amount,
         0,
       ),
+      financeReceived: financeSummary.reduce(
+        (total, row) => total + row.received_amount,
+        0,
+      ),
       labourPending: labourSummary.reduce(
         (total, row) => total + row.pending_amount,
         0,
       ),
       materialCost: materialSummary.reduce(
         (total, row) => total + row.total_cost,
+        0,
+      ),
+      vendorPaid: vendorSummary.reduce(
+        (total, row) => total + row.paid_amount,
         0,
       ),
       vendorPending: vendorSummary.reduce(
@@ -1050,7 +1058,7 @@ export function SiteDashboardPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
                   <StatCard
                     className="rounded-none"
@@ -1065,6 +1073,13 @@ export function SiteDashboardPage() {
                     value={formatCurrency(totals.vendorPending)}
                   />
                 </div>
+                <div className="rounded-2xl border border-orange-200 bg-orange-50/70 p-4">
+                  <StatCard
+                    className="rounded-none"
+                    label="Vendor Paid"
+                    value={formatCurrency(totals.vendorPaid)}
+                  />
+                </div>
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
                   <StatCard
                     className="rounded-none"
@@ -1077,6 +1092,13 @@ export function SiteDashboardPage() {
                     className="rounded-none"
                     label="Finance Pending"
                     value={formatCurrency(totals.financePending)}
+                  />
+                </div>
+                <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-4">
+                  <StatCard
+                    className="rounded-none"
+                    label="Party Received"
+                    value={formatCurrency(totals.financeReceived)}
                   />
                 </div>
               </div>
