@@ -3,6 +3,7 @@ from io import BytesIO
 
 from django.db.models import Sum, F, FloatField, Count, Q
 from django.http import HttpResponse
+from core.export_utils import format_excel_export_value
 from openpyxl import Workbook
 from core.pdf_utils import build_pdf_sections_response
 from django_filters.rest_framework import DjangoFilterBackend
@@ -170,7 +171,7 @@ class SiteViewSet(viewsets.ModelViewSet):
                 headers = list(rows[0].keys())
                 sheet.append(headers)
                 for row in rows:
-                    sheet.append([row.get(key, '') for key in headers])
+                    sheet.append([format_excel_export_value(row.get(key, '')) for key in headers])
             else:
                 sheet.append(['No data available'])
 
