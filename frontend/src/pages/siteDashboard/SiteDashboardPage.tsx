@@ -49,12 +49,15 @@ import { getErrorMessage } from "../../utils/apiError";
 import { formatCurrency, formatDate } from "../../utils/format";
 import { DashboardLabourAttendanceModal } from "../dashboard/DashboardLabourAttendanceModal";
 import {
-  SiteCasualLabourEntryModal,
   SiteLabourPaymentModal,
   SiteMaterialReceiptModal,
   SitePartyEntryModal,
   SiteVendorEntryModal,
 } from "./SiteDashboardEntryModals";
+import {
+  SiteCasualLabourBrowserModal,
+  SiteRegularLabourBrowserModal,
+} from "./SiteDashboardLabourBrowsers";
 
 function getReceivableStatus(row: Receivable) {
   const pendingAmount = row.pending_amount ?? row.amount;
@@ -351,8 +354,9 @@ export function SiteDashboardPage() {
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [isExporting, setIsExporting] = useState<"" | "excel" | "pdf">("");
   const [isLabourAttendanceModalOpen, setIsLabourAttendanceModalOpen] = useState(false);
-  const [isCasualLabourModalOpen, setIsCasualLabourModalOpen] = useState(false);
+  const [isCasualLabourBrowserOpen, setIsCasualLabourBrowserOpen] = useState(false);
   const [isLabourPaymentModalOpen, setIsLabourPaymentModalOpen] = useState(false);
+  const [isRegularLabourBrowserOpen, setIsRegularLabourBrowserOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isMaterialReceiptModalOpen, setIsMaterialReceiptModalOpen] = useState(false);
   const [isPartyDetailsModalOpen, setIsPartyDetailsModalOpen] = useState(false);
@@ -1363,7 +1367,7 @@ export function SiteDashboardPage() {
                 <div className="flex items-center gap-2">
                   <Button
                     className="h-9 rounded-xl px-3"
-                    onClick={() => setIsCasualLabourModalOpen(true)}
+                    onClick={() => setIsCasualLabourBrowserOpen(true)}
                     size="sm"
                     type="button"
                     variant="secondary"
@@ -1372,12 +1376,21 @@ export function SiteDashboardPage() {
                   </Button>
                   <Button
                     className="h-9 rounded-xl px-3"
+                    onClick={() => setIsRegularLabourBrowserOpen(true)}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    Regular Labour
+                  </Button>
+                  <Button
+                    className="h-9 rounded-xl px-3"
                     onClick={() => setIsLabourAttendanceModalOpen(true)}
                     size="sm"
                     type="button"
                     variant="secondary"
                   >
-                    Attendance
+                    Labour Attendance
                   </Button>
                   <AddSectionButton
                     ariaLabel="Add Labour Payment"
@@ -1936,11 +1949,17 @@ export function SiteDashboardPage() {
         siteName={site.name}
       />
 
-      <SiteCasualLabourEntryModal
-        onClose={() => setIsCasualLabourModalOpen(false)}
+      <SiteCasualLabourBrowserModal
+        onClose={() => setIsCasualLabourBrowserOpen(false)}
         onSaved={refreshDashboardData}
-        open={isCasualLabourModalOpen}
+        open={isCasualLabourBrowserOpen}
         siteId={site.id}
+        siteName={site.name}
+      />
+
+      <SiteRegularLabourBrowserModal
+        onClose={() => setIsRegularLabourBrowserOpen(false)}
+        open={isRegularLabourBrowserOpen}
         siteName={site.name}
       />
 
