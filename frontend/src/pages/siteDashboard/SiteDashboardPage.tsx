@@ -42,6 +42,7 @@ import { getErrorMessage } from "../../utils/apiError";
 import { formatCurrency, formatDate } from "../../utils/format";
 import { DashboardLabourAttendanceModal } from "../dashboard/DashboardLabourAttendanceModal";
 import {
+  SiteCasualLabourEntryModal,
   SiteLabourPaymentModal,
   SiteMaterialReceiptModal,
   SitePartyEntryModal,
@@ -318,6 +319,7 @@ export function SiteDashboardPage() {
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [isExporting, setIsExporting] = useState<"" | "excel" | "pdf">("");
   const [isLabourAttendanceModalOpen, setIsLabourAttendanceModalOpen] = useState(false);
+  const [isCasualLabourModalOpen, setIsCasualLabourModalOpen] = useState(false);
   const [isLabourPaymentModalOpen, setIsLabourPaymentModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isMaterialReceiptModalOpen, setIsMaterialReceiptModalOpen] = useState(false);
@@ -1233,6 +1235,15 @@ export function SiteDashboardPage() {
                 <div className="flex items-center gap-2">
                   <Button
                     className="h-9 rounded-xl px-3"
+                    onClick={() => setIsCasualLabourModalOpen(true)}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    Casual Labour
+                  </Button>
+                  <Button
+                    className="h-9 rounded-xl px-3"
                     onClick={() => setIsLabourAttendanceModalOpen(true)}
                     size="sm"
                     type="button"
@@ -1620,6 +1631,14 @@ export function SiteDashboardPage() {
         onLabourAdded={addLabourOption}
         onSaved={refreshDashboardData}
         open={isLabourPaymentModalOpen}
+        siteId={site.id}
+        siteName={site.name}
+      />
+
+      <SiteCasualLabourEntryModal
+        onClose={() => setIsCasualLabourModalOpen(false)}
+        onSaved={refreshDashboardData}
+        open={isCasualLabourModalOpen}
         siteId={site.id}
         siteName={site.name}
       />

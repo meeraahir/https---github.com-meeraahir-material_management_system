@@ -13,6 +13,7 @@ import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Textarea } from "../../components/ui/Textarea";
 import { attendanceReportsService, attendanceService } from "../../services/attendanceService";
+import { casualLabourService } from "../../services/casualLabourService";
 import { labourService } from "../../services/labourService";
 import { materialReceiptsService } from "../../services/materialReceiptsService";
 import { materialsService } from "../../services/materialsService";
@@ -23,6 +24,7 @@ import { vendorPurchasesService } from "../../services/vendorPurchasesService";
 import { vendorsService } from "../../services/vendorsService";
 import type {
   AttendanceFormValues,
+  CasualLabourEntryFormValues,
   Labour,
   LabourFormValues,
   Material,
@@ -179,6 +181,22 @@ const labourSchema = z.object({
     .string()
     .trim()
     .regex(/^[0-9]{10,15}$/, "Phone number must be 10 to 15 digits."),
+});
+
+const casualLabourSchema = z.object({
+  date: z.string().min(1, "Date is required."),
+  labour_name: z
+    .string()
+    .trim()
+    .min(2, "Labour name must be at least 2 characters.")
+    .max(255, "Labour name must be 255 characters or fewer."),
+  labour_type: z
+    .string()
+    .trim()
+    .min(1, "Labour type is required.")
+    .max(100, "Labour type must be 100 characters or fewer."),
+  paid_amount: z.number().gt(0, "Paid amount must be greater than zero."),
+  site: z.number().min(1, "Site is required."),
 });
 
 const purchaseSchema = z
@@ -1709,5 +1727,155 @@ export function SiteLabourEntryModal({
         title="Add Labour"
       />
     </>
+  );
+}
+
+interface SiteCasualLabourEntryModalProps {
+  onClose: () => void;
+  onSaved: () => void;
+  open: boolean;
+  siteId: number;
+  siteName: string;
+}
+
+export function SiteCasualLabourEntryModal({
+  onClose,
+  onSaved,
+  open,
+  siteId,
+  siteName,
+}: SiteCasualLabourEntryModalProps) {
+  const { showSuccess } = useToast();
+  const [formError, setFormError] = useState("");
+  const {
+    formState: { errors, isSubmitting, isValid },
+    handleSubmit,
+    register,
+    reset,
+  } = useForm<CasualLabourEntryFormValues>({
+    defaultValues: {
+      date: siteDashboardToday,
+      labour_name: "",
+      labour_type: "",
+      paid_amount: 0,
+      site: siteId,
+    },
+    mode: "onChange",
+    resolver: createZodResolver(casualLabourSchema),
+  });
+
+  function handleClose() {
+    setFormError("");
+    onClose();
+  }
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    reset({
+      date: siteDashboardToday,
+      labour_name: "",
+      labour_type: "",
+      paid_amount: 0,
+      site: siteId,
+    });
+  }, [open, reset, siteId]);
+
+  return (
+    <Modal
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button onClick={handleClose} type="button" variant="secondary">
+            Cancel
+          </Button>
+          <Button
+            disabled={!isValid}
+            form="site-casual-labour-entry-form"
+            isLoading={isSubmitting}
+            type="submit"
+          >
+            Save Casual Labour
+          </Button>
+        </div>
+      }
+      onClose={handleClose}
+      open={open}
+      size="lg"
+      title="Add Casual Labour"
+    >
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700 dark:border-blue-100 dark:bg-blue-50/70 dark:text-slate-700">
+          New casual labour entry will be recorded for <span className="font-semibold">{siteName}</span>.
+        </div>
+
+        <form
+          className="grid gap-4 md:grid-cols-2"
+          id="site-casual-labour-entry-form"
+          onSubmit={handleSubmit(async (values) => {
+            try {
+              setFormError("");
+              await casualLabourService.create(values);
+              showSuccess(
+                "Casual labour added",
+                "Casual labour entry has been created for this site.",
+              );
+              onSaved();
+              handleClose();
+            } catch (error) {
+              setFormError(getErrorMessage(error));
+            }
+          })}
+        >
+          <Input
+            disabled
+            label="Site"
+            readOnly
+            value={siteName}
+          />
+          <input type="hidden" value={siteId} {...register("site", { valueAsNumber: true })} />
+
+          <Input
+            error={errors.labour_name?.message}
+            label="Labour Name"
+            maxLength={255}
+            placeholder="Worker name"
+            requiredIndicator
+            {...register("labour_name")}
+          />
+          <Input
+            error={errors.labour_type?.message}
+            label="Labour Type"
+            maxLength={100}
+            placeholder="Helper, Mason, Loader..."
+            requiredIndicator
+            {...register("labour_type")}
+          />
+          <Input
+            error={errors.date?.message}
+            label="Date"
+            requiredIndicator
+            type="date"
+            {...register("date")}
+          />
+          <Input
+            error={errors.paid_amount?.message}
+            label="Paid Amount"
+            min={0}
+            requiredIndicator
+            step={0.01}
+            type="number"
+            {...register("paid_amount", {
+              setValueAs: (value) => (value === "" ? 0 : Number(value)),
+            })}
+          />
+
+          <div className="md:col-span-2">
+            <FormError message={formError} />
+          </div>
+        </form>
+      </div>
+    </Modal>
   );
 }
