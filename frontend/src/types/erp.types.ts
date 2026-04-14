@@ -497,6 +497,7 @@ export interface PartyLedger {
 export interface ReceivePaymentFormValues {
   amount: number;
   date: string;
+  payment_mode?: string;
   reference_number: string;
   notes: string;
 }
