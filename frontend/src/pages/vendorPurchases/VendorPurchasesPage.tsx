@@ -14,9 +14,7 @@ const purchaseSchema = z
     description: z
       .string()
       .max(300, "Description must be 300 characters or fewer."),
-    invoice_number: z
-      .string()
-      .max(60, "Invoice number must be 60 characters or fewer."),
+    invoice_number: z.string(),
     material: z.number().min(0, "Material is invalid."),
     paid_amount: z.number().min(0, "Paid amount must be zero or more."),
     payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
@@ -78,7 +76,6 @@ export function VendorPurchasesPage() {
       canEdit={permissions.canEdit}
       columns={[
         { key: "vendor", header: "Vendor", accessor: (row) => row.vendor_name, sortValue: (row) => row.vendor_name },
-        { key: "invoice", header: "Invoice", accessor: (row) => row.invoice_number || "-", sortValue: (row) => row.invoice_number || "" },
         { key: "date", header: "Date", accessor: (row) => row.date, sortValue: (row) => row.date },
         { key: "site", header: "Site", accessor: (row) => row.site_name, sortValue: (row) => row.site_name },
         { key: "material", header: "Material", accessor: (row) => row.material_name || "-", sortValue: (row) => row.material_name || "" },
@@ -108,7 +105,7 @@ export function VendorPurchasesPage() {
         total_amount: 0,
         vendor: 0,
       }}
-      description="Capture vendor purchase entries, invoices, and pending payment values."
+      description="Capture vendor purchase entries and pending payment values."
       emptyDescription="No vendor purchases are available."
       emptyTitle="No purchases found"
       externalError={references.error}
@@ -137,13 +134,6 @@ export function VendorPurchasesPage() {
           valueType: "number",
         },
         { kind: "date", label: "Date", name: "date", required: true },
-        {
-          kind: "text",
-          label: "Invoice Number",
-          maxLength: 60,
-          name: "invoice_number",
-          placeholder: "Invoice reference",
-        },
         {
           kind: "textarea",
           label: "Description",
@@ -227,7 +217,6 @@ export function VendorPurchasesPage() {
         { label: "Vendor", value: (row) => row.vendor_name, highlight: true },
         { label: "Site", value: (row) => row.site_name, highlight: true },
         { label: "Material", value: (row) => row.material_name },
-        { label: "Invoice Number", value: (row) => row.invoice_number, highlight: true },
         { label: "Purchase Date", value: (row) => row.date },
         { label: "Total Amount", value: (row) => row.total_amount, highlight: true },
         { label: "Initial Paid Amount", value: (row) => row.paid_amount, highlight: true },

@@ -48,7 +48,7 @@ const vendorPaymentSchema = z.object({
 });
 
 function getPurchaseLabel(purchase: Purchase) {
-  const reference = purchase.invoice_number || `Purchase #${purchase.id}`;
+  const reference = `Purchase #${purchase.id}`;
   const material = purchase.material_name ? ` | ${purchase.material_name}` : "";
   return `${purchase.vendor_name} | ${reference}${material} | Pending ${formatNumber(purchase.pending_amount)}`;
 }
@@ -84,8 +84,8 @@ export function VendorPaymentsPage() {
         {
           key: "purchase",
           header: "Purchase",
-          accessor: (row) => row.purchase_invoice_number || `Purchase #${row.purchase}`,
-          sortValue: (row) => row.purchase_invoice_number || row.purchase,
+          accessor: (row) => `Purchase #${row.purchase}`,
+          sortValue: (row) => row.purchase,
         },
         { key: "vendor", header: "Vendor", accessor: (row) => row.vendor_name, sortValue: (row) => row.vendor_name },
         { key: "site", header: "Site", accessor: (row) => row.site_name, sortValue: (row) => row.site_name },
@@ -122,14 +122,14 @@ export function VendorPaymentsPage() {
         remarks: "",
         sender_name: "",
       }}
-      description="Record vendor payments against existing purchase invoices and keep purchase pending balances in sync."
+      description="Record vendor payments against existing purchases and keep purchase pending balances in sync."
       emptyDescription="No vendor payments have been recorded."
       emptyTitle="No vendor payments found"
       externalError={purchaseError}
       fields={[
         {
           kind: "select",
-          label: "Purchase Invoice",
+          label: "Purchase",
           name: "purchase",
           options: purchases.map((purchase) => ({
             label: getPurchaseLabel(purchase),
@@ -187,7 +187,7 @@ export function VendorPaymentsPage() {
           label: "Reference Number",
           maxLength: 50,
           name: "reference_number",
-          placeholder: "Invoice, UTR, cheque, or cash reference",
+          placeholder: "UTR, cheque, or cash reference",
           wrapperClassName: "md:col-span-2",
         },
         {
@@ -217,7 +217,7 @@ export function VendorPaymentsPage() {
       title="Vendor Payments"
       viewFields={[
         { label: "Record ID", value: (row) => row.id, highlight: true },
-        { label: "Purchase Invoice", value: (row) => row.purchase_invoice_number || `Purchase #${row.purchase}`, highlight: true },
+        { label: "Purchase", value: (row) => `Purchase #${row.purchase}`, highlight: true },
         { label: "Vendor", value: (row) => row.vendor_name, highlight: true },
         { label: "Site", value: (row) => row.site_name, highlight: true },
         { label: "Purchase Total Amount", value: (row) => row.purchase_total_amount },

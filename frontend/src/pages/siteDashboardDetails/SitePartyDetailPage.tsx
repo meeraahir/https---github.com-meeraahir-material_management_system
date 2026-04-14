@@ -159,7 +159,7 @@ export function SitePartyDetailPage() {
               clientPagination
               columns={[
                 { key: "date", header: "Date", accessor: (row) => formatDate(row.date), sortValue: (row) => row.date },
-                { key: "amount", header: "Invoice Amount", accessor: (row) => row.amount, sortValue: (row) => row.amount },
+                { key: "amount", header: "Receivable Amount", accessor: (row) => row.amount, sortValue: (row) => row.amount },
                 { key: "received", header: "Received", accessor: (row) => row.current_received_amount ?? 0, sortValue: (row) => row.current_received_amount ?? 0 },
                 { key: "pending", header: "Pending", accessor: (row) => row.pending_amount ?? row.amount, sortValue: (row) => row.pending_amount ?? row.amount },
                 {
@@ -216,7 +216,7 @@ export function SitePartyDetailPage() {
                 { key: "date", header: "Date", accessor: (row) => formatDate(row.date), sortValue: (row) => row.date },
                 { key: "entry_type", header: "Activity", accessor: (row) => row.entry_type, sortValue: (row) => row.entry_type },
                 { key: "site", header: "Site", accessor: (row) => row.site, sortValue: (row) => row.site },
-                { key: "debit", header: "Invoice", accessor: (row) => row.debit, sortValue: (row) => row.debit },
+                { key: "debit", header: "Receivable", accessor: (row) => row.debit, sortValue: (row) => row.debit },
                 { key: "credit", header: "Received", accessor: (row) => row.credit, sortValue: (row) => row.credit },
                 { key: "balance", header: "Pending", accessor: (row) => row.balance, sortValue: (row) => row.balance },
               ]}

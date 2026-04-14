@@ -11,11 +11,7 @@ import { getCrudPermissions } from "../../utils/permissions";
 const receiptSchema = z.object({
   cost_per_unit: z.number().min(0, "Cost per unit must be zero or more."),
   date: z.string().min(1, "Receipt date is required."),
-  invoice_number: z
-    .string()
-    .max(50, "Invoice number must be 50 characters or fewer.")
-    .optional()
-    .or(z.literal("")),
+  invoice_number: z.string().optional().or(z.literal("")),
   material: z.number().min(1, "Material is required."),
   material_variant: z.number().min(0, "Variant is invalid.").optional(),
   notes: z
@@ -99,7 +95,6 @@ export function MaterialReceiptsPage() {
           sortValue: (row) => row.material_variant_label || "",
         },
         { key: "unit", header: "Unit", accessor: (row) => getUnitLabel(row.material_unit), sortValue: (row) => row.material_unit },
-        { key: "invoice", header: "Invoice", accessor: (row) => row.invoice_number || "-", sortValue: (row) => row.invoice_number || "" },
         { key: "date", header: "Date", accessor: (row) => row.date_display || row.date, sortValue: (row) => row.date },
         { key: "cost", header: "Total Cost", accessor: (row) => row.total_cost, sortValue: (row) => row.total_cost },
         { key: "status", header: "Stock Status", accessor: (row) => getStockStatus(row), sortValue: (row) => getStockStatus(row) },
@@ -150,13 +145,6 @@ export function MaterialReceiptsPage() {
           valueType: "number",
         },
         { kind: "date", label: "Receipt Date", name: "date", required: true },
-        {
-          kind: "text",
-          label: "Invoice Number",
-          maxLength: 50,
-          name: "invoice_number",
-          placeholder: "Optional invoice reference",
-        },
         {
           kind: "number",
           description: "Fresh material received in this entry.",
@@ -237,7 +225,6 @@ export function MaterialReceiptsPage() {
         { label: "Remaining Stock", value: (row) => getQuantityLabel(row.remaining_stock, row.material_unit), highlight: true },
         { label: "Cost Per Unit", value: (row) => getCostPerUnitLabel(row) },
         { label: "Transport Cost", value: (row) => row.transport_cost },
-        { label: "Invoice Number", value: (row) => row.invoice_number },
         { label: "Receipt Date", value: (row) => row.date_display || row.date },
         { label: "Total Cost", value: (row) => row.total_cost, highlight: true },
         { label: "Stock Status", value: (row) => getStockStatus(row), highlight: true },

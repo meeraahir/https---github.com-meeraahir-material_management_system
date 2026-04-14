@@ -106,7 +106,7 @@ export function SiteMaterialDetailPage() {
       [
         ...receipts.map((entry) => ({
           date: entry.date,
-          details: entry.invoice_number || `Receipt #${entry.id}`,
+          details: `Receipt #${entry.id}`,
           id: `receipt-${entry.id}`,
           quantity: entry.quantity_received,
           type: "Receipt" as const,
@@ -114,7 +114,7 @@ export function SiteMaterialDetailPage() {
         })),
         ...usages.map((entry) => ({
           date: entry.date,
-          details: entry.receipt_invoice_number || `Usage #${entry.id}`,
+          details: `Receipt #${entry.receipt}`,
           id: `usage-${entry.id}`,
           quantity: entry.quantity,
           type: "Usage" as const,
@@ -168,7 +168,6 @@ export function SiteMaterialDetailPage() {
               clientPagination
               columns={[
                 { key: "date", header: "Date", accessor: (row) => formatDate(row.date), sortValue: (row) => row.date },
-                { key: "invoice", header: "Invoice", accessor: (row) => row.invoice_number || "-", sortValue: (row) => row.invoice_number || "" },
                 { key: "received", header: "Received Qty", accessor: (row) => row.quantity_received, sortValue: (row) => row.quantity_received },
                 { key: "used", header: "Used Qty", accessor: (row) => row.quantity_used, sortValue: (row) => row.quantity_used },
                 { key: "remaining", header: "Remaining", accessor: (row) => row.remaining_stock, sortValue: (row) => row.remaining_stock },
@@ -192,7 +191,7 @@ export function SiteMaterialDetailPage() {
               clientPagination
               columns={[
                 { key: "date", header: "Date", accessor: (row) => formatDate(row.date), sortValue: (row) => row.date },
-                { key: "receipt", header: "Receipt Ref", accessor: (row) => row.receipt_invoice_number || `Receipt #${row.receipt}`, sortValue: (row) => row.receipt_invoice_number || row.receipt },
+                { key: "receipt", header: "Receipt Ref", accessor: (row) => `Receipt #${row.receipt}`, sortValue: (row) => row.receipt },
                 { key: "quantity", header: "Used Qty", accessor: (row) => row.quantity, sortValue: (row) => row.quantity },
                 { key: "notes", header: "Notes", accessor: (row) => row.notes || "-", sortValue: (row) => row.notes || "" },
               ]}

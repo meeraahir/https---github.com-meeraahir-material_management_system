@@ -12,7 +12,7 @@ import { getCrudPermissions } from "../../utils/permissions";
 
 const receivableSchema = z.object({
   amount: z.number().gt(0, "Amount must be greater than zero."),
-  date: z.string().min(1, "Invoice date is required."),
+  date: z.string().min(1, "Date is required."),
   description: z.string().max(1000, "Description must be 1000 characters or fewer."),
   party: z.number().min(1, "Party is required."),
   phase_name: z.string().max(255, "Phase name must be 255 characters or fewer."),
@@ -26,7 +26,7 @@ const receivableSchema = z.object({
   if ((value.received_amount ?? 0) > value.amount) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Received amount cannot exceed invoice amount.",
+      message: "Received amount cannot exceed total amount.",
       path: ["received_amount"],
     });
   }
@@ -137,7 +137,7 @@ export function ReceivablesPage() {
           received_amount: 0,
           site: 0,
         }}
-        description="Track client invoices with partial receipt amounts and real pending balances."
+        description="Track client receivables with partial receipt amounts and real pending balances."
         emptyDescription="No receivables have been recorded."
         emptyTitle="No receivables found"
         externalError={references.error}
@@ -178,7 +178,7 @@ export function ReceivablesPage() {
           },
           {
             kind: "number",
-            description: "Total invoice amount raised to the party.",
+            description: "Total amount raised to the party.",
             label: "Amount",
             min: 0,
             name: "amount",
@@ -192,7 +192,7 @@ export function ReceivablesPage() {
             name: "phase_name",
             placeholder: "Plaster Work, Slab, Brickwork...",
           },
-          { kind: "date", label: "Invoice Date", name: "date", required: true },
+          { kind: "date", label: "Date", name: "date", required: true },
           {
             kind: "number",
             description: "Enter amount received so far. Leave 0 if nothing has been collected yet.",
@@ -239,7 +239,7 @@ export function ReceivablesPage() {
             kind: "textarea",
             label: "Description",
             name: "description",
-            placeholder: "Invoice or work description",
+            placeholder: "Work description",
             rows: 4,
             wrapperClassName: "md:col-span-2",
           },
@@ -279,7 +279,7 @@ export function ReceivablesPage() {
           { label: "Phase Name", value: (row) => row.phase_name },
           { label: "Description", value: (row) => row.description, span: "full" },
           { label: "Received", value: (row) => row.received },
-          { label: "Invoice Date", value: (row) => row.date },
+          { label: "Date", value: (row) => row.date },
           { label: "Current Received Amount", value: (row) => row.current_received_amount },
           { label: "Pending Amount", value: (row) => row.pending_amount, highlight: true },
           {

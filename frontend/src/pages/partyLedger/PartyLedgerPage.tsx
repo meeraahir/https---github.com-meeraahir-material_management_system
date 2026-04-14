@@ -16,16 +16,16 @@ interface PartyLedgerMovement {
   debit: number;
   id: number | string;
   reference: string;
-  type: "invoice" | "receipt";
+  type: "receivable" | "receipt";
 }
 
 interface PartyLedgerSummaryRow {
   date: string;
   id: number;
-  invoice: string;
-  invoiceAmount: number;
   movements: PartyLedgerMovement[];
   pendingAmount: number;
+  receivableAmount: number;
+  receivableLabel: string;
   receivedAmount: number;
   site: string;
   status: "Pending" | "Partial" | "Received";
@@ -59,16 +59,16 @@ function getStatusClassName(status: PartyLedgerSummaryRow["status"]) {
 }
 
 function buildMovements(receivable: Receivable, receivedAmount: number) {
-  const invoiceLabel = `Receivable #${receivable.id}`;
+  const receivableLabel = `Receivable #${receivable.id}`;
   const movements: PartyLedgerMovement[] = [
     {
       balance: receivable.amount,
       credit: 0,
       date: receivable.date,
       debit: receivable.amount,
-      id: `invoice-${receivable.id}`,
-      reference: invoiceLabel,
-      type: "invoice",
+      id: `receivable-${receivable.id}`,
+      reference: receivableLabel,
+      type: "receivable",
     },
   ];
 
@@ -79,7 +79,7 @@ function buildMovements(receivable: Receivable, receivedAmount: number) {
       date: receivable.date,
       debit: 0,
       id: `receipt-${receivable.id}`,
-      reference: `${invoiceLabel} receipt`,
+      reference: `${receivableLabel} receipt`,
       type: "receipt",
     });
   }
@@ -104,10 +104,10 @@ function buildSummaryRows(
       return {
         date: receivable.date,
         id: receivable.id,
-        invoice: `Receivable #${receivable.id}`,
-        invoiceAmount: receivable.amount,
         movements: buildMovements(receivable, receivedAmount),
         pendingAmount,
+        receivableAmount: receivable.amount,
+        receivableLabel: `Receivable #${receivable.id}`,
         receivedAmount,
         site: siteNameById.get(receivable.site) || `Site #${receivable.site}`,
         status: getStatus(receivedAmount, pendingAmount),
@@ -143,7 +143,7 @@ function MovementDetailsModal({
       onClose={onClose}
       open={Boolean(row)}
       size="xl"
-      title={row ? `${row.invoice} Movement` : "Party Ledger Movement"}
+      title={row ? `${row.receivableLabel} Movement` : "Party Ledger Movement"}
     >
       {row ? (
         <div className="space-y-5">
@@ -159,9 +159,9 @@ function MovementDetailsModal({
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Invoice Amount</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Receivable Amount</p>
                 <p className="font-semibold text-slate-950 dark:text-slate-50">
-                  {formatCurrency(row.invoiceAmount)}
+                  {formatCurrency(row.receivableAmount)}
                 </p>
               </div>
               <div>
@@ -187,7 +187,7 @@ function MovementDetailsModal({
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Activity</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Reference</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Invoice</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Receivable</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Received</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Pending</th>
                   </tr>
@@ -199,7 +199,7 @@ function MovementDetailsModal({
                         {formatDate(movement.date)}
                       </td>
                       <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                        {movement.type === "invoice" ? "Invoice Created" : "Receipt Received"}
+                        {movement.type === "receivable" ? "Receivable Created" : "Receipt Received"}
                       </td>
                       <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
                         {movement.reference}
@@ -221,7 +221,7 @@ function MovementDetailsModal({
           </div>
 
           <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
-            Invoice Created se party se lene wala amount badhta hai. Receipt Received se pending amount kam hota hai.
+            Receivable Created se party se lene wala amount badhta hai. Receipt Received se pending amount kam hota hai.
           </p>
         </div>
       ) : null}
@@ -252,10 +252,10 @@ export function PartyLedgerPage() {
             sortValue: (row) => row.date,
           },
           {
-            key: "invoice",
+            key: "receivable",
             header: "Receivable",
-            accessor: (row) => row.invoice,
-            sortValue: (row) => row.invoice,
+            accessor: (row) => row.receivableLabel,
+            sortValue: (row) => row.receivableLabel,
           },
           {
             key: "site",
@@ -264,10 +264,10 @@ export function PartyLedgerPage() {
             sortValue: (row) => row.site,
           },
           {
-            key: "invoiceAmount",
-            header: "Invoice Amount",
-            accessor: (row) => formatCurrency(row.invoiceAmount),
-            sortValue: (row) => row.invoiceAmount,
+            key: "receivableAmount",
+            header: "Receivable Amount",
+            accessor: (row) => formatCurrency(row.receivableAmount),
+            sortValue: (row) => row.receivableAmount,
           },
           {
             key: "receivedAmount",
@@ -294,7 +294,7 @@ export function PartyLedgerPage() {
             sortValue: (row) => row.status,
           },
         ]}
-        description="View party receivables invoice-wise with received amount and pending balance. Use View for movement details."
+        description="View party receivables with received amount and pending balance. Use View for movement details."
         emptyDescription="Select a party to view receivable-wise balance."
         entityLabel="Party"
         entityOptions={references.parties.map((party) => ({
@@ -319,7 +319,7 @@ export function PartyLedgerPage() {
               paidValue: ledger.totals.received_amount,
               pendingLabel: "Pending Amount",
               pendingValue: ledger.totals.pending_amount,
-              totalLabel: "Invoice Amount",
+              totalLabel: "Receivable Amount",
               totalValue: ledger.totals.total_amount,
             },
           };

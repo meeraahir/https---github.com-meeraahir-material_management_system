@@ -204,7 +204,7 @@ const purchaseSchema = z
     cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer."),
     date: z.string().min(1, "Date is required."),
     description: z.string().max(300, "Description must be 300 characters or fewer."),
-    invoice_number: z.string().max(60, "Invoice number must be 60 characters or fewer."),
+    invoice_number: z.string(),
     material: z.number().min(0, "Material is invalid."),
     paid_amount: z.number().min(0, "Paid amount must be zero or more."),
     payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
@@ -245,7 +245,7 @@ const purchaseSchema = z
 const receivableSchema = z
   .object({
     amount: z.number().gt(0, "Amount must be greater than zero."),
-    date: z.string().min(1, "Invoice date is required."),
+    date: z.string().min(1, "Date is required."),
     description: z.string().max(1000, "Description must be 1000 characters or fewer."),
     party: z.number().min(1, "Party is required."),
     phase_name: z.string().max(255, "Phase name must be 255 characters or fewer."),
@@ -260,7 +260,7 @@ const receivableSchema = z
     if ((value.received_amount ?? 0) > value.amount) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Received amount cannot exceed invoice amount.",
+        message: "Received amount cannot exceed total amount.",
         path: ["received_amount"],
       });
     }
@@ -328,11 +328,7 @@ const receiptSchema = z
   .object({
     cost_per_unit: z.number().min(0, "Cost per unit must be zero or more."),
     date: z.string().min(1, "Receipt date is required."),
-    invoice_number: z
-      .string()
-      .max(50, "Invoice number must be 50 characters or fewer.")
-      .optional()
-      .or(z.literal("")),
+    invoice_number: z.string().optional().or(z.literal("")),
     material: z.number().min(1, "Material is required."),
     material_variant: z.number().min(0, "Variant is invalid.").optional(),
     notes: z
@@ -553,13 +549,6 @@ export function SiteMaterialReceiptModal({
               requiredIndicator
               type="date"
               {...register("date")}
-            />
-            <Input
-              error={errors.invoice_number?.message}
-              label="Invoice Number"
-              maxLength={50}
-              placeholder="Optional invoice reference"
-              {...register("invoice_number")}
             />
             <Input
               description="Fresh material received in this entry."
@@ -860,13 +849,6 @@ export function SiteVendorEntryModal({
               {...register("date")}
             />
             <Input
-              error={errors.invoice_number?.message}
-              label="Invoice Number"
-              maxLength={60}
-              placeholder="Invoice reference"
-              {...register("invoice_number")}
-            />
-            <Input
               error={errors.total_amount?.message}
               label="Total Amount"
               min={0}
@@ -1145,7 +1127,7 @@ export function SitePartyEntryModal({
               placeholder="Plaster Work, Slab, Brickwork..."
               {...register("phase_name")}
             />
-            <Input error={errors.date?.message} label="Invoice Date" requiredIndicator type="date" {...register("date")} />
+            <Input error={errors.date?.message} label="Date" requiredIndicator type="date" {...register("date")} />
             <Input error={errors.received_amount?.message} label="Received Amount" min={0} requiredIndicator type="number" {...register("received_amount", { setValueAs: (value) => (value === "" ? 0 : Number(value)) })} />
             <Controller
               control={control}
@@ -1186,7 +1168,7 @@ export function SitePartyEntryModal({
               <Textarea
                 error={errors.description?.message}
                 label="Description"
-                placeholder="Invoice or work description"
+                placeholder="Work description"
                 rows={4}
                 {...register("description")}
               />
