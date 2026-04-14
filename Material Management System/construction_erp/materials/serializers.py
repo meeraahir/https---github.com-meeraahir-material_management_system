@@ -159,7 +159,15 @@ class MaterialStockSerializer(serializers.ModelSerializer):
 
     quantity_received = serializers.DecimalField(max_digits=14, decimal_places=3, min_value=Decimal('0'))
     quantity_used = serializers.DecimalField(max_digits=14, decimal_places=3, min_value=Decimal('0'))
-    cost_per_unit = serializers.DecimalField(max_digits=14, decimal_places=3, min_value=Decimal('0'), required=False)
+    cost_per_unit = serializers.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        min_value=Decimal('0'),
+        required=False,
+        error_messages={
+            'max_decimal_places': 'Ensure that there are no more than 2 decimal places, or leave it blank to auto-calculate from the selected steel size and daily price.'
+        },
+    )
     transport_cost = serializers.DecimalField(max_digits=14, decimal_places=2, min_value=Decimal('0'))
 
     class Meta:

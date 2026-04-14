@@ -326,7 +326,7 @@ const attendanceSchema = z.object({
 
 const receiptSchema = z
   .object({
-    cost_per_unit: z.number().min(0, "Cost per unit must be zero or more."),
+    cost_per_unit: z.number().min(0, "Cost per unit must be zero or more.").optional(),
     date: z.string().min(1, "Receipt date is required."),
     invoice_number: z.string().optional().or(z.literal("")),
     material: z.number().min(1, "Material is required."),
@@ -380,7 +380,7 @@ export function SiteMaterialReceiptModal({
     setValue,
   } = useForm<ReceiptFormValues>({
     defaultValues: {
-      cost_per_unit: 0,
+      cost_per_unit: undefined,
       date: siteDashboardToday,
       invoice_number: "",
       material: 0,
@@ -417,7 +417,7 @@ export function SiteMaterialReceiptModal({
 
     lastSelectedMaterialRef.current = 0;
     reset({
-      cost_per_unit: 0,
+      cost_per_unit: undefined,
       date: siteDashboardToday,
       invoice_number: "",
       material: 0,
@@ -576,10 +576,10 @@ export function SiteMaterialReceiptModal({
               error={errors.cost_per_unit?.message}
               label="Cost Per Unit"
               min={0}
-              requiredIndicator
+              step={0.01}
               type="number"
               {...register("cost_per_unit", {
-                setValueAs: (value) => (value === "" ? 0 : Number(value)),
+                setValueAs: (value) => (value === "" ? undefined : Number(value)),
               })}
             />
             <Input

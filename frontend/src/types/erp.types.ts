@@ -198,7 +198,7 @@ export interface ReceiptFormValues {
   material_variant?: number;
   quantity_received: number;
   quantity_used: number;
-  cost_per_unit: number;
+  cost_per_unit?: number;
   transport_cost: number;
   invoice_number?: string;
   notes?: string;

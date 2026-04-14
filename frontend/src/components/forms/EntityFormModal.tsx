@@ -252,7 +252,10 @@ export function EntityFormModal<TFormValues extends FieldValues>({
                       : undefined,
                     setValueAs:
                       field.kind === "number" || field.valueType === "number"
-                        ? (value) => (value === "" ? 0 : Number(value))
+                        ? (value) =>
+                            value === ""
+                              ? (field.emptyValue === "undefined" ? undefined : 0)
+                              : Number(value)
                         : undefined,
                   })}
                 />

@@ -11,13 +11,19 @@ const baseService = createCrudService<
 >("/materials/stocks/");
 
 function normalizePayload(payload: ReceiptFormValues): ReceiptPayload {
-  return {
+  const normalizedPayload: ReceiptPayload = {
     ...payload,
     material_variant:
       payload.material_variant && payload.material_variant > 0
         ? payload.material_variant
         : null,
   };
+
+  if (payload.cost_per_unit === undefined) {
+    delete normalizedPayload.cost_per_unit;
+  }
+
+  return normalizedPayload;
 }
 
 export const materialReceiptsService = {
