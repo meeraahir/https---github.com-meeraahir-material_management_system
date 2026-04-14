@@ -8,7 +8,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   description?: string;
   error?: string;
   hint?: string;
-  label: string;
+  label?: string;
   requiredIndicator?: boolean;
 }
 
@@ -24,10 +24,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 
   return (
     <label className="flex w-full flex-col gap-2 text-sm font-medium text-[#374151]">
-      <span className="flex items-center gap-1 text-sm font-semibold text-[#111111]">
-        {label}
-        {requiredIndicator ? <span className="text-rose-500">*</span> : null}
-      </span>
+      {label ? (
+        <span className="flex items-center gap-1 text-sm font-semibold text-[#111111]">
+          {label}
+          {requiredIndicator ? <span className="text-rose-500">*</span> : null}
+        </span>
+      ) : null}
       {description ? (
         <span className="text-xs font-normal leading-5 text-[#6B7280]">
           {description}

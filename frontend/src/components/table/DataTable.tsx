@@ -46,8 +46,26 @@ function isMoneyColumn(column: ColumnMeta) {
   );
 }
 
+function isNumericLikeColumn(column: ColumnMeta) {
+  return /(amount|balance|cost|paid|pending|payment|receivable|wage|total|quantity|stock|used|received|rate|value|days|count)/i.test(
+    `${column.key} ${column.header}`,
+  );
+}
+
+function parseNumericString(value: string) {
+  const trimmedValue = value.trim();
+
+  if (!/^-?\d+(?:\.\d+)?$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const parsedValue = Number(trimmedValue);
+
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
 function isNumericColumn(column: ColumnMeta, value: ReactNode) {
-  return typeof value === "number" || isMoneyColumn(column);
+  return typeof value === "number" || (typeof value === "string" && parseNumericString(value) !== null && isNumericLikeColumn(column)) || isMoneyColumn(column);
 }
 
 function getStatusTone(value: string) {
@@ -97,6 +115,16 @@ function formatCellValue(column: ColumnMeta, value: ReactNode): ReactNode {
     return formatDate(value);
   }
 
+  if (typeof value === "string") {
+    const parsedValue = parseNumericString(value);
+
+    if (parsedValue !== null && isNumericLikeColumn(column)) {
+      return isMoneyColumn(column)
+        ? formatCurrency(parsedValue)
+        : formatNumber(parsedValue);
+    }
+  }
+
   if (typeof value === "number") {
     return isMoneyColumn(column) ? formatCurrency(value) : formatNumber(value);
   }
@@ -126,7 +154,12 @@ function getCellTooltip(value: ReactNode): string | undefined {
   }
 
   if (typeof value === "string") {
-    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? formatDate(value) : value;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return formatDate(value);
+    }
+
+    const parsedValue = parseNumericString(value);
+    return parsedValue !== null ? formatNumber(parsedValue) : value;
   }
 
   if (typeof value === "boolean") {
@@ -224,11 +257,11 @@ export function DataTable<T>({
   const showHeader = Boolean(headerTitle || headerActions);
   const isRowInteractive = Boolean(onRowClick || onRowDoubleClick);
   const headerCellClassName = compact
-    ? "min-w-24 max-w-[8.75rem] px-3 py-2.5 text-[0.76rem]"
-    : "min-w-36 max-w-[13rem] px-4 py-3.5 text-[0.86rem]";
+    ? "px-3 py-2.5 text-[0.76rem]"
+    : "px-4 py-3 text-[0.82rem]";
   const bodyCellClassName = compact
-    ? "min-w-24 max-w-[8.75rem] px-3 py-2.5 text-[0.88rem]"
-    : "min-w-36 max-w-[13rem] px-4 py-3 text-[0.95rem]";
+    ? "px-3 py-2.5 text-[0.88rem]"
+    : "px-4 py-3 text-[0.95rem]";
 
   return (
     <section className="erp-shell-panel overflow-hidden rounded-3xl border bg-white">
@@ -348,28 +381,25 @@ export function DataTable<T>({
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white to-transparent" />
           <div className="table-scrollbar overflow-x-auto pb-2">
-            <table className="min-w-full table-auto divide-y divide-[#E5E7EB]">
+            <table className="min-w-full table-fixed divide-y divide-[#E5E7EB]">
               <thead>
                 <tr className="erp-table-head bg-[#F9FAFB]">
                   {columns.map((column) => (
                     (() => {
-                      const isRightAligned = /(amount|balance|cost|paid|pending|payment|receivable|wage|total|quantity|stock|used|received)/i.test(
-                        `${column.key} ${column.header}`,
-                      );
-
                       return (
                     <th
                       className={clsx(
                         "whitespace-nowrap font-semibold uppercase tracking-[0.12em] text-[#6B7280]",
                         headerCellClassName,
-                        isRightAligned ? "text-right" : "text-left",
+                        column.className,
+                        "text-left",
                       )}
                       key={column.key}
                     >
                       <button
                         className={clsx(
                           "inline-flex w-full items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap leading-5",
-                          isRightAligned ? "justify-end text-right" : "justify-start text-left",
+                          "justify-start text-left",
                           column.sortValue
                             ? "cursor-pointer"
                             : "cursor-default",
@@ -409,7 +439,7 @@ export function DataTable<T>({
                   ))}
                   {actions?.length ? (
                     <th className={clsx(
-                        "sticky right-0 z-20 whitespace-nowrap bg-[#F9FAFB] text-right font-semibold uppercase tracking-[0.12em] text-[#6B7280] shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.15)]",
+                        "sticky right-0 z-20 whitespace-nowrap bg-[#F9FAFB] text-left font-semibold uppercase tracking-[0.12em] text-[#6B7280] shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.15)]",
                       compact ? "px-3 py-2.5 text-[0.76rem]" : "px-4 py-3.5 text-[0.86rem]",
                       actionsDisplay === "icon" ? (compact ? "w-24" : "w-28") : "w-44",
                     )}>
@@ -439,10 +469,10 @@ export function DataTable<T>({
                       return (
                         <td
                           className={clsx(
-                            "font-medium text-[#111111]",
+                            "font-medium text-[#111111] align-top",
                             bodyCellClassName,
-                            isNumericColumn(column, cellValue) &&
-                              "text-right tabular-nums",
+                            "text-left",
+                            isNumericColumn(column, cellValue) && "tabular-nums",
                             column.className,
                           )}
                           key={column.key}
@@ -462,7 +492,7 @@ export function DataTable<T>({
                         compact ? "px-3 py-2.5" : "px-4 py-3",
                         actionsDisplay === "icon" ? (compact ? "w-24" : "w-28") : "w-44",
                       )}>
-                        <div className="flex flex-nowrap justify-end gap-2">
+                        <div className="flex flex-nowrap justify-start gap-2">
                           {actions.map((action) => (
                             actionsDisplay === "icon" ? (
                               <button
