@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Receivable, ReceivePaymentFormValues } from "../../types/erp.types";
 import { createZodResolver } from "../../utils/zodResolver";
 import { getErrorMessage } from "../../utils/apiError";
+import { formatCurrency, formatDate } from "../../utils/format";
 import { useToast } from "../feedback/useToast";
 import { Modal } from "../modal/Modal";
 import { Button } from "../ui/Button";
@@ -19,9 +20,10 @@ const receivePaymentSchema = z.object({
   amount: z.number().gt(0, "Received amount must be greater than zero."),
   cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer."),
   date: z.string().min(1, "Receipt date is required."),
-  payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"]),
   notes: z.string().max(600, "Notes must be 600 characters or fewer."),
-  payment_mode: z.string().min(1, "Payment method is required."),
+  payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"], {
+    message: "Payment method is required.",
+  }),
   reference_number: z
     .string()
     .max(50, "Reference number must be 50 characters or fewer."),
@@ -59,13 +61,17 @@ export function ReceivePaymentModal({
   onClose,
   onSubmit,
   open,
-  partyLabel: _partyLabel,
-  siteLabel: _siteLabel,
+  partyLabel,
+  siteLabel,
 }: ReceivePaymentModalProps) {
   const { showSuccess } = useToast();
   const [formError, setFormError] = useState("");
   const pendingAmount = useMemo(
     () => item?.pending_amount ?? item?.amount ?? 0,
+    [item],
+  );
+  const currentReceivedAmount = useMemo(
+    () => item?.current_received_amount ?? 0,
     [item],
   );
   const {
@@ -77,7 +83,7 @@ export function ReceivePaymentModal({
     defaultValues: {
       amount: pendingAmount,
       cheque_number: "",
-      date: new Date().toISOString().slice(0, 10),
+      date: today,
       payment_mode: "cash",
       notes: "",
       receiver_name: "",
@@ -96,7 +102,7 @@ export function ReceivePaymentModal({
     reset({
       amount: pendingAmount,
       cheque_number: "",
-      date: new Date().toISOString().slice(0, 10),
+      date: today,
       payment_mode: "cash",
       notes: "",
       receiver_name: "",
@@ -213,18 +219,18 @@ export function ReceivePaymentModal({
               return;
             }
 
-          try {
-            setFormError("");
-            await onSubmit(values);
-            showSuccess(
-              "Payment received",
-              "Receivable balance has been updated successfully.",
-            );
-          } catch (error) {
-            setFormError(getErrorMessage(error));
-          }
-        })}
-      >
+            try {
+              setFormError("");
+              await onSubmit(values);
+              showSuccess(
+                "Payment received",
+                "Receivable balance has been updated successfully.",
+              );
+            } catch (error) {
+              setFormError(getErrorMessage(error));
+            }
+          })}
+        >
           <Input
             error={errors.amount?.message}
             label="Received Amount"
@@ -296,7 +302,8 @@ export function ReceivePaymentModal({
           <div className="md:col-span-2">
             <FormError message={formError} />
           </div>
-      </form>
+        </form>
+      </div>
     </Modal>
   );
 }
