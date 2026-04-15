@@ -5,6 +5,7 @@ import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { Skeleton } from "../../components/common/Skeleton";
 import { useToast } from "../../components/feedback/useToast";
 import { EntityFormModal } from "../../components/forms/EntityFormModal";
+import { useDataContext } from "../../context/DataContext";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { StatCard } from "../../components/layout/StatCard";
 import { Button } from "../../components/ui/Button";
@@ -80,6 +81,7 @@ const ownerDashboardSummaryViewportClassName = "table-scrollbar mt-5 max-h-[15re
 
 export function OwnerDashboardPage() {
   const { showError, showSuccess } = useToast();
+  const { refreshKey } = useDataContext();
   const [dashboard, setDashboard] = useState<OwnerDashboardData | null>(null);
   const [expenses, setExpenses] = useState<MiscellaneousExpense[]>([]);
   const [payouts, setPayouts] = useState<OwnerPayout[]>([]);
@@ -144,15 +146,15 @@ export function OwnerDashboardPage() {
 
   useEffect(() => {
     void loadDashboard();
-  }, [loadDashboard]);
+  }, [loadDashboard, refreshKey]);
 
   useEffect(() => {
     void loadExpenses();
-  }, [loadExpenses]);
+  }, [loadExpenses, refreshKey]);
 
   useEffect(() => {
     void loadPayouts();
-  }, [loadPayouts]);
+  }, [loadPayouts, refreshKey]);
 
   const summaryCards = dashboard
     ? [

@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
 
 import { useToast } from "../components/feedback/useToast";
+import { useDataContext } from "../context/DataContext";
 import type { CrudService } from "../services/crudService";
 import { getErrorMessage } from "../utils/apiError";
 
@@ -16,6 +17,7 @@ export function useCrudModule<TEntity, TFormValues>({
   service,
 }: CrudModuleOptions<TEntity, TFormValues>) {
   const { showError, showSuccess } = useToast();
+  const { refreshKey, triggerRefresh } = useDataContext();
   const [items, setItems] = useState<TEntity[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [searchValue, setSearchValue] = useState("");
@@ -48,7 +50,7 @@ export function useCrudModule<TEntity, TFormValues>({
 
   useEffect(() => {
     void loadList();
-  }, [loadList, reloadSignal]);
+  }, [loadList, refreshKey, reloadSignal]);
 
   useEffect(() => {
     setPage(1);
@@ -64,7 +66,7 @@ export function useCrudModule<TEntity, TFormValues>({
       await service.remove(getId(deleteTarget));
       setDeleteTarget(null);
       showSuccess("Record deleted", "The record has been removed successfully.");
-      await loadList();
+      triggerRefresh();
     } catch (deleteError) {
       showError("Delete failed", getErrorMessage(deleteError));
     } finally {
@@ -84,7 +86,7 @@ export function useCrudModule<TEntity, TFormValues>({
 
       setIsFormOpen(false);
       setEditingItem(null);
-      await loadList();
+      triggerRefresh();
     } catch (submitError) {
       showError("Save failed", getErrorMessage(submitError));
       throw submitError;

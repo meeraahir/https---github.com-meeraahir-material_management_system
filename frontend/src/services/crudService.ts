@@ -1,4 +1,5 @@
 import { apiClient } from "../api/client";
+import { triggerAppRefresh } from "../context/dataSyncStore";
 import type { ListParams, PaginatedResponse } from "../types/erp.types";
 import { ensurePaginatedResponse } from "../utils/pagination";
 
@@ -16,6 +17,7 @@ export function createCrudService<TEntity, TFormValues>(
   return {
     async create(payload) {
       const response = await apiClient.post<TEntity>(basePath, payload);
+      triggerAppRefresh();
       return response.data;
     },
 
@@ -47,10 +49,12 @@ export function createCrudService<TEntity, TFormValues>(
 
     async remove(id) {
       await apiClient.delete(`${basePath}${id}/`);
+      triggerAppRefresh();
     },
 
     async update(id, payload) {
       const response = await apiClient.put<TEntity>(`${basePath}${id}/`, payload);
+      triggerAppRefresh();
       return response.data;
     },
   };

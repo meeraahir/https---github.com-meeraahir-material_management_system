@@ -108,6 +108,16 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
     def get_pending_amount(self, obj):
         return obj.pending_amount()
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        latest_payment_mode = (
+            instance.payments.order_by('-date', '-id')
+            .values_list('payment_mode', flat=True)
+            .first()
+        )
+        data['payment_mode'] = latest_payment_mode
+        return data
+
     def _sync_payment_history(
         self,
         purchase,

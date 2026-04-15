@@ -13,6 +13,7 @@ import { Skeleton } from "../../components/common/Skeleton";
 import { EntityFormModal } from "../../components/forms/EntityFormModal";
 import { StatCard } from "../../components/layout/StatCard";
 import { dashboardService } from "../../services/dashboardService";
+import { useDataContext } from "../../context/DataContext";
 import { sitesService } from "../../services/sitesService";
 import type {
   DashboardStats,
@@ -48,6 +49,7 @@ function getSiteMetric(row: SiteWiseMaterialReportRow, keys: string[]) {
 
 export function DashboardPage() {
   const { showError, showSuccess } = useToast();
+  const { refreshKey } = useDataContext();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [materialReport, setMaterialReport] = useState<MaterialWiseReportRow[]>([]);
   const [siteReport, setSiteReport] = useState<SiteWiseMaterialReportRow[]>([]);
@@ -82,7 +84,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     void loadDashboard();
-  }, [loadDashboard]);
+  }, [loadDashboard, refreshKey]);
 
   const materialUsageChartData = useMemo(
     () =>

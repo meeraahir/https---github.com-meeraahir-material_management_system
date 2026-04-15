@@ -71,7 +71,6 @@ export function ReceivablesPage() {
   const references = useReferenceData();
   const permissions = getCrudPermissions(user);
   const [paymentTarget, setPaymentTarget] = useState<Receivable | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const partyNameMap = new Map(
     references.parties.map((party) => [party.id, party.name]),
   );
@@ -258,7 +257,6 @@ export function ReceivablesPage() {
           site: entity.site,
         })}
         getId={(entity) => entity.id}
-        refreshKey={refreshKey}
         schema={receivableSchema}
         searchPlaceholder="Search receivables"
         service={receivablesService}
@@ -300,7 +298,6 @@ export function ReceivablesPage() {
 
           await receivablesService.receivePayment(paymentTarget.id, values);
           setPaymentTarget(null);
-          setRefreshKey((currentValue) => currentValue + 1);
         }}
         open={Boolean(paymentTarget)}
       />

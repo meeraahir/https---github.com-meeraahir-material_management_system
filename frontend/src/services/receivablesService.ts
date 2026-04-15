@@ -1,4 +1,5 @@
 import { apiClient } from "../api/client";
+import { triggerAppRefresh } from "../context/dataSyncStore";
 import { createCrudService } from "./crudService";
 import type {
   Receivable,
@@ -42,6 +43,7 @@ export const receivablesService = {
       },
     );
 
+    triggerAppRefresh();
     return response.data;
   },
   update(id: number, payload: ReceivableFormValues) {

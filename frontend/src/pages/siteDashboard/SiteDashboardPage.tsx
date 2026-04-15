@@ -7,6 +7,7 @@ import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { useToast } from "../../components/feedback/useToast";
 import { EntityFormModal } from "../../components/forms/EntityFormModal";
 import { ReceivePaymentModal } from "../../components/forms/ReceivePaymentModal";
+import { useDataContext } from "../../context/DataContext";
 import {
   VendorPaymentModal,
   type VendorPaymentModalValues,
@@ -401,6 +402,7 @@ function upsertById<TEntity extends { id: number }>(
 export function SiteDashboardPage() {
   const { siteId } = useParams();
   const { showError, showSuccess } = useToast();
+  const { refreshKey, triggerRefresh } = useDataContext();
   const references = useReferenceData();
   const parsedSiteId = Number(siteId);
   const calculationRequestRef = useRef(0);
@@ -425,7 +427,6 @@ export function SiteDashboardPage() {
   const [isVendorEntryModalOpen, setIsVendorEntryModalOpen] = useState(false);
   const [isVendorPaymentModalOpen, setIsVendorPaymentModalOpen] = useState(false);
   const [localPartyPaymentHistory, setLocalPartyPaymentHistory] = useState<PartyPaymentHistoryRow[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [isReceiptDetailsModalOpen, setIsReceiptDetailsModalOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<SelectedReceipt | null>(null);
   const [selectedLabourPayment, setSelectedLabourPayment] = useState<Payment | null>(null);
@@ -763,7 +764,7 @@ export function SiteDashboardPage() {
   );
 
   function refreshDashboardData() {
-    setRefreshKey((currentValue) => currentValue + 1);
+    triggerRefresh();
   }
 
   function addMaterialOption(material: Material) {

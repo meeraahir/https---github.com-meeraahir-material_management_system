@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { CrudModulePage } from "../../components/forms/CrudModulePage";
@@ -6,7 +5,6 @@ import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { attendanceService } from "../../services/attendanceService";
 import type { Attendance, AttendanceFormValues } from "../../types/erp.types";
-import { attendanceUpdatedEventName } from "../../utils/attendance";
 import { getCrudPermissions } from "../../utils/permissions";
 
 const today = new Date().toISOString().slice(0, 10);
@@ -26,23 +24,10 @@ export function AttendancePage() {
   const { user } = useAuth();
   const references = useReferenceData();
   const permissions = getCrudPermissions(user);
-  const [refreshKey, setRefreshKey] = useState(0);
   const labourNameMap = new Map(
     references.labour.map((labour) => [labour.id, labour.name]),
   );
   const siteNameMap = new Map(references.sites.map((site) => [site.id, site.name]));
-
-  useEffect(() => {
-    function handleAttendanceUpdated() {
-      setRefreshKey((currentValue) => currentValue + 1);
-    }
-
-    window.addEventListener(attendanceUpdatedEventName, handleAttendanceUpdated);
-
-    return () => {
-      window.removeEventListener(attendanceUpdatedEventName, handleAttendanceUpdated);
-    };
-  }, []);
 
   return (
     <CrudModulePage<Attendance, AttendanceFormValues>
@@ -103,7 +88,6 @@ export function AttendancePage() {
         site: entity.site,
       })}
       getId={(entity) => entity.id}
-      refreshKey={refreshKey}
       schema={attendanceSchema}
       searchPlaceholder="Search attendance by labour or site"
       service={attendanceService}
