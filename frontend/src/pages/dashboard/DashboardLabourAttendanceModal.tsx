@@ -299,6 +299,8 @@ export function DashboardLabourAttendanceModal({
           site: row.siteId,
         };
 
+        console.log("Attendance Payload:", payload);
+
         if (existingAttendance) {
           if (existingAttendance.present === present) {
             continue;

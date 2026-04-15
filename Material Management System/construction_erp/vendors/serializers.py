@@ -44,7 +44,6 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
     material_name = serializers.CharField(source='material.name', read_only=True)
     payment_mode = serializers.ChoiceField(
         choices=VendorPayment._meta.get_field('payment_mode').choices,
-        write_only=True,
         required=False,
         default=PAYMENT_MODE_CASH,
     )
