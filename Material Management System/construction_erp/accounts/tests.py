@@ -78,3 +78,24 @@ class AccountsAndPermissionsTests(TestCase):
 
         response = self.client.delete(f'/api/sites/{site.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_forgot_password_updates_existing_user_password(self):
+        response = self.client.post('/api/accounts/forgot-password/', {
+            'email': 'admin@test.com',
+            'new_password': 'UpdatedPassword123!',
+            'confirm_password': 'UpdatedPassword123!',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.check_password('UpdatedPassword123!'))
+
+    def test_forgot_password_returns_error_for_unknown_email(self):
+        response = self.client.post('/api/accounts/forgot-password/', {
+            'email': 'missing@test.com',
+            'new_password': 'UpdatedPassword123!',
+            'confirm_password': 'UpdatedPassword123!',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('No user found with this email address.', response.data['email'][0])

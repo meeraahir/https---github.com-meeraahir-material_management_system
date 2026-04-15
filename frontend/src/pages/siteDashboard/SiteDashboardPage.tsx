@@ -271,6 +271,20 @@ interface PartyPaymentHistoryRow {
   senderName?: string;
 }
 
+interface VendorPaymentHistoryRow {
+  amount: number;
+  chequeNumber?: string;
+  date: string;
+  id: string;
+  paymentMethod?: string;
+  purchaseLabel: string;
+  receiverName?: string;
+  referenceNumber?: string;
+  remarks?: string;
+  senderName?: string;
+  sourceLabel: string;
+}
+
 async function fetchAllPaginatedResults<TEntity>(
   path: string,
   params?: Record<string, number | string | undefined>,
@@ -624,6 +638,45 @@ export function SiteDashboardPage() {
 
     return vendorDetailEntries.find((entry) => entry.pending_amount > 0) ?? null;
   }, [selectedVendor, vendorDetailEntries]);
+  const vendorPaymentHistoryRows = useMemo<VendorPaymentHistoryRow[]>(
+    () =>
+      [
+        ...vendorDetailEntries
+          .filter((entry) => entry.paid_amount > 0)
+          .map((entry) => ({
+            amount: entry.paid_amount,
+            chequeNumber: entry.cheque_number || undefined,
+            date: entry.date,
+            id: `purchase-payment-${entry.id}`,
+            paymentMethod: formatPaymentMethodLabel(entry.payment_mode),
+            purchaseLabel: entry.invoice_number?.trim()
+              ? entry.invoice_number
+              : `Purchase #${entry.id}`,
+            receiverName: entry.receiver_name || undefined,
+            referenceNumber: entry.invoice_number || undefined,
+            remarks: entry.description || undefined,
+            senderName: entry.sender_name || undefined,
+            sourceLabel: "Initial Purchase Payment",
+          })),
+        ...vendorPaymentHistory.map((entry) => ({
+          amount: entry.amount,
+          chequeNumber: entry.cheque_number || undefined,
+          date: entry.date,
+          id: `vendor-payment-${entry.id}`,
+          paymentMethod: formatPaymentMethodLabel(entry.payment_mode),
+          purchaseLabel: entry.purchase_invoice_number?.trim()
+            ? entry.purchase_invoice_number
+            : `Purchase #${entry.purchase}`,
+          receiverName: entry.receiver_name || undefined,
+          referenceNumber: entry.reference_number || undefined,
+          remarks: entry.remarks || undefined,
+          senderName: entry.sender_name || undefined,
+          sourceLabel: "Additional Payment",
+        })),
+      ].sort((left, right) => right.date.localeCompare(left.date)),
+    [vendorDetailEntries, vendorPaymentHistory],
+  );
+  const siteDashboardTableViewportClassName = "max-h-[18rem]";
 
   const syncAutoCalculatedTotal = useCallback(
     async ({
@@ -1152,6 +1205,7 @@ export function SiteDashboardPage() {
             <DataTable<Receipt>
               actions={materialActions}
               actionsDisplay="icon"
+              bodyViewportClassName={siteDashboardTableViewportClassName}
               columns={[
                 {
                   key: "material",
@@ -1221,6 +1275,7 @@ export function SiteDashboardPage() {
             <DataTable<Purchase>
               actions={vendorActions}
               actionsDisplay="icon"
+              bodyViewportClassName={siteDashboardTableViewportClassName}
               columns={[
                 {
                   key: "vendor",
@@ -1297,6 +1352,7 @@ export function SiteDashboardPage() {
             <DataTable<Receivable>
               actions={financeActions}
               actionsDisplay="icon"
+              bodyViewportClassName={siteDashboardTableViewportClassName}
               columns={[
                 {
                   key: "party",
@@ -1370,6 +1426,7 @@ export function SiteDashboardPage() {
             <DataTable<Payment>
               actions={labourActions}
               actionsDisplay="icon"
+              bodyViewportClassName={siteDashboardTableViewportClassName}
               columns={[
                 {
                   key: "labour",
@@ -1758,58 +1815,68 @@ export function SiteDashboardPage() {
                 Payment History
               </h3>
               <p className="mt-1 text-sm text-[#6B7280]">
-                Only payments made for this vendor on the selected site are shown here.
+                Initial purchase payments and later vendor payments for this site are shown together here.
               </p>
             </div>
             {isVendorDetailsLoading ? (
               <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 text-sm text-[#6B7280]">
                 Loading payment history...
               </div>
-            ) : vendorPaymentHistory.length ? (
+            ) : vendorPaymentHistoryRows.length ? (
               <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border-collapse text-sm">
-                    <thead className="bg-[#F9FAFB]">
-                      <tr>
-                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
-                          Paid Amount
-                        </th>
-                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
-                          Payment Date
-                        </th>
-                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
-                          Payment Method
-                        </th>
-                        <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
-                          Reference Number
-                        </th>
-                        <th className="min-w-[220px] px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
-                          Notes
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {vendorPaymentHistory.map((entry) => (
-                        <tr className="border-t border-[#E5E7EB]" key={entry.id}>
-                          <td className="whitespace-nowrap px-4 py-3 font-medium text-[#111111]">
-                            {formatCurrency(entry.amount)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 font-medium text-[#111111]">
-                            {formatDate(entry.date)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
-                            {formatPaymentMethodLabel(entry.payment_mode)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
-                            {entry.reference_number || "-"}
-                          </td>
-                          <td className="px-4 py-3 text-[#111111]">
-                            {entry.remarks || "-"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="table-scrollbar max-h-[18rem] overflow-y-auto">
+                {vendorPaymentHistoryRows.map((entry) => (
+                  <article
+                    className="border-b border-[#F3F4F6] px-4 py-3 last:border-b-0"
+                    key={entry.id}
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#1D4ED8]">
+                            {entry.sourceLabel}
+                          </span>
+                          <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#4B5563]">
+                            {entry.purchaseLabel}
+                          </span>
+                          <span className="rounded-full bg-[#ECFDF5] px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#047857]">
+                            {entry.paymentMethod || "Payment Mode N/A"}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-[#111111]">
+                          {formatCurrency(entry.amount)}
+                        </p>
+                        <p className="mt-1 text-sm text-[#374151]">
+                          {entry.senderName || "-"} to {entry.receiverName || "-"}
+                        </p>
+                        <p className="mt-1 text-xs text-[#6B7280]">
+                          {formatDate(entry.date)}
+                        </p>
+                      </div>
+
+                      <div className="grid gap-1 text-xs text-[#6B7280] sm:text-right">
+                        <span>
+                          Sender: <span className="font-medium text-[#111111]">{entry.senderName || "-"}</span>
+                        </span>
+                        <span>
+                          Receiver: <span className="font-medium text-[#111111]">{entry.receiverName || "-"}</span>
+                        </span>
+                        <span>
+                          Cheque: <span className="font-medium text-[#111111]">{entry.chequeNumber || "-"}</span>
+                        </span>
+                        <span>
+                          Ref: <span className="font-medium text-[#111111]">{entry.referenceNumber || "-"}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {entry.remarks ? (
+                      <p className="mt-2 text-xs leading-5 text-[#6B7280]">
+                        {entry.remarks}
+                      </p>
+                    ) : null}
+                  </article>
+                ))}
                 </div>
               </div>
             ) : (
@@ -1830,14 +1897,14 @@ export function SiteDashboardPage() {
 
           await vendorPaymentsService.create({
             amount: values.amount,
-            cheque_number: "",
+            cheque_number: values.cheque_number,
             date: values.date,
             payment_mode: values.payment_mode,
             purchase: selectedVendorPaymentTarget.id,
-            receiver_name: "",
+            receiver_name: values.receiver_name,
             reference_number: values.reference_number,
             remarks: values.notes,
-            sender_name: "",
+            sender_name: values.sender_name,
           });
 
           setIsVendorPaymentModalOpen(false);

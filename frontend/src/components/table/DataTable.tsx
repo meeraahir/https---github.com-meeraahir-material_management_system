@@ -12,6 +12,7 @@ import { Loader } from "../ui/Loader";
 interface DataTableProps<T> {
   actions?: TableAction<T>[];
   actionsDisplay?: "icon" | "text";
+  bodyViewportClassName?: string;
   compact?: boolean;
   clientPagination?: boolean;
   columns: TableColumn<T>[];
@@ -185,6 +186,7 @@ function getActionVariantClass(label: string) {
 export function DataTable<T>({
   actions,
   actionsDisplay = "text",
+  bodyViewportClassName,
   compact = false,
   clientPagination = false,
   columns,
@@ -393,9 +395,15 @@ export function DataTable<T>({
           <div className="hidden md:block">
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white to-transparent" />
-          <div className="table-scrollbar overflow-x-auto pb-2">
+          <div
+            className={clsx(
+              "table-scrollbar overflow-x-auto pb-2",
+              bodyViewportClassName && "overflow-y-auto",
+              bodyViewportClassName,
+            )}
+          >
             <table className="min-w-full table-fixed divide-y divide-[#E5E7EB]">
-              <thead>
+              <thead className={clsx(bodyViewportClassName && "sticky top-0 z-20")}>
                 <tr className="erp-table-head bg-[#F9FAFB]">
                   {columns.map((column) => (
                     (() => {

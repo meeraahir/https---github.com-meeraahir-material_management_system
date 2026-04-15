@@ -17,6 +17,7 @@ const today = new Date().toISOString().slice(0, 10);
 
 const vendorPaymentSchema = z.object({
   amount: z.number().gt(0, "Paid amount must be greater than zero."),
+  cheque_number: z.string().max(50, "Cheque number must be 50 characters or fewer."),
   date: z
     .string()
     .min(1, "Payment date is required.")
@@ -25,14 +26,38 @@ const vendorPaymentSchema = z.object({
   payment_mode: z.enum(["cash", "check", "bank_transfer", "upi", "other"], {
     message: "Payment method is required.",
   }),
+  receiver_name: z.string().max(255, "Receiver name must be 255 characters or fewer."),
   reference_number: z
     .string()
     .max(50, "Reference number must be 50 characters or fewer."),
+  sender_name: z.string().max(255, "Sender name must be 255 characters or fewer."),
+}).superRefine((value, context) => {
+  if (value.payment_mode === "cash" && !value.sender_name.trim() && !value.receiver_name.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Sender name or receiver name is required for cash payments.",
+      path: ["sender_name"],
+    });
+  }
+
+  if (value.payment_mode === "check" && !value.cheque_number.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Cheque number is required for check payments.",
+      path: ["cheque_number"],
+    });
+  }
 });
 
 export type VendorPaymentModalValues = Pick<
   VendorPaymentFormValues,
-  "amount" | "date" | "payment_mode" | "reference_number"
+  | "amount"
+  | "cheque_number"
+  | "date"
+  | "payment_mode"
+  | "receiver_name"
+  | "reference_number"
+  | "sender_name"
 > & {
   notes: string;
 };
@@ -57,10 +82,13 @@ export function VendorPaymentModal({
   function getDefaultValues(): VendorPaymentModalValues {
     return {
       amount: remainingAmount,
+      cheque_number: "",
       date: today,
       notes: "",
       payment_mode: "cash",
+      receiver_name: "",
       reference_number: "",
+      sender_name: "",
     };
   }
 
@@ -167,6 +195,27 @@ export function VendorPaymentModal({
           ]}
           requiredIndicator
           {...register("payment_mode")}
+        />
+        <Input
+          error={errors.sender_name?.message}
+          label="Sender Name"
+          maxLength={255}
+          placeholder="Who paid the amount"
+          {...register("sender_name")}
+        />
+        <Input
+          error={errors.receiver_name?.message}
+          label="Receiver Name"
+          maxLength={255}
+          placeholder="Who received the amount"
+          {...register("receiver_name")}
+        />
+        <Input
+          error={errors.cheque_number?.message}
+          label="Cheque Number"
+          maxLength={50}
+          placeholder="Required for check payments"
+          {...register("cheque_number")}
         />
         <Input
           error={errors.reference_number?.message}

@@ -40,6 +40,18 @@ export interface RegisterFormValues {
   confirmPassword: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+export interface ForgotPasswordFormValues {
+  email: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface RegisterResponse extends AuthTokens {
   user: AuthUser;
 }
@@ -68,6 +80,7 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
   register: (username: string, email: string, password: string) => Promise<void>;
+  forgotPassword?: (email: string, newPassword: string, confirmPassword: string) => Promise<void>;
   refresh: () => Promise<string | null>;
   loadUser: () => Promise<AuthUser | null>;
 }

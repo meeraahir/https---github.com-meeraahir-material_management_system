@@ -1,6 +1,7 @@
 import { apiClient, requestAccessTokenRefresh } from "../api/client";
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import type {
+  ForgotPasswordRequest,
   AuthSession,
   AuthTokens,
   AuthUser,
@@ -11,6 +12,7 @@ import type {
 import { clearTokens, setTokens } from "../utils/tokenStorage";
 
 const AUTH_ENDPOINTS = {
+  forgotPassword: "/accounts/forgot-password/",
   login: "/accounts/login/",
   register: "/accounts/register/",
   profile: "/accounts/profile/",
@@ -77,11 +79,30 @@ async function refreshToken(): Promise<string | null> {
   return requestAccessTokenRefresh();
 }
 
+async function forgotPassword(
+  email: string,
+  newPassword: string,
+  confirmPassword: string,
+): Promise<void> {
+  const payload: ForgotPasswordRequest = {
+    confirm_password: confirmPassword,
+    email: email.trim(),
+    new_password: newPassword,
+  };
+
+  await apiClient.post(
+    AUTH_ENDPOINTS.forgotPassword,
+    payload,
+    { skipAuthRefresh: true } as RequestOptionsWithAuth,
+  );
+}
+
 function logout(): void {
   clearTokens();
 }
 
 export const authService = {
+  forgotPassword,
   getCurrentUser,
   login,
   logout,

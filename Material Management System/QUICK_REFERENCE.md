@@ -3,6 +3,7 @@
 ## 🔗 Quick API Endpoints Reference
 
 ### Authentication
+
 ```
 POST   /core/token/              → Login
 POST   /core/token/refresh/      → Refresh token
@@ -10,6 +11,7 @@ POST   /accounts/register/       → Register
 ```
 
 ### Materials
+
 ```
 GET    /materials/               → List all materials
 POST   /materials/               → Create material
@@ -32,6 +34,7 @@ GET    /material-stock/reports/site-wise/pdf/          → PDF
 ```
 
 ### Vendors
+
 ```
 GET    /vendors/                 → List vendors
 POST   /vendors/                 → Create vendor
@@ -54,6 +57,7 @@ GET    /vendors/reports/summary/pdf/            → PDF
 ```
 
 ### Labour
+
 ```
 GET    /labour/                  → List labour
 POST   /labour/                  → Create labour
@@ -85,6 +89,7 @@ GET    /labour/reports/payment-summary/pdf/          → PDF
 ```
 
 ### Finance
+
 ```
 GET    /finance/parties/         → List parties
 POST   /finance/parties/         → Create party
@@ -104,6 +109,7 @@ GET    /finance/parties/reports/receivables/pdf/   → PDF
 ```
 
 ### Sites
+
 ```
 GET    /sites/                   → List sites
 POST   /sites/                   → Create site
@@ -119,6 +125,7 @@ GET    /sites/{id}/dashboard/export/pdf/ → Export PDF
 ```
 
 ### Dashboard
+
 ```
 GET    /core/dashboard/              → Main dashboard
 GET    /core/dashboard/chart/        → Chart data
@@ -131,63 +138,67 @@ GET    /core/dashboard/export/pdf/   → Export PDF
 ## 💡 Common Code Examples
 
 ### 1. Login & Store Token
+
 ```javascript
 async function login(username, password) {
-  const response = await fetch('http://localhost:8000/api/core/token/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
+  const response = await fetch("http://localhost:8000/api/core/token/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
   });
-  
+
   const data = await response.json();
-  localStorage.setItem('access_token', data.access);
-  localStorage.setItem('refresh_token', data.refresh);
+  localStorage.setItem("access_token", data.access);
+  localStorage.setItem("refresh_token", data.refresh);
   return data;
 }
 ```
 
 ### 2. API Request with Token
+
 ```javascript
-async function fetchAPI(endpoint, method = 'GET', body = null) {
+async function fetchAPI(endpoint, method = "GET", body = null) {
   const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("access_token")}`,
   };
-  
+
   const config = {
     method,
-    headers
+    headers,
   };
-  
+
   if (body) config.body = JSON.stringify(body);
-  
+
   const response = await fetch(`http://localhost:8000/api${endpoint}`, config);
-  
+
   if (response.status === 401) {
     // Token expired - refresh it
     const newToken = await refreshToken();
-    headers['Authorization'] = `Bearer ${newToken}`;
+    headers["Authorization"] = `Bearer ${newToken}`;
     // Retry request
     return fetch(`http://localhost:8000/api${endpoint}`, config);
   }
-  
+
   return response.json();
 }
 ```
 
 ### 3. Create Material
+
 ```javascript
 function createMaterial() {
   const material = {
     name: "Cement",
-    unit: "bags"
+    unit: "bags",
   };
-  
-  return fetchAPI('/materials/', 'POST', material);
+
+  return fetchAPI("/materials/", "POST", material);
 }
 ```
 
 ### 4. Record Material Stock
+
 ```javascript
 function recordStock(siteId, materialId) {
   const stock = {
@@ -196,120 +207,126 @@ function recordStock(siteId, materialId) {
     quantity_received: 100,
     quantity_used: 0,
     cost_per_unit: 250,
-    transport_cost: 500
+    transport_cost: 500,
   };
-  
-  return fetchAPI('/material-stock/', 'POST', stock);
+
+  return fetchAPI("/material-stock/", "POST", stock);
 }
 ```
 
 ### 5. Mark Labour Attendance
+
 ```javascript
 function markAttendance(labourId, siteId, isPresent) {
-  const today = new Date().toISOString().split('T')[0];
-  
+  const today = new Date().toISOString().split("T")[0];
+
   const attendance = {
     labour: labourId,
     site: siteId,
     date: today,
-    present: isPresent
+    present: isPresent,
   };
-  
-  return fetchAPI('/labour-attendance/', 'POST', attendance);
+
+  return fetchAPI("/labour-attendance/", "POST", attendance);
 }
 ```
 
 ### 6. Get Dashboard Data
+
 ```javascript
 async function getDashboard() {
-  const dashboard = await fetchAPI('/core/dashboard/');
-  
+  const dashboard = await fetchAPI("/core/dashboard/");
+
   // Use data:
-  console.log('Total Sites:', dashboard.total_sites);
-  console.log('Total Cost:', dashboard.total_material_cost);
-  console.log('Pending:', dashboard.pending_receivables);
-  
+  console.log("Total Sites:", dashboard.total_sites);
+  console.log("Total Cost:", dashboard.total_material_cost);
+  console.log("Pending:", dashboard.pending_receivables);
+
   return dashboard;
 }
 ```
 
 ### 7. Get Reports
+
 ```javascript
 async function getMaterialReport() {
-  return await fetchAPI('/material-stock/reports/material-wise/');
+  return await fetchAPI("/material-stock/reports/material-wise/");
 }
 
 async function getVendorPending() {
-  return await fetchAPI('/vendors/reports/pending/');
+  return await fetchAPI("/vendors/reports/pending/");
 }
 
 async function getAttendanceWeekly() {
-  return await fetchAPI('/labour/reports/attendance-weekly/');
+  return await fetchAPI("/labour/reports/attendance-weekly/");
 }
 ```
 
 ### 8. Download Excel Report
+
 ```javascript
 function downloadExcel(endpoint) {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   const url = `http://localhost:8000/api${endpoint}`;
-  
+
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', url);
-  xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-  xhr.responseType = 'blob';
-  
+  xhr.open("GET", url);
+  xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+  xhr.responseType = "blob";
+
   xhr.onload = () => {
     const blob = new Blob([xhr.response], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = window.URL.createObjectURL(blob);
-    link.download = 'report.xlsx';
+    link.download = "report.xlsx";
     link.click();
   };
-  
+
   xhr.send();
 }
 
 // Usage:
-downloadExcel('/material-stock/reports/material-wise/export/');
+downloadExcel("/material-stock/reports/material-wise/export/");
 ```
 
 ### 9. Download PDF Report
+
 ```javascript
 function downloadPDF(endpoint) {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   const url = `http://localhost:8000/api${endpoint}`;
-  
+
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', url);
-  xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-  xhr.responseType = 'blob';
-  
+  xhr.open("GET", url);
+  xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+  xhr.responseType = "blob";
+
   xhr.onload = () => {
-    const blob = new Blob([xhr.response], { type: 'application/pdf' });
-    const link = document.createElement('a');
+    const blob = new Blob([xhr.response], { type: "application/pdf" });
+    const link = document.createElement("a");
     link.href = window.URL.createObjectURL(blob);
-    link.download = 'report.pdf';
+    link.download = "report.pdf";
     link.click();
   };
-  
+
   xhr.send();
 }
 
 // Usage:
-downloadPDF('/material-stock/reports/material-wise/pdf/');
+downloadPDF("/material-stock/reports/material-wise/pdf/");
 ```
 
 ### 10. Update Payment Status
+
 ```javascript
 function updateVendorPayment(transactionId, newPaidAmount) {
   const update = {
-    paid_amount: newPaidAmount
+    paid_amount: newPaidAmount,
   };
-  
-  return fetchAPI(`/vendor-transactions/${transactionId}/`, 'PATCH', update);
+
+  return fetchAPI(`/vendor-transactions/${transactionId}/`, "PATCH", update);
 }
 ```
 
@@ -318,10 +335,11 @@ function updateVendorPayment(transactionId, newPaidAmount) {
 ## 🎨 Display Data in Tables
 
 ### Material Table
+
 ```javascript
 async function displayMaterialList() {
-  const materials = await fetchAPI('/materials/');
-  
+  const materials = await fetchAPI("/materials/");
+
   const table = `
     <table>
       <thead>
@@ -333,27 +351,32 @@ async function displayMaterialList() {
         </tr>
       </thead>
       <tbody>
-        ${materials.map(m => `
+        ${materials
+          .map(
+            (m) => `
           <tr>
             <td>${m.id}</td>
             <td>${m.name}</td>
             <td>${m.unit}</td>
             <td><button onclick="editMaterial(${m.id})">Edit</button></td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join("")}
       </tbody>
     </table>
   `;
-  
-  document.getElementById('materials-container').innerHTML = table;
+
+  document.getElementById("materials-container").innerHTML = table;
 }
 ```
 
 ### Material Stock Table
+
 ```javascript
 async function displayMaterialStock() {
-  const stocks = await fetchAPI('/material-stock/');
-  
+  const stocks = await fetchAPI("/material-stock/");
+
   const table = `
     <table>
       <thead>
@@ -367,7 +390,9 @@ async function displayMaterialStock() {
         </tr>
       </thead>
       <tbody>
-        ${stocks.map(s => `
+        ${stocks
+          .map(
+            (s) => `
           <tr>
             <td>${s.site_name}</td>
             <td>${s.material_name}</td>
@@ -376,12 +401,14 @@ async function displayMaterialStock() {
             <td>${s.remaining_stock}</td>
             <td>₹${s.total_cost}</td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join("")}
       </tbody>
     </table>
   `;
 
-  document.getElementById('stock-container').innerHTML = table;
+  document.getElementById("stock-container").innerHTML = table;
 }
 ```
 
@@ -393,21 +420,23 @@ async function displayMaterialStock() {
 
 ```javascript
 async function materialChart() {
-  const data = await fetchAPI('/material-stock/reports/material-wise/');
-  
-  const labels = data.map(d => d.material_name);
-  const costs = data.map(d => d.total_cost);
-  
+  const data = await fetchAPI("/material-stock/reports/material-wise/");
+
+  const labels = data.map((d) => d.material_name);
+  const costs = data.map((d) => d.total_cost);
+
   // Chart.js
   new Chart(ctx, {
-    type: 'bar',
+    type: "bar",
     data: {
       labels: labels,
-      datasets: [{
-        label: 'Material Cost',
-        data: costs
-      }]
-    }
+      datasets: [
+        {
+          label: "Material Cost",
+          data: costs,
+        },
+      ],
+    },
   });
 }
 ```
@@ -478,14 +507,14 @@ REACT_APP_API_URL=http://localhost:8000/api
 
 ## 🐛 Common Issues & Solutions
 
-| Issue | Solution |
-|-------|----------|
-| 401 Unauthorized | Check token in localStorage, refresh if needed |
-| CORS Error | Backend must have CORS enabled (already done) |
-| 404 Not Found | Wrong endpoint - check spelling |
-| 400 Bad Request | Invalid data - check required fields |
-| Empty response | Check if you have data in database |
-| Export not working | Check Authorization header in request |
+| Issue              | Solution                                       |
+| ------------------ | ---------------------------------------------- |
+| 401 Unauthorized   | Check token in localStorage, refresh if needed |
+| CORS Error         | Backend must have CORS enabled (already done)  |
+| 404 Not Found      | Wrong endpoint - check spelling                |
+| 400 Bad Request    | Invalid data - check required fields           |
+| Empty response     | Check if you have data in database             |
+| Export not working | Check Authorization header in request          |
 
 ---
 
@@ -494,4 +523,3 @@ REACT_APP_API_URL=http://localhost:8000/api
 **Backend running on:** `http://localhost:8000`
 **API base URL:** `http://localhost:8000/api/`
 **Admin panel:** `http://localhost:8000/admin/`
-

@@ -108,14 +108,14 @@ export function RegisterPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+        <div className="inline-flex rounded-full bg-[#FFF1EC] px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[#C2410C]">
           New Workspace Access
         </div>
         <div className="space-y-2">
-          <h2 className="text-3xl font-semibold text-slate-950 dark:text-white">
+          <h2 className="text-3xl font-semibold text-slate-950">
             Create your ERP account
           </h2>
-          <p className="text-sm leading-7 text-slate-500 dark:text-slate-400">
+          <p className="text-sm leading-7 text-slate-600">
             Register a secure account to start using the Material Management
             System frontend.
           </p>
@@ -165,10 +165,10 @@ export function RegisterPage() {
         </Button>
       </form>
 
-      <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+      <div className="flex items-center justify-between rounded-2xl border border-[#E5E7EB] bg-[#FAFAFA] px-4 py-3 text-sm text-slate-600">
         <span>Already have access?</span>
         <Link
-          className="font-semibold text-blue-600 transition hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
+          className="font-semibold text-[#FF6B4A] transition hover:text-[#E85B3D]"
           to="/login"
         >
           Back to login

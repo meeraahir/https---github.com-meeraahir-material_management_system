@@ -68,6 +68,33 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    new_password = serializers.CharField(write_only=True, validators=[validate_password])
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate_email(self, value):
+        normalized = value.strip().lower()
+        user = User.objects.filter(email__iexact=normalized).first()
+
+        if user is None:
+            raise serializers.ValidationError('No user found with this email address.')
+
+        self.context['forgot_password_user'] = user
+        return normalized
+
+    def validate(self, attrs):
+        if attrs.get('new_password') != attrs.get('confirm_password'):
+            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.context['forgot_password_user']
+        user.set_password(self.validated_data['new_password'])
+        user.save(update_fields=['password'])
+        return user
+
+
 class EmailOrUsernameTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         username_field = self.username_field

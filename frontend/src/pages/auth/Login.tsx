@@ -3,11 +3,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useToast } from "../../components/feedback/useToast";
+import { Modal } from "../../components/modal/Modal";
 import { Button } from "../../components/ui/Button";
 import { FormError } from "../../components/ui/FormError";
 import { Input } from "../../components/ui/Input";
 import { useAuth } from "../../hooks/useAuth";
-import type { LoginFormValues } from "../../types/auth.types";
+import { authService } from "../../services/authService";
+import type { ForgotPasswordFormValues, LoginFormValues } from "../../types/auth.types";
 import { getErrorMessage } from "../../utils/apiError";
 
 const loginSchema = z.object({
@@ -25,6 +28,22 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters."),
 });
 
+const forgotPasswordSchema = z
+  .object({
+    email: z.string().trim().email("Enter a valid email address."),
+    newPassword: z.string().min(6, "Password must be at least 6 characters."),
+    confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters."),
+  })
+  .superRefine((value, context) => {
+    if (value.newPassword !== value.confirmPassword) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Passwords do not match.",
+        path: ["confirmPassword"],
+      });
+    }
+  });
+
 interface LoginLocationState {
   registered?: boolean;
   username?: string;
@@ -34,7 +53,10 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const { showSuccess } = useToast();
   const [formError, setFormError] = useState("");
+  const [forgotPasswordError, setForgotPasswordError] = useState("");
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   const state = (location.state as LoginLocationState | null) ?? null;
 
@@ -47,6 +69,19 @@ export function LoginPage() {
     defaultValues: {
       email: "",
       password: "",
+    },
+  });
+  const {
+    formState: { errors: forgotPasswordErrors, isSubmitting: isForgotPasswordSubmitting },
+    handleSubmit: handleForgotPasswordSubmit,
+    register: registerForgotPassword,
+    reset: resetForgotPasswordForm,
+    setError: setForgotPasswordFieldError,
+  } = useForm<ForgotPasswordFormValues>({
+    defaultValues: {
+      confirmPassword: "",
+      email: "",
+      newPassword: "",
     },
   });
 
@@ -79,17 +114,63 @@ export function LoginPage() {
     }
   });
 
+  const onForgotPasswordSubmit = handleForgotPasswordSubmit(async (values) => {
+    setForgotPasswordError("");
+
+    const parsedValues = forgotPasswordSchema.safeParse(values);
+    if (!parsedValues.success) {
+      const fieldErrors = parsedValues.error.flatten().fieldErrors;
+
+      if (fieldErrors.email?.[0]) {
+        setForgotPasswordFieldError("email", {
+          message: fieldErrors.email[0],
+          type: "manual",
+        });
+      }
+
+      if (fieldErrors.newPassword?.[0]) {
+        setForgotPasswordFieldError("newPassword", {
+          message: fieldErrors.newPassword[0],
+          type: "manual",
+        });
+      }
+
+      if (fieldErrors.confirmPassword?.[0]) {
+        setForgotPasswordFieldError("confirmPassword", {
+          message: fieldErrors.confirmPassword[0],
+          type: "manual",
+        });
+      }
+
+      return;
+    }
+
+    try {
+      await authService.forgotPassword(
+        parsedValues.data.email,
+        parsedValues.data.newPassword,
+        parsedValues.data.confirmPassword,
+      );
+      setIsForgotPasswordOpen(false);
+      resetForgotPasswordForm();
+      showSuccess("Password changed", "You can now sign in with the new password.");
+    } catch (error) {
+      setForgotPasswordError(getErrorMessage(error));
+    }
+  });
+
   return (
+    <>
     <div className="space-y-8">
       <div className="space-y-3">
-        <div className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700 dark:bg-blue-500/10 dark:text-blue-200">
+        <div className="inline-flex rounded-full bg-[#FFF1EC] px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[#C2410C]">
           Secure Sign In
         </div>
         <div className="space-y-2">
-          <h2 className="text-3xl font-semibold text-slate-950 dark:text-white">
+          <h2 className="text-3xl font-semibold text-slate-950">
             Access your ERP workspace
           </h2>
-          <p className="text-sm leading-7 text-slate-500 dark:text-slate-400">
+          <p className="text-sm leading-7 text-slate-600">
             Sign in to manage sites, stock movement, vendor transactions, and
             labour operations from a single dashboard.
           </p>
@@ -97,7 +178,7 @@ export function LoginPage() {
       </div>
 
       {state?.registered ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           Registration completed for{" "}
           <span className="font-semibold">{state.username ?? "your account"}</span>.
           You can sign in now.
@@ -122,6 +203,19 @@ export function LoginPage() {
           {...register("password")}
         />
 
+        <div className="flex justify-end">
+          <button
+            className="text-sm font-semibold text-[#FF6B4A] transition hover:text-[#E85B3D]"
+            onClick={() => {
+              setForgotPasswordError("");
+              setIsForgotPasswordOpen(true);
+            }}
+            type="button"
+          >
+            Forgot password?
+          </button>
+        </div>
+
         <FormError message={formError} />
 
         <Button className="w-full" isLoading={isSubmitting} size="lg" type="submit">
@@ -129,15 +223,78 @@ export function LoginPage() {
         </Button>
       </form>
 
-      <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+      <div className="flex items-center justify-between rounded-2xl border border-[#E5E7EB] bg-[#FAFAFA] px-4 py-3 text-sm text-slate-600">
         <span>Need a new account?</span>
         <Link
-          className="font-semibold text-blue-600 transition hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
+          className="font-semibold text-[#FF6B4A] transition hover:text-[#E85B3D]"
           to="/register"
         >
           Create account
         </Link>
       </div>
     </div>
+    <Modal
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button
+            onClick={() => {
+              setForgotPasswordError("");
+              setIsForgotPasswordOpen(false);
+              resetForgotPasswordForm();
+            }}
+            type="button"
+            variant="secondary"
+          >
+            Cancel
+          </Button>
+          <Button
+            form="forgot-password-form"
+            isLoading={isForgotPasswordSubmitting}
+            type="submit"
+          >
+            Change Password
+          </Button>
+        </div>
+      }
+      onClose={() => {
+        setForgotPasswordError("");
+        setIsForgotPasswordOpen(false);
+        resetForgotPasswordForm();
+      }}
+      open={isForgotPasswordOpen}
+      size="md"
+      title="Forgot Password"
+    >
+      <div className="space-y-4">
+        <p className="text-sm leading-6 text-slate-600">
+          Enter your registered email and set a new password for your account.
+        </p>
+        <form className="space-y-4" id="forgot-password-form" onSubmit={onForgotPasswordSubmit}>
+          <Input
+            error={forgotPasswordErrors.email?.message}
+            label="Email"
+            placeholder="Enter your registered email"
+            type="email"
+            {...registerForgotPassword("email")}
+          />
+          <Input
+            error={forgotPasswordErrors.newPassword?.message}
+            label="New Password"
+            placeholder="Enter your new password"
+            type="password"
+            {...registerForgotPassword("newPassword")}
+          />
+          <Input
+            error={forgotPasswordErrors.confirmPassword?.message}
+            label="Confirm Password"
+            placeholder="Re-enter your new password"
+            type="password"
+            {...registerForgotPassword("confirmPassword")}
+          />
+          <FormError message={forgotPasswordError} />
+        </form>
+      </div>
+    </Modal>
+    </>
   );
 }

@@ -5,9 +5,11 @@ import { Modal } from "../../components/modal/Modal";
 import { Button } from "../../components/ui/Button";
 import { FormError } from "../../components/ui/FormError";
 import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
 import { attendanceService } from "../../services/attendanceService";
-import { siteLabourReportsService, sitesService } from "../../services/sitesService";
-import type { Attendance, AttendanceFormValues, SiteDashboardLabourSummary } from "../../types/erp.types";
+import { labourService } from "../../services/labourService";
+import { sitesService } from "../../services/sitesService";
+import type { Attendance, AttendanceFormValues, Labour, Site } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
 import { LabourAttendanceList, type LabourAttendanceRow } from "./LabourAttendanceList";
 
@@ -22,91 +24,36 @@ interface DashboardLabourAttendanceModalProps {
   open: boolean;
 }
 
-interface AttendanceScopeData {
-  attendanceRows: Attendance[];
-  siteSummaries: Array<{
-    siteId: number;
-    siteName: string;
-    summaryRows: SiteDashboardLabourSummary[];
-  }>;
-}
-
-async function loadSiteScopedAttendanceData(siteId: number, date: string, siteName?: string): Promise<AttendanceScopeData> {
-  const [summaryRows, attendanceRows] = await Promise.all([
-    siteLabourReportsService.getLabourSummary(siteId),
-    attendanceService.getBySiteAndDate(siteId, date),
-  ]);
-
-  return {
-    attendanceRows,
-    siteSummaries: [
-      {
-        siteId,
-        siteName: siteName || `Site ${siteId}`,
-        summaryRows,
-      },
-    ],
-  };
-}
-
-async function loadAllAttendanceData(date: string): Promise<AttendanceScopeData> {
-  const sites = await sitesService.getOptions();
-  const sortedSites = [...sites].sort((left, right) => left.name.localeCompare(right.name));
-  const scopedResults = await Promise.all(
-    sortedSites.map(async (site) => {
-      const [summaryRows, attendanceRows] = await Promise.all([
-        siteLabourReportsService.getLabourSummary(site.id),
-        attendanceService.getBySiteAndDate(site.id, date),
-      ]);
-
-      return {
-        attendanceRows,
-        siteId: site.id,
-        siteName: site.name,
-        summaryRows,
-      };
-    }),
-  );
-
-  return {
-    attendanceRows: scopedResults.flatMap((result) => result.attendanceRows),
-    siteSummaries: scopedResults.map((result) => ({
-      siteId: result.siteId,
-      siteName: result.siteName,
-      summaryRows: result.summaryRows,
-    })),
-  };
+function isRegularLabour(labour: Labour) {
+  return !/casual/i.test((labour.labour_type || "").trim());
 }
 
 function buildAttendanceRows({
-  attendanceRows,
+  labours,
   selectedRowKeys,
-  siteSummaries,
+  siteId,
 }: {
-  attendanceRows: Attendance[];
+  labours: Labour[];
   selectedRowKeys: Set<string>;
-  siteSummaries: AttendanceScopeData["siteSummaries"];
+  siteId: number;
 }) {
-  const existingAttendanceBySiteAndLabour = new Map(
-    attendanceRows.map((row) => [`${row.site}-${row.labour}`, row] as const),
-  );
+  if (!siteId) {
+    return [];
+  }
 
-  return siteSummaries
-    .flatMap((siteSummary) =>
-      siteSummary.summaryRows.map((summaryRow) => {
-        const rowKey = `regular-${siteSummary.siteId}-${summaryRow.labour_id}`;
-        const existingAttendance = existingAttendanceBySiteAndLabour.get(`${siteSummary.siteId}-${summaryRow.labour_id}`);
+  return [...labours]
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((labour) => {
+      const rowKey = `regular-${siteId}-${labour.id}`;
 
-        return {
-          isPresent: selectedRowKeys.has(rowKey) || Boolean(existingAttendance?.present),
-          key: rowKey,
-          labourId: summaryRow.labour_id,
-          labourName: summaryRow.labour_name,
-          siteId: siteSummary.siteId,
-        } satisfies LabourAttendanceRow;
-      }),
-    )
-    .sort((left, right) => left.labourName.localeCompare(right.labourName));
+      return {
+        isPresent: selectedRowKeys.has(rowKey),
+        key: rowKey,
+        labourId: labour.id,
+        labourName: labour.name,
+        siteId,
+      } satisfies LabourAttendanceRow;
+    });
 }
 
 export function DashboardLabourAttendanceModal({
@@ -119,25 +66,31 @@ export function DashboardLabourAttendanceModal({
 }: DashboardLabourAttendanceModalProps) {
   const { showError, showSuccess } = useToast();
   const [attendanceRows, setAttendanceRows] = useState<Attendance[]>([]);
+  const [labours, setLabours] = useState<Labour[]>([]);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
-  const [siteSummaries, setSiteSummaries] = useState<AttendanceScopeData["siteSummaries"]>([]);
+  const [selectedSiteId, setSelectedSiteId] = useState(fixedSiteId ?? 0);
+  const [siteOptions, setSiteOptions] = useState<Site[]>([]);
   const [formError, setFormError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const hasFixedSite = Boolean(fixedSiteId && fixedSiteName);
+  const hasFixedSite = Boolean(fixedSiteId);
   const rows = useMemo(
     () =>
       buildAttendanceRows({
-        attendanceRows,
+        labours,
         selectedRowKeys: new Set(selectedRowKeys),
-        siteSummaries,
+        siteId: selectedSiteId,
       }),
-    [attendanceRows, selectedRowKeys, siteSummaries],
+    [labours, selectedRowKeys, selectedSiteId],
   );
-
-  const canSave = selectedDate.length > 0 && rows.length > 0 && !isLoading && !isSaving;
+  const canSave =
+    selectedDate.length > 0 &&
+    selectedSiteId > 0 &&
+    rows.length > 0 &&
+    !isLoading &&
+    !isSaving;
 
   useEffect(() => {
     if (!open) {
@@ -149,7 +102,82 @@ export function DashboardLabourAttendanceModal({
   }, [initialDate, open]);
 
   useEffect(() => {
-    if (!open || !selectedDate) {
+    if (!open) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadReferenceData() {
+      try {
+        setIsLoading(true);
+        setFormError("");
+
+        const [loadedSites, loadedLabours] = await Promise.all([
+          hasFixedSite
+            ? Promise.resolve<Site[]>([
+                {
+                  description: "",
+                  id: fixedSiteId || 0,
+                  location: "",
+                  name: fixedSiteName || `Site ${fixedSiteId}`,
+                },
+              ])
+            : sitesService.getOptions(),
+          labourService.getOptions(),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const sortedSites = [...loadedSites].sort((left, right) =>
+          left.name.localeCompare(right.name),
+        );
+        const regularLabours = loadedLabours.filter(isRegularLabour);
+
+        setSiteOptions(sortedSites);
+        setLabours(regularLabours);
+        setSelectedSiteId((currentValue) => {
+          if (hasFixedSite) {
+            return fixedSiteId || 0;
+          }
+
+          if (currentValue && sortedSites.some((site) => site.id === currentValue)) {
+            return currentValue;
+          }
+
+          return sortedSites[0]?.id ?? 0;
+        });
+      } catch (error) {
+        const message = getErrorMessage(error);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setFormError(message);
+        setAttendanceRows([]);
+        setLabours([]);
+        setSelectedRowKeys([]);
+        setSiteOptions([]);
+        showError("Unable to load attendance", message);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadReferenceData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fixedSiteId, fixedSiteName, hasFixedSite, open, showError]);
+
+  useEffect(() => {
+    if (!open || !selectedDate || !selectedSiteId) {
       return;
     }
 
@@ -160,18 +188,18 @@ export function DashboardLabourAttendanceModal({
         setIsLoading(true);
         setFormError("");
 
-        const data = fixedSiteId
-          ? await loadSiteScopedAttendanceData(fixedSiteId, selectedDate, fixedSiteName)
-          : await loadAllAttendanceData(selectedDate);
+        const loadedAttendance = await attendanceService.getBySiteAndDate(
+          selectedSiteId,
+          selectedDate,
+        );
 
         if (!isMounted) {
           return;
         }
 
-        setAttendanceRows(data.attendanceRows);
-        setSiteSummaries(data.siteSummaries);
+        setAttendanceRows(loadedAttendance);
         setSelectedRowKeys(
-          data.attendanceRows
+          loadedAttendance
             .filter((row) => row.present)
             .map((row) => `regular-${row.site}-${row.labour}`),
         );
@@ -183,10 +211,9 @@ export function DashboardLabourAttendanceModal({
         }
 
         setFormError(message);
-        showError("Unable to load attendance", message);
         setAttendanceRows([]);
-        setSiteSummaries([]);
         setSelectedRowKeys([]);
+        showError("Unable to load attendance", message);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -199,7 +226,7 @@ export function DashboardLabourAttendanceModal({
     return () => {
       isMounted = false;
     };
-  }, [fixedSiteId, fixedSiteName, open, selectedDate, showError]);
+  }, [open, selectedDate, selectedSiteId, showError]);
 
   function handleClose() {
     if (isSaving) {
@@ -241,8 +268,13 @@ export function DashboardLabourAttendanceModal({
       return;
     }
 
+    if (!selectedSiteId) {
+      setFormError("Site is required.");
+      return;
+    }
+
     if (rows.length === 0) {
-      setFormError("No labour rows are available for attendance.");
+      setFormError("No regular labour rows are available for attendance.");
       return;
     }
 
@@ -317,11 +349,17 @@ export function DashboardLabourAttendanceModal({
     >
       <div className="space-y-3">
         <div className="grid gap-3 md:grid-cols-2">
-          <Input
-            disabled
-            label="Site Name"
-            readOnly
-            value={hasFixedSite ? fixedSiteName : "All Sites"}
+          <Select
+            clearable={false}
+            disabled={hasFixedSite || isSaving}
+            label="Site"
+            options={siteOptions.map((site) => ({ label: site.name, value: site.id }))}
+            placeholder="Select a site"
+            requiredIndicator
+            value={selectedSiteId || ""}
+            onChange={(event) => {
+              setSelectedSiteId(Number(event.target.value) || 0);
+            }}
           />
           <Input
             disabled={isSaving}

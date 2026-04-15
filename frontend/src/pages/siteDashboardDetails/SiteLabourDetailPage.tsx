@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 
 import { ErrorMessage } from "../../components/common/ErrorMessage";
 import { useToast } from "../../components/feedback/useToast";
-import { DataTable } from "../../components/table/DataTable";
 import { attendanceReportsService } from "../../services/attendanceService";
 import { labourReportsService, labourService } from "../../services/labourService";
 import { paymentsService } from "../../services/paymentsService";
@@ -20,12 +19,31 @@ import { getErrorMessage } from "../../utils/apiError";
 import { formatCurrency, formatDate, formatNumber } from "../../utils/format";
 import {
   DetailEmptyState,
-  DetailInfoGrid,
-  DetailMetricCard,
-  DetailMetricGrid,
-  DetailSection,
   SiteDashboardDetailHeader,
 } from "./SiteDashboardDetailShared";
+
+function LabourDetailSection({
+  description,
+  title,
+}: {
+  description: string;
+  title: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
+      <p className="text-sm leading-6 text-slate-600">{description}</p>
+    </div>
+  );
+}
+
+function formatPeriodRange(start?: string, end?: string) {
+  if (!start && !end) {
+    return "-";
+  }
+
+  return `${start ? formatDate(start) : "-"} to ${end ? formatDate(end) : "-"}`;
+}
 
 export function SiteLabourDetailPage() {
   const { labourId, siteId } = useParams();
@@ -41,10 +59,6 @@ export function SiteLabourDetailPage() {
   const [attendanceRows, setAttendanceRows] = useState<Attendance[]>([]);
   const [monthlyAttendance, setMonthlyAttendance] = useState<LabourAttendanceMonth[]>([]);
   const [ledgerEntries, setLedgerEntries] = useState<LabourPaymentLedgerEntry[]>([]);
-  const [paymentPage, setPaymentPage] = useState(1);
-  const [attendancePage, setAttendancePage] = useState(1);
-  const [monthlyPage, setMonthlyPage] = useState(1);
-  const [ledgerPage, setLedgerPage] = useState(1);
 
   useEffect(() => {
     async function loadDetails() {
@@ -90,10 +104,6 @@ export function SiteLabourDetailPage() {
         setLedgerEntries(
           [...ledger.payments].sort((left, right) => right.date.localeCompare(left.date)),
         );
-        setPaymentPage(1);
-        setAttendancePage(1);
-        setMonthlyPage(1);
-        setLedgerPage(1);
       } catch (loadError) {
         const message = getErrorMessage(loadError);
         setError(message);
@@ -139,128 +149,209 @@ export function SiteLabourDetailPage() {
       {!labour && !summary && !isLoading ? (
         <DetailEmptyState message="Labour detail was not found for this site." />
       ) : (
-        <>
-          <DetailMetricGrid>
-            <DetailMetricCard accentClassName="border-blue-100 bg-white" label="Paid Amount" value={formatCurrency(totalPaid)} />
-            <DetailMetricCard accentClassName="border-amber-200 bg-amber-50/70" label="Pending Amount" value={formatCurrency(totalPending)} />
-            <DetailMetricCard accentClassName="border-emerald-200 bg-emerald-50/70" label="Present Days This Month" value={formatNumber(currentMonthPresentDays)} />
-            <DetailMetricCard accentClassName="border-cyan-200 bg-cyan-50/70" label="Per Day Wage" value={formatCurrency(labour?.per_day_wage)} />
-          </DetailMetricGrid>
+        <div className="space-y-8">
+          <section className="grid gap-4 border-b border-slate-200 pb-6 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: "Paid Amount", value: formatCurrency(totalPaid) },
+              { label: "Pending Amount", value: formatCurrency(totalPending) },
+              { label: "Present Days This Month", value: formatNumber(currentMonthPresentDays) },
+              { label: "Per Day Wage", value: formatCurrency(labour?.per_day_wage) },
+            ].map((item) => (
+              <div className="border-b border-slate-200 pb-3 last:border-b-0 md:last:border-b" key={item.label}>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  {item.label}
+                </p>
+                <p className="mt-2 text-xl font-semibold text-slate-950">{item.value}</p>
+              </div>
+            ))}
+          </section>
 
-          <DetailSection hideHeader title="Overview">
-            <DetailInfoGrid
-              items={[
+          <section className="space-y-4 border-b border-slate-200 pb-6">
+            <LabourDetailSection
+              description="Profile and site-specific summary for this labour."
+              title="Overview"
+            />
+            <dl className="grid gap-x-8 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
+              {[
                 { label: "Labour Name", value: labour?.name || summary?.labour_name || "-" },
                 { label: "Phone", value: labour?.phone || "-" },
                 { label: "Per Day Wage", value: formatCurrency(labour?.per_day_wage) },
                 { label: "Site", value: siteName || `Site ${parsedSiteId}` },
                 { label: "Attendance Days", value: formatNumber(summary?.present_count ?? currentMonthPresentDays) },
                 { label: "Total Wage", value: formatCurrency(summary?.total_wage) },
-              ]}
-            />
-          </DetailSection>
+              ].map((item) => (
+                <div className="border-b border-slate-200 pb-3" key={item.label}>
+                  <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {item.label}
+                  </dt>
+                  <dd className="mt-2 text-sm font-semibold text-slate-950">{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
 
-          <DetailSection description="Labour payment history for the selected site." title="Payments">
-            <DataTable
-              clientPagination
-              columns={[
-                { key: "date", header: "Date", accessor: (row) => formatDate(row.date), sortValue: (row) => row.date || "" },
-                {
-                  key: "period",
-                  header: "Period",
-                  accessor: (row) =>
-                    row.period_start || row.period_end
-                      ? `${formatDate(row.period_start)} to ${formatDate(row.period_end)}`
-                      : "-",
-                  sortValue: (row) => row.period_start || row.period_end || "",
-                },
-                { key: "total", header: "Wage Amount", accessor: (row) => row.total_amount, sortValue: (row) => row.total_amount },
-                { key: "paid", header: "Paid", accessor: (row) => row.paid_amount, sortValue: (row) => row.paid_amount },
-                { key: "pending", header: "Pending", accessor: (row) => row.pending_amount, sortValue: (row) => row.pending_amount },
-                { key: "notes", header: "Notes", accessor: (row) => row.notes || "-", sortValue: (row) => row.notes || "" },
-              ]}
-              data={payments}
-              emptyDescription="No labour payment history is available for this site."
-              emptyTitle="No Payments"
-              isLoading={isLoading}
-              keyExtractor={(row) => row.id}
-              page={paymentPage}
-              searchValue=""
-              totalCount={payments.length}
-              onPageChange={setPaymentPage}
-              onSearchChange={() => undefined}
+          <section className="space-y-4 border-b border-slate-200 pb-6">
+            <LabourDetailSection
+              description="Labour payment history for the selected site."
+              title="Payments"
             />
-          </DetailSection>
+            {payments.length ? (
+              <div className="space-y-4">
+                {payments.map((payment) => (
+                  <article
+                    className="grid gap-3 border-b border-slate-200 pb-4 last:border-b-0 last:pb-0 md:grid-cols-[1.3fr_0.9fr]"
+                    key={payment.id}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">
+                        {formatDate(payment.date)}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Period: {formatPeriodRange(payment.period_start, payment.period_end)}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Notes: {payment.notes?.trim() || "-"}
+                      </p>
+                    </div>
+                    <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-3 md:grid-cols-1 md:text-right">
+                      <p>
+                        Wage: <span className="font-semibold text-slate-950">{formatCurrency(payment.total_amount)}</span>
+                      </p>
+                      <p>
+                        Paid: <span className="font-semibold text-emerald-700">{formatCurrency(payment.paid_amount)}</span>
+                      </p>
+                      <p>
+                        Pending: <span className="font-semibold text-amber-700">{formatCurrency(payment.pending_amount)}</span>
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600">
+                No labour payment history is available for this site.
+              </p>
+            )}
+          </section>
 
-          <DetailSection description="Daily attendance entries for the selected site. Payment history is kept separate above for clarity." title="Attendance">
-            <DataTable
-              clientPagination
-              columns={[
-                { key: "date", header: "Date", accessor: (row) => formatDate(row.date), sortValue: (row) => row.date },
-                { key: "site", header: "Site", accessor: (row) => row.site_name, sortValue: (row) => row.site_name },
-                { key: "present", header: "Present", accessor: (row) => (row.present ? "Yes" : "No"), sortValue: (row) => row.present },
-              ]}
-              data={attendanceRows}
-              emptyDescription="No attendance records are available for this labour on this site."
-              emptyTitle="No Attendance"
-              isLoading={isLoading}
-              keyExtractor={(row) => row.id}
-              page={attendancePage}
-              searchValue=""
-              totalCount={attendanceRows.length}
-              onPageChange={setAttendancePage}
-              onSearchChange={() => undefined}
+          <section className="space-y-4 border-b border-slate-200 pb-6">
+            <LabourDetailSection
+              description="Daily attendance entries for the selected site."
+              title="Attendance"
             />
-          </DetailSection>
+            {attendanceRows.length ? (
+              <div className="space-y-3">
+                {attendanceRows.map((entry) => (
+                  <div
+                    className="flex flex-col gap-2 border-b border-slate-200 pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                    key={entry.id}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">
+                        {formatDate(entry.date)}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">{entry.site_name}</p>
+                    </div>
+                    <span
+                      className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        entry.present
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-rose-50 text-rose-700"
+                      }`}
+                    >
+                      {entry.present ? "Present" : "Absent"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600">
+                No attendance records are available for this labour on this site.
+              </p>
+            )}
+          </section>
 
-          <DetailSection description="Month-wise attendance summary using the existing monthly attendance endpoint for this labour and site." title="Monthly Attendance Summary">
-            <DataTable
-              clientPagination
-              columns={[
-                { key: "month", header: "Month", accessor: (row) => row.month, sortValue: (row) => row.month },
-                { key: "month_start", header: "Month Start", accessor: (row) => formatDate(row.month_start), sortValue: (row) => row.month_start },
-                { key: "present_days", header: "Present Days", accessor: (row) => row.present_days, sortValue: (row) => row.present_days },
-                { key: "absent_days", header: "Absent Days", accessor: (row) => row.absent_days, sortValue: (row) => row.absent_days },
-                { key: "total_days", header: "Total Days", accessor: (row) => row.total_days, sortValue: (row) => row.total_days },
-                { key: "total_wage", header: "Total Wage", accessor: (row) => row.total_wage, sortValue: (row) => row.total_wage },
-              ]}
-              data={monthlyAttendance}
-              emptyDescription="No monthly attendance summary is available for this labour on this site."
-              emptyTitle="No Monthly Attendance"
-              isLoading={isLoading}
-              keyExtractor={(row) => row.month}
-              page={monthlyPage}
-              searchValue=""
-              totalCount={monthlyAttendance.length}
-              onPageChange={setMonthlyPage}
-              onSearchChange={() => undefined}
+          <section className="space-y-4 border-b border-slate-200 pb-6">
+            <LabourDetailSection
+              description="Month-wise attendance summary using the existing monthly attendance endpoint for this labour and site."
+              title="Monthly Attendance Summary"
             />
-          </DetailSection>
+            {monthlyAttendance.length ? (
+              <div className="space-y-4">
+                {monthlyAttendance.map((entry) => (
+                  <article
+                    className="grid gap-2 border-b border-slate-200 pb-4 last:border-b-0 last:pb-0 md:grid-cols-[1.1fr_1fr]"
+                    key={entry.month}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">{entry.month}</p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Month Start: {formatDate(entry.month_start)}
+                      </p>
+                    </div>
+                    <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-4">
+                      <p>
+                        Present: <span className="font-semibold text-slate-950">{formatNumber(entry.present_days)}</span>
+                      </p>
+                      <p>
+                        Absent: <span className="font-semibold text-slate-950">{formatNumber(entry.absent_days)}</span>
+                      </p>
+                      <p>
+                        Total Days: <span className="font-semibold text-slate-950">{formatNumber(entry.total_days)}</span>
+                      </p>
+                      <p>
+                        Total Wage: <span className="font-semibold text-slate-950">{formatCurrency(entry.total_wage)}</span>
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600">
+                No monthly attendance summary is available for this labour on this site.
+              </p>
+            )}
+          </section>
 
-          <DetailSection description="Overall labour payment ledger from the existing frontend report service." title="Ledger">
-            <DataTable
-              clientPagination
-              columns={[
-                { key: "date", header: "Date", accessor: (row) => formatDate(row.date), sortValue: (row) => row.date },
-                { key: "entry_type", header: "Activity", accessor: (row) => row.entry_type, sortValue: (row) => row.entry_type },
-                { key: "site", header: "Site", accessor: (row) => row.site, sortValue: (row) => row.site },
-                { key: "debit", header: "Wage", accessor: (row) => row.debit, sortValue: (row) => row.debit },
-                { key: "credit", header: "Paid", accessor: (row) => row.credit, sortValue: (row) => row.credit },
-                { key: "balance", header: "Pending", accessor: (row) => row.balance, sortValue: (row) => row.balance },
-              ]}
-              data={ledgerEntries}
-              emptyDescription="No labour ledger entries are available."
-              emptyTitle="No Ledger Entries"
-              isLoading={isLoading}
-              keyExtractor={(row) => row.id}
-              page={ledgerPage}
-              searchValue=""
-              totalCount={ledgerEntries.length}
-              onPageChange={setLedgerPage}
-              onSearchChange={() => undefined}
+          <section className="space-y-4">
+            <LabourDetailSection
+              description="Overall labour payment ledger from the existing frontend report service."
+              title="Ledger"
             />
-          </DetailSection>
-        </>
+            {ledgerEntries.length ? (
+              <div className="space-y-4">
+                {ledgerEntries.map((entry) => (
+                  <article
+                    className="grid gap-2 border-b border-slate-200 pb-4 last:border-b-0 last:pb-0 md:grid-cols-[1.1fr_1fr]"
+                    key={entry.id}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">
+                        {entry.entry_type}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {formatDate(entry.date)} | {entry.site}
+                      </p>
+                    </div>
+                    <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-3 md:text-right">
+                      <p>
+                        Wage: <span className="font-semibold text-slate-950">{formatCurrency(entry.debit)}</span>
+                      </p>
+                      <p>
+                        Paid: <span className="font-semibold text-emerald-700">{formatCurrency(entry.credit)}</span>
+                      </p>
+                      <p>
+                        Pending: <span className="font-semibold text-amber-700">{formatCurrency(entry.balance)}</span>
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600">No labour ledger entries are available.</p>
+            )}
+          </section>
+        </div>
       )}
     </div>
   );

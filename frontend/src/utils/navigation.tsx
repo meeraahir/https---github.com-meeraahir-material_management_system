@@ -56,6 +56,7 @@ export const navigationGroups: NavigationGroup[] = [
     id: "workforce",
     items: [
       { icon: icons.labour({ className: "h-4 w-4" }), label: "Labour", to: "/labour" },
+      { icon: icons.labour({ className: "h-4 w-4" }), label: "Casual Labour", to: "/casual-labour" },
       { icon: icons.attendance({ className: "h-4 w-4" }), label: "Attendance", to: "/attendance" },
       { icon: icons.payments({ className: "h-4 w-4" }), label: "Labour Payments", to: "/payments" },
       { icon: icons.reports({ className: "h-4 w-4" }), label: "Labour Ledger", to: "/labour-ledger" },

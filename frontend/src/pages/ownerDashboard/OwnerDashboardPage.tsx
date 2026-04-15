@@ -73,6 +73,10 @@ function getNotificationClasses(severity: string) {
   return "border-[#E5E7EB] bg-[#F9FAFB] text-[#374151]";
 }
 
+const ownerDashboardFiveRecordViewportClassName = "table-scrollbar mt-5 max-h-[24rem] overflow-y-auto pr-1";
+const ownerDashboardSiteOverviewViewportClassName = "table-scrollbar mt-5 max-h-[38rem] overflow-y-auto overflow-x-hidden";
+const ownerDashboardSummaryViewportClassName = "table-scrollbar mt-5 max-h-[15rem] overflow-y-auto pr-1";
+
 export function OwnerDashboardPage() {
   const { showError, showSuccess } = useToast();
   const [dashboard, setDashboard] = useState<OwnerDashboardData | null>(null);
@@ -104,8 +108,13 @@ export function OwnerDashboardPage() {
   const loadExpenses = useCallback(async () => {
     try {
       setIsExpensesLoading(true);
-      const response = await miscellaneousExpensesService.list({ page: 1 });
-      setExpenses(response.results.slice(0, 5));
+      const response = await miscellaneousExpensesService.getOptions();
+      setExpenses(
+        [...response].sort(
+          (left, right) =>
+            right.date.localeCompare(left.date) || right.id - left.id,
+        ),
+      );
     } catch (loadError) {
       const message = getErrorMessage(loadError);
       showError("Unable to load expenses", message);
@@ -117,8 +126,13 @@ export function OwnerDashboardPage() {
   const loadPayouts = useCallback(async () => {
     try {
       setIsPayoutsLoading(true);
-      const response = await ownerPayoutsService.list({ page: 1 });
-      setPayouts(response.results.slice(0, 5));
+      const response = await ownerPayoutsService.getOptions();
+      setPayouts(
+        [...response].sort(
+          (left, right) =>
+            right.date.localeCompare(left.date) || right.id - left.id,
+        ),
+      );
     } catch (loadError) {
       const message = getErrorMessage(loadError);
       showError("Unable to load owner payments", message);
@@ -274,9 +288,9 @@ export function OwnerDashboardPage() {
               ))}
             </div>
           ) : dashboard?.site_overview.length ? (
-            <div className="mt-5 overflow-x-auto">
-              <table className="min-w-full divide-y divide-[#E5E7EB] text-sm">
-                <thead>
+            <div className={ownerDashboardSiteOverviewViewportClassName}>
+              <table className="w-full table-fixed divide-y divide-[#E5E7EB] text-sm">
+                <thead className="sticky top-0 bg-white">
                   <tr className="text-left text-xs uppercase tracking-[0.16em] text-[#9CA3AF]">
                     <th className="px-3 py-3 font-semibold">Site</th>
                     <th className="px-3 py-3 font-semibold">Location</th>
@@ -289,10 +303,10 @@ export function OwnerDashboardPage() {
                 <tbody className="divide-y divide-[#F3F4F6]">
                   {dashboard.site_overview.map((site) => (
                     <tr className="align-top" key={site.site_id}>
-                      <td className="px-3 py-4">
+                      <td className="break-words px-3 py-4">
                         <p className="font-semibold text-[#111111]">{site.site_name}</p>
                       </td>
-                      <td className="px-3 py-4 text-[#4B5563]">{site.location || "-"}</td>
+                      <td className="break-words px-3 py-4 text-[#4B5563]">{site.location || "-"}</td>
                       <td className="px-3 py-4">
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
@@ -304,13 +318,13 @@ export function OwnerDashboardPage() {
                           {site.is_active ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="px-3 py-4 text-[#111111]">
+                      <td className="break-words px-3 py-4 text-[#111111]">
                         {formatCurrency(site.payment_pending_from_clients)}
                       </td>
-                      <td className="px-3 py-4 text-[#111111]">
+                      <td className="break-words px-3 py-4 text-[#111111]">
                         {formatCurrency(site.payment_pending_to_vendors)}
                       </td>
-                      <td className="px-3 py-4 text-[#111111]">
+                      <td className="break-words px-3 py-4 text-[#111111]">
                         {formatCurrency(site.payment_pending_to_employees)}
                       </td>
                     </tr>
@@ -338,7 +352,8 @@ export function OwnerDashboardPage() {
                 <Skeleton className="h-20 w-full" />
               </div>
             ) : dashboard?.notifications.length ? (
-              <div className="mt-5 space-y-3">
+              <div className={ownerDashboardFiveRecordViewportClassName}>
+                <div className="space-y-3">
                 {dashboard.notifications.map((notification, index) => (
                   <div
                     className={`rounded-2xl border px-4 py-4 ${getNotificationClasses(notification.severity)}`}
@@ -350,6 +365,7 @@ export function OwnerDashboardPage() {
                     <p className="mt-1 text-sm leading-6">{notification.message}</p>
                   </div>
                 ))}
+                </div>
               </div>
             ) : (
               <div className="mt-5 rounded-2xl border border-dashed border-[#E5E7EB] bg-[#FAFAFA] px-4 py-8 text-center text-sm text-[#6B7280]">
@@ -360,40 +376,42 @@ export function OwnerDashboardPage() {
 
           <section className="rounded-3xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-semibold text-[#111111]">Cash Breakdown</h2>
-            <div className="mt-5 space-y-4">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-[#6B7280]">Paid to vendors</span>
-                <span className="font-semibold text-[#111111]">
-                  {formatCurrency(dashboard?.summary.cash_paid_to_vendors)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-[#6B7280]">Paid to employees</span>
-                <span className="font-semibold text-[#111111]">
-                  {formatCurrency(dashboard?.summary.cash_paid_to_employees)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-[#6B7280]">Paid to casual labour</span>
-                <span className="font-semibold text-[#111111]">
-                  {formatCurrency(dashboard?.summary.cash_paid_to_casual_labour)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-[#6B7280]">Miscellaneous expenses</span>
-                <span className="font-semibold text-[#111111]">
-                  {formatCurrency(
-                    dashboard?.summary.cash_paid_for_miscellaneous_expenses,
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-[#6B7280]">Owner payments</span>
-                <span className="font-semibold text-[#111111]">
-                  {formatCurrency(
-                    dashboard?.summary.cash_paid_for_owner_payments,
-                  )}
-                </span>
+            <div className={ownerDashboardSummaryViewportClassName}>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[#6B7280]">Paid to vendors</span>
+                  <span className="font-semibold text-[#111111]">
+                    {formatCurrency(dashboard?.summary.cash_paid_to_vendors)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[#6B7280]">Paid to employees</span>
+                  <span className="font-semibold text-[#111111]">
+                    {formatCurrency(dashboard?.summary.cash_paid_to_employees)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[#6B7280]">Paid to casual labour</span>
+                  <span className="font-semibold text-[#111111]">
+                    {formatCurrency(dashboard?.summary.cash_paid_to_casual_labour)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[#6B7280]">Miscellaneous expenses</span>
+                  <span className="font-semibold text-[#111111]">
+                    {formatCurrency(
+                      dashboard?.summary.cash_paid_for_miscellaneous_expenses,
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[#6B7280]">Owner payments</span>
+                  <span className="font-semibold text-[#111111]">
+                    {formatCurrency(
+                      dashboard?.summary.cash_paid_for_owner_payments,
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
           </section>
@@ -411,7 +429,8 @@ export function OwnerDashboardPage() {
                 <Skeleton className="h-16 w-full" />
               </div>
             ) : payouts.length ? (
-              <div className="mt-5 space-y-3">
+              <div className={ownerDashboardFiveRecordViewportClassName}>
+                <div className="space-y-3">
                 {payouts.map((payout) => (
                   <div
                     className="rounded-2xl border border-[#E5E7EB] bg-[#FAFAFA] px-4 py-4"
@@ -448,6 +467,7 @@ export function OwnerDashboardPage() {
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             ) : (
               <div className="mt-5 rounded-2xl border border-dashed border-[#E5E7EB] bg-[#FAFAFA] px-4 py-8 text-center text-sm text-[#6B7280]">
@@ -469,7 +489,8 @@ export function OwnerDashboardPage() {
                 <Skeleton className="h-16 w-full" />
               </div>
             ) : expenses.length ? (
-              <div className="mt-5 space-y-3">
+              <div className={ownerDashboardFiveRecordViewportClassName}>
+                <div className="space-y-3">
                 {expenses.map((expense) => (
                   <div
                     className="rounded-2xl border border-[#E5E7EB] bg-[#FAFAFA] px-4 py-4"
@@ -498,6 +519,7 @@ export function OwnerDashboardPage() {
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             ) : (
               <div className="mt-5 rounded-2xl border border-dashed border-[#E5E7EB] bg-[#FAFAFA] px-4 py-8 text-center text-sm text-[#6B7280]">
