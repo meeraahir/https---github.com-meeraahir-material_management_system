@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { icons } from "../../assets/icons";
@@ -16,6 +16,7 @@ import { ConfirmDialog } from "../../components/modal/ConfirmDialog";
 import { Modal } from "../../components/modal/Modal";
 import { DataTable } from "../../components/table/DataTable";
 import { Button } from "../../components/ui/Button";
+import { TruncatedText } from "../../components/ui/TruncatedText";
 import { apiClient } from "../../api/client";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { attendanceReportsService } from "../../services/attendanceService";
@@ -46,7 +47,7 @@ import type {
   VendorPayment,
 } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatCurrency, formatDate, formatPaymentMode, getPaymentModeLabel } from "../../utils/format";
 import { DashboardLabourAttendanceModal } from "../dashboard/DashboardLabourAttendanceModal";
 import {
   SiteLabourPaymentModal,
@@ -399,7 +400,6 @@ function upsertById<TEntity extends { id: number }>(
 
 export function SiteDashboardPage() {
   const { siteId } = useParams();
-  const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const references = useReferenceData();
   const parsedSiteId = Number(siteId);
@@ -428,6 +428,7 @@ export function SiteDashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isReceiptDetailsModalOpen, setIsReceiptDetailsModalOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<SelectedReceipt | null>(null);
+  const [selectedLabourPayment, setSelectedLabourPayment] = useState<Payment | null>(null);
 
   const [materials, setMaterials] = useState<Material[]>(references.materials);
   const [vendors, setVendors] = useState<Vendor[]>(references.vendors);
@@ -797,31 +798,17 @@ export function SiteDashboardPage() {
         date: entry.date,
         id: String(entry.id),
         notes: normalizePaymentHistoryNote(entry.notes),
-        paymentMethod: entry.payment_mode
-          ? entry.payment_mode
-              .split("_")
-              .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-              .join(" ")
-          : undefined,
+        paymentMethod: formatPaymentMethodLabel(entry.payment_mode),
         referenceNumber: entry.reference_number || undefined,
         receiverName: entry.receiver_name || undefined,
         senderName: entry.sender_name || undefined,
       }));
   }
 
-  function formatPaymentMethodLabel(value: ReceivePaymentFormValues["payment_mode"] | undefined) {
-    if (!value) {
-      return undefined;
-    }
-
-    if (value === "bank_transfer") {
-      return "Bank Transfer";
-    }
-
-    return value
-      .split("_")
-      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-      .join(" ");
+  function formatPaymentMethodLabel(
+    value: ReceivePaymentFormValues["payment_mode"] | null | undefined,
+  ) {
+    return value ? formatPaymentMode(value) : undefined;
   }
 
   async function loadVendorDetail(
@@ -960,6 +947,14 @@ export function SiteDashboardPage() {
   function handleReceiptDetailsClose() {
     setIsReceiptDetailsModalOpen(false);
     setSelectedReceipt(null);
+  }
+
+  function handleLabourRowClick(row: Payment) {
+    setSelectedLabourPayment(row);
+  }
+
+  function handleLabourDetailsClose() {
+    setSelectedLabourPayment(null);
   }
 
   async function handleExport(format: "excel" | "pdf") {
@@ -1298,15 +1293,23 @@ export function SiteDashboardPage() {
                 {
                   key: "payment_mode",
                   header: "Payment Mode",
-                  accessor: (row) =>
-                    row.payment_mode ? (
+                  accessor: (row) => {
+                    const paymentModeLabel = getPaymentModeLabel(
+                      row as Purchase & { paymentMode?: string | null },
+                    );
+
+                    return paymentModeLabel !== "N/A" ? (
                       <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                        {row.payment_mode}
+                        {paymentModeLabel}
                       </span>
                     ) : (
-                      "-"
+                      "N/A"
+                    );
+                  },
+                  sortValue: (row) =>
+                    getPaymentModeLabel(
+                      row as Purchase & { paymentMode?: string | null },
                     ),
-                  sortValue: (row) => row.payment_mode || "",
                 },
                 {
                   key: "total_amount",
@@ -1498,7 +1501,7 @@ export function SiteDashboardPage() {
               hidePagination
               isLoading={isLoading}
               keyExtractor={(row) => row.id}
-              onRowClick={(row) => navigate(`/sites/${site.id}/dashboard/labours/${row.labour}`)}
+              onRowClick={handleLabourRowClick}
               page={1}
               searchValue=""
               totalCount={payments.length}
@@ -1525,6 +1528,89 @@ export function SiteDashboardPage() {
         siteId={site.id}
         siteName={site.name}
       />
+
+      <Modal
+        onClose={handleLabourDetailsClose}
+        open={Boolean(selectedLabourPayment)}
+        size="lg"
+        title={selectedLabourPayment?.labour_name || labourNameMap.get(selectedLabourPayment?.labour || 0) || "Labour Payment Details"}
+      >
+        {selectedLabourPayment ? (
+          <div className="space-y-5">
+            <section className="grid gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 md:grid-cols-2">
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                  Labour Name
+                </p>
+                <p className="mt-2 text-base font-semibold text-[#111111]">
+                  {selectedLabourPayment.labour_name || labourNameMap.get(selectedLabourPayment.labour) || "-"}
+                </p>
+              </div>
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                  Related Site
+                </p>
+                <p className="mt-2 text-base font-semibold text-[#111111]">
+                  {selectedLabourPayment.site_name || site.name}
+                </p>
+              </div>
+            </section>
+
+            <section className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                  Payment Date
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[#111111]">
+                  {selectedLabourPayment.date ? formatDate(selectedLabourPayment.date) : "-"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                  Period
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[#111111]">
+                  {selectedLabourPayment.period_start || selectedLabourPayment.period_end
+                    ? `${selectedLabourPayment.period_start ? formatDate(selectedLabourPayment.period_start) : "-"} to ${selectedLabourPayment.period_end ? formatDate(selectedLabourPayment.period_end) : "-"}`
+                    : "-"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                  Total Amount
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[#111111]">
+                  {formatCurrency(selectedLabourPayment.total_amount)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                  Paid Amount
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[#111111]">
+                  {formatCurrency(selectedLabourPayment.paid_amount)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                  Pending Amount
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[#111111]">
+                  {formatCurrency(selectedLabourPayment.pending_amount)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
+                  Notes
+                </p>
+                <p className="mt-2 text-base font-semibold text-[#111111]">
+                  {selectedLabourPayment.notes?.trim() || "-"}
+                </p>
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </Modal>
 
       <Modal
         onClose={handlePartyDetailsClose}
@@ -1627,7 +1713,7 @@ export function SiteDashboardPage() {
             ) : partyPaymentHistory.length ? (
               <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full border-collapse text-sm">
+                  <table className="min-w-full table-fixed border-collapse text-sm">
                     <thead className="bg-[#F9FAFB]">
                       <tr>
                         <th className="whitespace-nowrap px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
@@ -1663,19 +1749,19 @@ export function SiteDashboardPage() {
                             {formatDate(entry.date)}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
-                            {entry.paymentMethod || "-"}
+                            <TruncatedText value={entry.paymentMethod || "-"} />
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
-                            {entry.referenceNumber || "-"}
+                            <TruncatedText value={entry.referenceNumber || "-"} />
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
-                            {entry.senderName || "-"}
+                            <TruncatedText value={entry.senderName || "-"} />
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-[#111111]">
-                            {entry.receiverName || "-"}
+                            <TruncatedText value={entry.receiverName || "-"} />
                           </td>
                           <td className="px-4 py-3 text-[#111111]">
-                            {entry.notes || "-"}
+                            <TruncatedText value={entry.notes || "-"} />
                           </td>
                         </tr>
                       ))}

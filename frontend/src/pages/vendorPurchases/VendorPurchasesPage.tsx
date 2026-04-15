@@ -5,6 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { vendorPurchasesService } from "../../services/vendorPurchasesService";
 import type { Purchase, PurchaseFormValues } from "../../types/erp.types";
+import { formatPaymentMode } from "../../utils/format";
 import { getCrudPermissions } from "../../utils/permissions";
 
 const purchaseSchema = z
@@ -84,8 +85,16 @@ export function VendorPurchasesPage() {
         {
           key: "payment_mode",
           header: "Payment Mode",
-          accessor: (row) => row.payment_mode || "-",
-          sortValue: (row) => row.payment_mode || "",
+          accessor: (row) =>
+            formatPaymentMode(
+              row.payment_mode ??
+                (row as Purchase & { paymentMode?: string | null }).paymentMode,
+            ),
+          sortValue: (row) =>
+            formatPaymentMode(
+              row.payment_mode ??
+                (row as Purchase & { paymentMode?: string | null }).paymentMode,
+            ),
         },
         { key: "pending", header: "Pending", accessor: (row) => row.pending_amount, sortValue: (row) => row.pending_amount },
         { key: "status", header: "Status", accessor: (row) => getPaymentStatus(row), sortValue: (row) => getPaymentStatus(row) },
@@ -220,7 +229,14 @@ export function VendorPurchasesPage() {
         { label: "Purchase Date", value: (row) => row.date },
         { label: "Total Amount", value: (row) => row.total_amount, highlight: true },
         { label: "Initial Paid Amount", value: (row) => row.paid_amount, highlight: true },
-        { label: "Payment Mode", value: (row) => row.payment_mode },
+        {
+          label: "Payment Mode",
+          value: (row) =>
+            formatPaymentMode(
+              row.payment_mode ??
+                (row as Purchase & { paymentMode?: string | null }).paymentMode,
+            ),
+        },
         { label: "Sender Name", value: (row) => row.sender_name },
         { label: "Receiver Name", value: (row) => row.receiver_name },
         { label: "Cheque Number", value: (row) => row.cheque_number },

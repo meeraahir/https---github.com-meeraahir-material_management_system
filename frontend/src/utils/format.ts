@@ -53,3 +53,52 @@ export function formatDate(value: string | null | undefined): string {
 
   return dateFormatter.format(parsedDate);
 }
+
+export function truncateText(value: string | null | undefined, limit = 20): string {
+  if (!value) {
+    return "";
+  }
+
+  return value.length > limit ? `${value.slice(0, limit)}...` : value;
+}
+
+export function formatPaymentMode(value: string | null | undefined): string {
+  if (!value) {
+    return "N/A";
+  }
+
+  const normalizedValue = value.trim().replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
+
+  if (normalizedValue === "cash") {
+    return "Cash";
+  }
+
+  if (normalizedValue === "upi") {
+    return "UPI";
+  }
+
+  if (normalizedValue === "bank" || normalizedValue === "bank_transfer") {
+    return "Bank Transfer";
+  }
+
+  if (normalizedValue === "check") {
+    return "Check";
+  }
+
+  if (normalizedValue === "other") {
+    return "Other";
+  }
+
+  return normalizedValue
+    .split("_")
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+export function getPaymentModeLabel(source: {
+  payment_mode?: string | null;
+  paymentMode?: string | null;
+} | null | undefined): string {
+  return formatPaymentMode(source?.payment_mode ?? source?.paymentMode);
+}

@@ -8,6 +8,7 @@ import { EntityFormModal } from "../../components/forms/EntityFormModal";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { StatCard } from "../../components/layout/StatCard";
 import { Button } from "../../components/ui/Button";
+import { TruncatedText } from "../../components/ui/TruncatedText";
 import { miscellaneousExpensesService } from "../../services/miscellaneousExpensesService";
 import { ownerDashboardService } from "../../services/ownerDashboardService";
 import { ownerPayoutsService } from "../../services/ownerPayoutsService";
@@ -304,9 +305,11 @@ export function OwnerDashboardPage() {
                   {dashboard.site_overview.map((site) => (
                     <tr className="align-top" key={site.site_id}>
                       <td className="break-words px-3 py-4">
-                        <p className="font-semibold text-[#111111]">{site.site_name}</p>
+                        <TruncatedText className="font-semibold text-[#111111]" value={site.site_name} />
                       </td>
-                      <td className="break-words px-3 py-4 text-[#4B5563]">{site.location || "-"}</td>
+                      <td className="break-words px-3 py-4 text-[#4B5563]">
+                        <TruncatedText value={site.location || "-"} />
+                      </td>
                       <td className="px-3 py-4">
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${

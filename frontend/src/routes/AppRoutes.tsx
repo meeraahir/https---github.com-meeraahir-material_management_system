@@ -63,11 +63,6 @@ const CasualLabourPage = lazy(() =>
     default: module.CasualLabourPage,
   })),
 );
-const LabourLedgerPage = lazy(() =>
-  import("../pages/labourLedger/LabourLedgerPage").then((module) => ({
-    default: module.LabourLedgerPage,
-  })),
-);
 const LabourAttendanceReportPage = lazy(() =>
   import("../pages/labourAttendanceReport/LabourAttendanceReportPage").then(
     (module) => ({
@@ -194,7 +189,6 @@ export function AppRoutes() {
             <Route path="/vendor-dues" element={<VendorPendingReportPage />} />
             <Route path="/labour" element={<LabourPage />} />
             <Route path="/casual-labour" element={<CasualLabourPage />} />
-            <Route path="/labour-ledger" element={<LabourLedgerPage />} />
             <Route path="/monthly-attendance" element={<LabourAttendanceReportPage />} />
             <Route path="/parties" element={<PartiesPage />} />
             <Route path="/party-ledger" element={<PartyLedgerPage />} />

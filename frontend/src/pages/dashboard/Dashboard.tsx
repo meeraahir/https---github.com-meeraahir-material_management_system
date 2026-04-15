@@ -286,6 +286,7 @@ export function DashboardPage() {
         onClose={() => {
           setIsAttendanceModalOpen(false);
         }}
+        onSaved={loadDashboard}
         open={isAttendanceModalOpen}
       />
     </div>

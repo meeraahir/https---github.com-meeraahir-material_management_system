@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -10,6 +10,7 @@ import { Button } from "../../components/ui/Button";
 import { FormError } from "../../components/ui/FormError";
 import { Input } from "../../components/ui/Input";
 import { Loader } from "../../components/ui/Loader";
+import { TruncatedText } from "../../components/ui/TruncatedText";
 import type { CasualLabourEntry, Labour, PaginatedResponse } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
 import { formatCurrency } from "../../utils/format";
@@ -18,7 +19,6 @@ import { casualLabourService } from "../../services/casualLabourService";
 import { labourService } from "../../services/labourService";
 
 const casualLabourToday = new Date().toISOString().slice(0, 10);
-const casualLabourContactStorageKey = "site-dashboard-casual-labour-contacts";
 
 interface LabourListItem {
   contact?: string | null;
@@ -36,11 +36,11 @@ interface LabourListProps {
   isLoading: boolean;
   items: LabourListItem[];
   onAddClick?: () => void;
+  showContact?: boolean;
   title: string;
 }
 
 interface CasualLabourContactFormValues {
-  contact?: string;
   labour_name: string;
   labour_type: string;
   paid_amount: number;
@@ -61,7 +61,6 @@ interface SiteRegularLabourBrowserModalProps {
 }
 
 const casualLabourAddSchema = z.object({
-  contact: z.string().trim().max(20, "Contact must be 20 characters or fewer.").optional().or(z.literal("")),
   labour_name: z
     .string()
     .trim()
@@ -74,47 +73,6 @@ const casualLabourAddSchema = z.object({
     .max(100, "Work type must be 100 characters or fewer."),
   paid_amount: z.number().gt(0, "Daily wage must be greater than zero."),
 });
-
-function getCasualContactKey(entry: Pick<CasualLabourEntry, "date" | "labour_name" | "labour_type" | "paid_amount" | "site">) {
-  return [
-    entry.site,
-    entry.date,
-    entry.labour_name.trim().toLowerCase(),
-    entry.labour_type.trim().toLowerCase(),
-    entry.paid_amount,
-  ].join("|");
-}
-
-function readCasualContactMap() {
-  if (typeof window === "undefined") {
-    return {} as Record<string, string>;
-  }
-
-  try {
-    const storedValue = window.localStorage.getItem(casualLabourContactStorageKey);
-
-    if (!storedValue) {
-      return {} as Record<string, string>;
-    }
-
-    const parsedValue = JSON.parse(storedValue) as Record<string, string>;
-    return parsedValue && typeof parsedValue === "object" ? parsedValue : {};
-  } catch {
-    return {} as Record<string, string>;
-  }
-}
-
-function writeCasualContactMap(nextValue: Record<string, string>) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(casualLabourContactStorageKey, JSON.stringify(nextValue));
-  } catch {
-    // Ignore storage failures so the main labour flow still works.
-  }
-}
 
 async function fetchAllPaginatedResults<TEntity>(
   path: string,
@@ -143,6 +101,7 @@ function LabourList({
   isLoading,
   items,
   onAddClick,
+  showContact = true,
   title,
 }: LabourListProps) {
   const headerButton = onAddClick ? (
@@ -197,10 +156,12 @@ function LabourList({
                   </span>
                 </div>
                 <div className="mt-3 grid gap-2 text-sm text-[#4B5563]">
-                  <div className="flex items-center justify-between gap-4">
-                    <span>Contact</span>
-                    <span className="font-medium text-[#111111]">{item.contact || "-"}</span>
-                  </div>
+                  {showContact ? (
+                    <div className="flex items-center justify-between gap-4">
+                      <span>Contact</span>
+                      <span className="font-medium text-[#111111]">{item.contact || "-"}</span>
+                    </div>
+                  ) : null}
                   {item.secondaryText ? (
                     <div className="flex items-center justify-between gap-4">
                       <span>Details</span>
@@ -213,24 +174,36 @@ function LabourList({
           </div>
 
           <div className="hidden md:block">
-            <table className="min-w-full divide-y divide-[#E5E7EB]">
+            <table className="min-w-full table-fixed divide-y divide-[#E5E7EB]">
               <thead className="bg-[#F9FAFB]">
                 <tr>
                   <th className="px-5 py-3 text-left text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">Labour Name</th>
                   <th className="px-5 py-3 text-left text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">Role / Type</th>
                   <th className="px-5 py-3 text-left text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">Daily Wage</th>
-                  <th className="px-5 py-3 text-left text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">Contact</th>
+                  {showContact ? (
+                    <th className="px-5 py-3 text-left text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">Contact</th>
+                  ) : null}
                   <th className="px-5 py-3 text-left text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F3F4F6]">
                 {items.map((item) => (
                   <tr className="transition duration-200 hover:bg-[#FAFAFA]" key={item.id}>
-                    <td className="px-5 py-4 text-sm font-semibold text-[#111111]">{item.name}</td>
-                    <td className="px-5 py-4 text-sm text-[#374151]">{item.role || "-"}</td>
+                    <td className="px-5 py-4 text-sm font-semibold text-[#111111]">
+                      <TruncatedText value={item.name} />
+                    </td>
+                    <td className="px-5 py-4 text-sm text-[#374151]">
+                      <TruncatedText value={item.role || "-"} />
+                    </td>
                     <td className="px-5 py-4 text-sm font-medium text-[#111111]">{item.wageLabel}</td>
-                    <td className="px-5 py-4 text-sm text-[#374151]">{item.contact || "-"}</td>
-                    <td className="px-5 py-4 text-sm text-[#374151]">{item.secondaryText || "-"}</td>
+                    {showContact ? (
+                      <td className="px-5 py-4 text-sm text-[#374151]">
+                        <TruncatedText value={item.contact || "-"} />
+                      </td>
+                    ) : null}
+                    <td className="px-5 py-4 text-sm text-[#374151]">
+                      <TruncatedText value={item.secondaryText || "-"} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -264,7 +237,6 @@ function AddCasualLabourModal({
     reset,
   } = useForm<CasualLabourContactFormValues>({
     defaultValues: {
-      contact: "",
       labour_name: "",
       labour_type: "",
       paid_amount: 0,
@@ -279,7 +251,6 @@ function AddCasualLabourModal({
     }
 
     reset({
-      contact: "",
       labour_name: "",
       labour_type: "",
       paid_amount: 0,
@@ -315,20 +286,13 @@ function AddCasualLabourModal({
           onSubmit={handleSubmit(async (values) => {
             try {
               setFormError("");
-              const contactValue = values.contact?.trim() ?? "";
-              const createdEntry = await casualLabourService.create({
+              await casualLabourService.create({
                 date: casualLabourToday,
                 labour_name: values.labour_name,
                 labour_type: values.labour_type,
                 paid_amount: values.paid_amount,
                 site: siteId,
               });
-
-              if (contactValue) {
-                const currentMap = readCasualContactMap();
-                currentMap[getCasualContactKey(createdEntry)] = contactValue;
-                writeCasualContactMap(currentMap);
-              }
 
               await onSaved();
               showSuccess("Casual labour added", "The casual labour list has been refreshed.");
@@ -368,14 +332,6 @@ function AddCasualLabourModal({
               setValueAs: (value) => (value === "" ? 0 : Number(value)),
             })}
           />
-          <Input
-            description="Stored in this browser because the current API does not include a casual labour contact field."
-            error={errors.contact?.message}
-            label="Contact"
-            maxLength={20}
-            placeholder="Optional contact number"
-            {...register("contact")}
-          />
 
           <div className="md:col-span-2">
             <FormError message={formError} />
@@ -398,7 +354,6 @@ export function SiteCasualLabourBrowserModal({
   const [error, setError] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const contactMap = useMemo(() => readCasualContactMap(), [casualEntries, open]);
 
   async function loadCasualLabour() {
     try {
@@ -466,7 +421,6 @@ export function SiteCasualLabourBrowserModal({
             emptyMessage="No casual labour entries are available for this site yet."
             isLoading={isLoading}
             items={casualEntries.map((entry) => ({
-              contact: contactMap[getCasualContactKey(entry)] || null,
               id: entry.id,
               name: entry.labour_name,
               role: entry.labour_type,
@@ -474,12 +428,9 @@ export function SiteCasualLabourBrowserModal({
               wageLabel: formatCurrency(entry.paid_amount),
             }))}
             onAddClick={() => setIsAddModalOpen(true)}
+            showContact={false}
             title="Casual Labour List"
           />
-
-          <p className="text-xs text-[#6B7280]">
-            Contact is shown when available in frontend storage. The current casual labour API does not return a contact field.
-          </p>
         </div>
       </Modal>
 

@@ -8,6 +8,7 @@ export interface TableColumn<T> {
   accessor: (row: T) => ReactNode;
   className?: string;
   sortValue?: (row: T) => boolean | number | string | null;
+  truncateLimit?: number;
 }
 
 export interface TableAction<T> {

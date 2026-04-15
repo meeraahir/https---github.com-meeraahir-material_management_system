@@ -1,5 +1,7 @@
 import clsx from "clsx";
 
+import { TruncatedText } from "../../components/ui/TruncatedText";
+
 export interface LabourAttendanceRow {
   isPresent: boolean;
   key: string;
@@ -65,7 +67,7 @@ export function LabourAttendanceList({
         </div>
 
         <div className="hidden md:block">
-          <table className="min-w-full divide-y divide-[#E5E7EB]">
+          <table className="min-w-full table-fixed divide-y divide-[#E5E7EB]">
             <thead className="bg-[#F9FAFB]">
               <tr>
                 <th className="px-4 py-3 text-left text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
@@ -82,7 +84,9 @@ export function LabourAttendanceList({
                   className={clsx("transition", row.isPresent ? "bg-emerald-50/45" : "bg-white")}
                   key={row.key}
                 >
-                  <td className="px-4 py-3 text-sm font-medium text-[#111111]">{row.labourName}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-[#111111]">
+                    <TruncatedText value={row.labourName} />
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <input
                       checked={row.isPresent}

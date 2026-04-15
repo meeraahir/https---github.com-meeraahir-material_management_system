@@ -10,6 +10,7 @@ import { attendanceService } from "../../services/attendanceService";
 import { labourService } from "../../services/labourService";
 import { sitesService } from "../../services/sitesService";
 import type { Attendance, AttendanceFormValues, Labour, Site } from "../../types/erp.types";
+import { emitAttendanceUpdated } from "../../utils/attendance";
 import { getErrorMessage } from "../../utils/apiError";
 import { LabourAttendanceList, type LabourAttendanceRow } from "./LabourAttendanceList";
 
@@ -311,6 +312,22 @@ export function DashboardLabourAttendanceModal({
       }
 
       await Promise.all(requests);
+      const refreshedAttendance = await attendanceService.getBySiteAndDate(
+        selectedSiteId,
+        selectedDate,
+      );
+
+      setAttendanceRows(refreshedAttendance);
+      setSelectedRowKeys(
+        refreshedAttendance
+          .filter((row) => row.present)
+          .map((row) => `regular-${row.site}-${row.labour}`),
+      );
+      emitAttendanceUpdated({
+        date: selectedDate,
+        labourIds: rows.map((row) => row.labourId),
+        siteId: selectedSiteId,
+      });
       showSuccess("Attendance saved", "Attendance updated successfully.");
       await onSaved?.();
       onClose();

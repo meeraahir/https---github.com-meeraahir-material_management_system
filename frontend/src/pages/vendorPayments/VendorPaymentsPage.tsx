@@ -12,7 +12,7 @@ import type {
   VendorPaymentFormValues,
 } from "../../types/erp.types";
 import { getErrorMessage } from "../../utils/apiError";
-import { formatNumber } from "../../utils/format";
+import { formatNumber, formatPaymentMode } from "../../utils/format";
 import { getCrudPermissions } from "../../utils/permissions";
 
 const vendorPaymentSchema = z.object({
@@ -94,8 +94,16 @@ export function VendorPaymentsPage() {
         {
           key: "payment_mode",
           header: "Payment Mode",
-          accessor: (row) => row.payment_mode || "-",
-          sortValue: (row) => row.payment_mode || "",
+          accessor: (row) =>
+            formatPaymentMode(
+              row.payment_mode ??
+                (row as VendorPayment & { paymentMode?: string | null }).paymentMode,
+            ),
+          sortValue: (row) =>
+            formatPaymentMode(
+              row.payment_mode ??
+                (row as VendorPayment & { paymentMode?: string | null }).paymentMode,
+            ),
         },
         {
           key: "reference",
@@ -223,7 +231,14 @@ export function VendorPaymentsPage() {
         { label: "Purchase Total Amount", value: (row) => row.purchase_total_amount },
         { label: "Payment Amount", value: (row) => row.amount, highlight: true },
         { label: "Payment Date", value: (row) => row.date },
-        { label: "Payment Mode", value: (row) => row.payment_mode },
+        {
+          label: "Payment Mode",
+          value: (row) =>
+            formatPaymentMode(
+              row.payment_mode ??
+                (row as VendorPayment & { paymentMode?: string | null }).paymentMode,
+            ),
+        },
         { label: "Sender Name", value: (row) => row.sender_name },
         { label: "Receiver Name", value: (row) => row.receiver_name },
         { label: "Cheque Number", value: (row) => row.cheque_number },

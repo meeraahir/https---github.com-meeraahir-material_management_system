@@ -3,6 +3,7 @@ import { useState } from "react";
 import { LedgerStatementPage } from "../../components/ledger/LedgerStatementPage";
 import { Modal } from "../../components/modal/Modal";
 import { Button } from "../../components/ui/Button";
+import { TruncatedText } from "../../components/ui/TruncatedText";
 import { useReferenceData } from "../../hooks/useReferenceData";
 import { labourReportsService } from "../../services/labourService";
 import { paymentsService } from "../../services/paymentsService";
@@ -180,7 +181,7 @@ function MovementDetailsModal({
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] divide-y divide-slate-200 text-sm dark:divide-slate-800">
+              <table className="w-full table-fixed divide-y divide-slate-200 text-sm dark:divide-slate-800">
                 <thead className="bg-slate-50 dark:bg-slate-900/80">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Date</th>
@@ -201,7 +202,7 @@ function MovementDetailsModal({
                         {movement.type === "wage" ? "Wage Created" : "Payment Done"}
                       </td>
                       <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                        {movement.reference}
+                        <TruncatedText value={movement.reference} />
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-slate-100">
                         {formatCurrency(movement.debit)}

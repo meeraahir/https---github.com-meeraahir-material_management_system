@@ -8,6 +8,7 @@ import { formatCurrency, formatDate, formatNumber } from "../../utils/format";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { Loader } from "../ui/Loader";
+import { TruncatedText } from "../ui/TruncatedText";
 
 interface DataTableProps<T> {
   actions?: TableAction<T>[];
@@ -169,6 +170,14 @@ function getCellTooltip(value: ReactNode): string | undefined {
   }
 
   return undefined;
+}
+
+function shouldTruncateFormattedValue(value: ReactNode) {
+  return (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  );
 }
 
 function getActionVariantClass(label: string) {
@@ -337,9 +346,21 @@ export function DataTable<T>({
                           )}
                           title={getCellTooltip(cellValue)}
                         >
-                          <span className="inline-block max-w-full overflow-hidden text-ellipsis align-bottom">
-                            {formattedValue}
-                          </span>
+                          {shouldTruncateFormattedValue(formattedValue) ? (
+                            <TruncatedText
+                              className="ml-auto max-w-full"
+                              limit={column.truncateLimit}
+                              title={getCellTooltip(cellValue)}
+                              value={formattedValue}
+                            />
+                          ) : (
+                            <span
+                              className="inline-block max-w-full overflow-hidden text-ellipsis align-bottom"
+                              title={getCellTooltip(cellValue)}
+                            >
+                              {formattedValue}
+                            </span>
+                          )}
                         </dd>
                       </div>
                     );
@@ -498,12 +519,21 @@ export function DataTable<T>({
                           )}
                           key={column.key}
                         >
-                          <div
-                            className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
-                            title={getCellTooltip(cellValue)}
-                          >
-                            {formattedValue}
-                          </div>
+                          {shouldTruncateFormattedValue(formattedValue) ? (
+                            <TruncatedText
+                              className="max-w-[14rem]"
+                              limit={column.truncateLimit}
+                              title={getCellTooltip(cellValue)}
+                              value={formattedValue}
+                            />
+                          ) : (
+                            <div
+                              className="block max-w-[14rem] overflow-hidden text-ellipsis whitespace-nowrap"
+                              title={getCellTooltip(cellValue)}
+                            >
+                              {formattedValue}
+                            </div>
+                          )}
                         </td>
                       );
                     })}
